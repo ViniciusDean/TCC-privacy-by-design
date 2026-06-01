@@ -1,0 +1,15 @@
+**/.git/**
+**/.gitignore
+**/.vscode/**
+**/.vscode-test/**
+**/out/test/**
+**/src/test/**
+**/.prettierrc
+**/webpack.config.js
+**/README.md
+**/tsconfig.json
+**/tslint.json
+**/package-lock.json
+**/*.map
+**/*.ts
+**/.github/**

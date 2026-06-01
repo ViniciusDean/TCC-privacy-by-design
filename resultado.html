@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Privacy Scanner — Relatório de Conformidade LGPD</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body      { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f6f9;
+                color: #2c3e50; font-size: 14px; }
+    header    { background: #1a2744; color: #fff; padding: 24px 40px;
+                display: flex; justify-content: space-between; align-items: center; }
+    header h1 { font-size: 20px; font-weight: 600; }
+    header p  { font-size: 12px; opacity: .7; margin-top: 4px; }
+    .main     { padding: 32px 40px; }
+
+    /* Cartões do sumário */
+    .cards    { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px;
+                margin-bottom: 32px; }
+    .card     { background: #fff; border-radius: 10px; padding: 20px 24px;
+                box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    .card .num  { font-size: 36px; font-weight: 700; }
+    .card .lbl  { font-size: 12px; color: #888; margin-top: 4px; }
+    .card.score .num { color: #e74c3c; }
+
+    /* Barras */
+    .barras   { background:#fff; border-radius:10px; padding:20px 24px;
+                box-shadow:0 1px 4px rgba(0,0,0,.08); margin-bottom:32px; }
+    .barras h2 { font-size:14px; font-weight:600; margin-bottom:16px; }
+    .barra-item { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+    .barra-label { width:50px; font-size:12px; font-weight:600; }
+    .barra-fundo { flex:1; background:#eee; border-radius:4px; height:12px; }
+    .barra-fill  { height:12px; border-radius:4px; transition:width .4s; }
+    .barra-num   { width:30px; text-align:right; font-size:12px; font-weight:700; }
+
+    /* Tabela */
+    .tabela-wrap { background:#fff; border-radius:10px;
+                   box-shadow:0 1px 4px rgba(0,0,0,.08); overflow:hidden; }
+    .tabela-wrap h2 { font-size:14px; font-weight:600; padding:16px 24px;
+                      border-bottom:1px solid #f0f0f0; }
+    table      { width:100%; border-collapse:collapse; font-size:13px; }
+    th         { background:#f8f9fb; padding:10px 12px; text-align:left;
+                font-weight:600; font-size:12px; color:#555;
+                border-bottom:1px solid #e8e8e8; }
+    td         { padding:10px 12px; border-bottom:1px solid #f0f0f0;
+                vertical-align:top; }
+    tr:last-child td { border-bottom:none; }
+    tr:hover td { background:#fafbfc; }
+    code       { background:#f0f0f0; padding:2px 6px; border-radius:4px;
+                font-size:11px; font-family:monospace; word-break:break-all; }
+
+    /* Badges de risco */
+    .badge     { display:inline-block; padding:2px 8px; border-radius:12px;
+                font-size:11px; font-weight:700; }
+    .badge.alto  { background:#fde8e8; color:#c0392b; }
+    .badge.medio { background:#fef3cd; color:#856404; }
+    .badge.baixo { background:#d1ecf1; color:#0c5460; }
+
+    footer { text-align:center; padding:24px; color:#aaa; font-size:12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>🔒 Privacy Scanner — Relatório de Conformidade LGPD</h1>
+      <p>Gerado em 2026-06-01 20:16:18 &nbsp;|&nbsp; TCC FATEC &nbsp;|&nbsp;
+         Privacy by Design no Ciclo de Desenvolvimento de Software</p>
+    </div>
+  </header>
+
+  <div class="main">
+
+    <!-- Cartões -->
+    <div class="cards">
+      <div class="card">
+        <div class="num">7</div>
+        <div class="lbl">Total de vulnerabilidades</div>
+      </div>
+      <div class="card" style="border-top:3px solid #e74c3c">
+        <div class="num" style="color:#e74c3c">5</div>
+        <div class="lbl">Risco ALTO</div>
+      </div>
+      <div class="card" style="border-top:3px solid #f39c12">
+        <div class="num" style="color:#f39c12">2</div>
+        <div class="lbl">Risco MÉDIO</div>
+      </div>
+      <div class="card score" style="border-top:3px solid #e74c3c">
+        <div class="num">40/100</div>
+        <div class="lbl">Score de conformidade LGPD</div>
+      </div>
+    </div>
+
+    <!-- Barras -->
+    <div class="barras">
+      <h2>Distribuição por nível de risco</h2>
+      
+            <div class="barra-item">
+              <span class="barra-label">ALTO</span>
+              <div class="barra-fundo">
+                <div class="barra-fill" style="width:40%;background:#e74c3c"></div>
+              </div>
+              <span class="barra-num">5</span>
+            </div>
+            <div class="barra-item">
+              <span class="barra-label">MÉDIO</span>
+              <div class="barra-fundo">
+                <div class="barra-fill" style="width:16%;background:#f39c12"></div>
+              </div>
+              <span class="barra-num">2</span>
+            </div>
+            <div class="barra-item">
+              <span class="barra-label">BAIXO</span>
+              <div class="barra-fundo">
+                <div class="barra-fill" style="width:0%;background:#3498db"></div>
+              </div>
+              <span class="barra-num">0</span>
+            </div>
+    </div>
+
+    <!-- Tabela -->
+    <div class="tabela-wrap">
+      <h2>Vulnerabilidades encontradas</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Risco</th>
+            <th>Categoria</th>
+            <th>Local</th>
+            <th>Artigo LGPD</th>
+            <th>Descrição</th>
+            <th>Recomendação</th>
+            <th>Trecho</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+            <tr>
+              <td><span class="badge alto">ALTO</span></td>
+              <td><strong>DADO_HARDCODED</strong></td>
+              <td>exemplo_vulneravel.py:11</td>
+              <td>Art. 46 — Segurança e prevenção</td>
+              <td>Campo sensível 'senha' recebe valor literal (dado pessoal fixo no código).</td>
+              <td>Remova valores literais de dados pessoais do código-fonte. Use variáveis de ambiente ou cofres de segredos (ex: .env, AWS Secrets Manager).</td>
+              <td><code>senha = "minhasenha123"         # ALTO — dado pessoal fixo no código</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge alto">ALTO</span></td>
+              <td><strong>DADO_HARDCODED</strong></td>
+              <td>exemplo_vulneravel.py:12</td>
+              <td>Art. 46 — Segurança e prevenção</td>
+              <td>Campo sensível 'cpf' recebe valor literal (dado pessoal fixo no código).</td>
+              <td>Remova valores literais de dados pessoais do código-fonte. Use variáveis de ambiente ou cofres de segredos (ex: .env, AWS Secrets Manager).</td>
+              <td><code>cpf   = "123.456.789-00"        # ALTO — CPF hardcoded</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge alto">ALTO</span></td>
+              <td><strong>CRIPTOGRAFIA_FRACA</strong></td>
+              <td>exemplo_vulneravel.py:15</td>
+              <td>Art. 46 — Segurança e prevenção</td>
+              <td>Uso de algoritmo fraco: hashlib.md5(). Para senhas use bcrypt ou argon2; para integridade use sha256+.</td>
+              <td>Substitua MD5/SHA1 por algoritmos modernos. Para senhas: bcrypt, argon2 ou pbkdf2. Para integridade: SHA-256 ou SHA-512.</td>
+              <td><code>hash_senha = hashlib.md5(senha.encode()).hexdigest()   # ALTO — md5 é fraco</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge alto">ALTO</span></td>
+              <td><strong>DADO_EM_LOG</strong></td>
+              <td>exemplo_vulneravel.py:18</td>
+              <td>Art. 46 — Segurança | Art. 6º, III — Necessidade</td>
+              <td>Dado pessoal 'cpf' registrado em log/print. Logs com dados identificáveis violam o princípio da minimização.</td>
+              <td>Remova dados pessoais de logs. Use IDs técnicos (UUID) no lugar de CPF/email. Se necessário logar, aplique mascaramento: '***.***.789-**'.</td>
+              <td><code>logging.info(f"Usuário autenticado: {cpf}")            # ALTO — CPF no log</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge alto">ALTO</span></td>
+              <td><strong>TRANSFERENCIA_SEM_BASE_LEGAL</strong></td>
+              <td>exemplo_vulneravel.py:21</td>
+              <td>Art. 7º — Hipóteses de tratamento | Art. 33 — Transferência internacional</td>
+              <td>Campo 'cpf' enviado para serviço externo (requests.post). Verifique se há base legal documentada para esta transferência.</td>
+              <td>Documente a base legal para cada transferência de dados a terceiros (Art. 7º LGPD). Considere anonimizar ou pseudonimizar antes de enviar.</td>
+              <td><code>requests.post(</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge medio">MÉDIO</span></td>
+              <td><strong>COLETA_EXCESSIVA</strong></td>
+              <td>exemplo_vulneravel.py:28</td>
+              <td>Art. 6º, III — Necessidade | Art. 6º, I — Finalidade</td>
+              <td>Função 'cadastrar_usuario' recebe 7 campos sensíveis (nome, email, cpf, telefone, nascimento, endereco, renda). Verifique se todos são estritamente necessários para a finalidade.</td>
+              <td>Revise os parâmetros da função e colete apenas o mínimo necessário para a finalidade declarada (princípio da minimização — Art. 6º, III).</td>
+              <td><code>def cadastrar_usuario(nome, email, cpf, telefone, nascimento, endereco, renda):</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge medio">MÉDIO</span></td>
+              <td><strong>AUSENCIA_EXCLUSAO</strong></td>
+              <td>exemplo_vulneravel.py:33</td>
+              <td>Art. 18, IV — Direito à eliminação dos dados</td>
+              <td>Classe 'Usuario' contém campos sensíveis (nome, email, cpf) mas não define método de exclusão ou anonimização.</td>
+              <td>Implemente método de exclusão ou anonimização na classe. O titular tem direito à eliminação dos dados (Art. 18, IV LGPD).</td>
+              <td><code>class Usuario:</code></td>
+            </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>Privacy Scanner v1.0.0 — TCC FATEC — Privacy by Design no SDLC</footer>
+</body>
+</html>

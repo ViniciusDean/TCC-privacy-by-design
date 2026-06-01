@@ -1,0 +1,138 @@
+{
+  "name": "privacy-scanner-lgpd",
+  "displayName": "Privacy Scanner LGPD",
+  "description": "Análise estática de vulnerabilidades de privacidade conforme LGPD e Privacy by Design",
+  "version": "1.0.0",
+  "author": "TCC FATEC",
+  "license": "MIT",
+  "publisher": "fatec-tcc",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/seu-usuario/privacy-scanner"
+  },
+  "engines": {
+    "vscode": "^1.60.0",
+    "node": "^14.0.0"
+  },
+  "categories": [
+    "Linters",
+    "Security"
+  ],
+  "keywords": [
+    "privacy",
+    "lgpd",
+    "security",
+    "compliance",
+    "pyd"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "onLanguage:python",
+    "onCommand:privacy-scanner.analyze",
+    "onCommand:privacy-scanner.analyzeAll",
+    "onCommand:privacy-scanner.exportHTML",
+    "onCommand:privacy-scanner.exportJSON"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "privacy-scanner.analyze",
+        "title": "Privacy Scanner: Analisar arquivo atual",
+        "category": "Privacy Scanner"
+      },
+      {
+        "command": "privacy-scanner.analyzeAll",
+        "title": "Privacy Scanner: Analisar projeto inteiro",
+        "category": "Privacy Scanner"
+      },
+      {
+        "command": "privacy-scanner.exportHTML",
+        "title": "Privacy Scanner: Exportar relatório HTML",
+        "category": "Privacy Scanner"
+      },
+      {
+        "command": "privacy-scanner.exportJSON",
+        "title": "Privacy Scanner: Exportar relatório JSON",
+        "category": "Privacy Scanner"
+      },
+      {
+        "command": "privacy-scanner.showSidebar",
+        "title": "Privacy Scanner: Mostrar vulnerabilidades",
+        "category": "Privacy Scanner"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "privacy-scanner-sidebar",
+          "title": "Privacy Scanner",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "privacy-scanner-sidebar": [
+        {
+          "id": "privacy-scanner-vulnerabilities",
+          "name": "Vulnerabilidades",
+          "when": "privacy-scanner:showVulnerabilities"
+        },
+        {
+          "id": "privacy-scanner-summary",
+          "name": "Resumo",
+          "when": "privacy-scanner:showSummary"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Privacy Scanner",
+      "properties": {
+        "privacy-scanner.serverPort": {
+          "type": "number",
+          "default": 5000,
+          "description": "Porta do servidor Flask para análise"
+        },
+        "privacy-scanner.autoAnalyzeOnSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Analisar arquivo automaticamente ao salvar"
+        },
+        "privacy-scanner.pythonPath": {
+          "type": "string",
+          "default": "python",
+          "description": "Caminho para o executável Python (ex: python, python3, /usr/bin/python)"
+        },
+        "privacy-scanner.enableSidebar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Mostrar sidebar com vulnerabilidades"
+        },
+        "privacy-scanner.showDiagnostics": {
+          "type": "boolean",
+          "default": true,
+          "description": "Mostrar vulnerabilidades no painel Problems"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.60.0",
+    "@types/node": "^14.0.0",
+    "@typescript-eslint/eslint-plugin": "^4.0.0",
+    "@typescript-eslint/parser": "^4.0.0",
+    "eslint": "^7.0.0",
+    "typescript": "^4.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.4.0"
+  }
+}

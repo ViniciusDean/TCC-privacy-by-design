@@ -1,0 +1,94 @@
+{
+  "ferramenta": "Privacy Scanner — TCC FATEC",
+  "versao": "1.0.0",
+  "timestamp": "2026-06-01 20:16:18",
+  "sumario": {
+    "total": 7,
+    "por_risco": {
+      "ALTO": 5,
+      "MEDIO": 2,
+      "BAIXO": 0
+    },
+    "por_categoria": {
+      "DADO_HARDCODED": 2,
+      "CRIPTOGRAFIA_FRACA": 1,
+      "DADO_EM_LOG": 1,
+      "TRANSFERENCIA_SEM_BASE_LEGAL": 1,
+      "COLETA_EXCESSIVA": 1,
+      "AUSENCIA_EXCLUSAO": 1
+    },
+    "score_conformidade": 40
+  },
+  "vulnerabilidades": [
+    {
+      "arquivo": "exemplo_vulneravel.py",
+      "linha": 11,
+      "categoria": "DADO_HARDCODED",
+      "descricao": "Campo sensível 'senha' recebe valor literal (dado pessoal fixo no código).",
+      "risco": "ALTO",
+      "artigo_lgpd": "Art. 46 — Segurança e prevenção",
+      "trecho": "senha = \"minhasenha123\"         # ALTO — dado pessoal fixo no código",
+      "recomendacao": "Remova valores literais de dados pessoais do código-fonte. Use variáveis de ambiente ou cofres de segredos (ex: .env, AWS Secrets Manager)."
+    },
+    {
+      "arquivo": "exemplo_vulneravel.py",
+      "linha": 12,
+      "categoria": "DADO_HARDCODED",
+      "descricao": "Campo sensível 'cpf' recebe valor literal (dado pessoal fixo no código).",
+      "risco": "ALTO",
+      "artigo_lgpd": "Art. 46 — Segurança e prevenção",
+      "trecho": "cpf   = \"123.456.789-00\"        # ALTO — CPF hardcoded",
+      "recomendacao": "Remova valores literais de dados pessoais do código-fonte. Use variáveis de ambiente ou cofres de segredos (ex: .env, AWS Secrets Manager)."
+    },
+    {
+      "arquivo": "exemplo_vulneravel.py",
+      "linha": 15,
+      "categoria": "CRIPTOGRAFIA_FRACA",
+      "descricao": "Uso de algoritmo fraco: hashlib.md5(). Para senhas use bcrypt ou argon2; para integridade use sha256+.",
+      "risco": "ALTO",
+      "artigo_lgpd": "Art. 46 — Segurança e prevenção",
+      "trecho": "hash_senha = hashlib.md5(senha.encode()).hexdigest()   # ALTO — md5 é fraco",
+      "recomendacao": "Substitua MD5/SHA1 por algoritmos modernos. Para senhas: bcrypt, argon2 ou pbkdf2. Para integridade: SHA-256 ou SHA-512."
+    },
+    {
+      "arquivo": "exemplo_vulneravel.py",
+      "linha": 18,
+      "categoria": "DADO_EM_LOG",
+      "descricao": "Dado pessoal 'cpf' registrado em log/print. Logs com dados identificáveis violam o princípio da minimização.",
+      "risco": "ALTO",
+      "artigo_lgpd": "Art. 46 — Segurança | Art. 6º, III — Necessidade",
+      "trecho": "logging.info(f\"Usuário autenticado: {cpf}\")            # ALTO — CPF no log",
+      "recomendacao": "Remova dados pessoais de logs. Use IDs técnicos (UUID) no lugar de CPF/email. Se necessário logar, aplique mascaramento: '***.***.789-**'."
+    },
+    {
+      "arquivo": "exemplo_vulneravel.py",
+      "linha": 21,
+      "categoria": "TRANSFERENCIA_SEM_BASE_LEGAL",
+      "descricao": "Campo 'cpf' enviado para serviço externo (requests.post). Verifique se há base legal documentada para esta transferência.",
+      "risco": "ALTO",
+      "artigo_lgpd": "Art. 7º — Hipóteses de tratamento | Art. 33 — Transferência internacional",
+      "trecho": "requests.post(",
+      "recomendacao": "Documente a base legal para cada transferência de dados a terceiros (Art. 7º LGPD). Considere anonimizar ou pseudonimizar antes de enviar."
+    },
+    {
+      "arquivo": "exemplo_vulneravel.py",
+      "linha": 28,
+      "categoria": "COLETA_EXCESSIVA",
+      "descricao": "Função 'cadastrar_usuario' recebe 7 campos sensíveis (nome, email, cpf, telefone, nascimento, endereco, renda). Verifique se todos são estritamente necessários para a finalidade.",
+      "risco": "MEDIO",
+      "artigo_lgpd": "Art. 6º, III — Necessidade | Art. 6º, I — Finalidade",
+      "trecho": "def cadastrar_usuario(nome, email, cpf, telefone, nascimento, endereco, renda):",
+      "recomendacao": "Revise os parâmetros da função e colete apenas o mínimo necessário para a finalidade declarada (princípio da minimização — Art. 6º, III)."
+    },
+    {
+      "arquivo": "exemplo_vulneravel.py",
+      "linha": 33,
+      "categoria": "AUSENCIA_EXCLUSAO",
+      "descricao": "Classe 'Usuario' contém campos sensíveis (nome, email, cpf) mas não define método de exclusão ou anonimização.",
+      "risco": "MEDIO",
+      "artigo_lgpd": "Art. 18, IV — Direito à eliminação dos dados",
+      "trecho": "class Usuario:",
+      "recomendacao": "Implemente método de exclusão ou anonimização na classe. O titular tem direito à eliminação dos dados (Art. 18, IV LGPD)."
+    }
+  ]
+}

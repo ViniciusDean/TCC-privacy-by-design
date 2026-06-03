@@ -116,6 +116,7 @@ python reporter.py --codigo . --json resultado.json --html resultado.html
 Paleta de Comandos (`Ctrl+Shift+P`):
 - `Privacy Scanner: Analisar arquivo atual`
 - `Privacy Scanner: Analisar projeto inteiro`
+- `Privacy Scanner: Analisar banco SQLite`
 - `Privacy Scanner: Exportar relatório HTML`
 - `Privacy Scanner: Exportar relatório JSON`
 

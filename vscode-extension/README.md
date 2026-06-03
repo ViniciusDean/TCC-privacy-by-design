@@ -55,6 +55,7 @@ Abra a Paleta de Comandos (`Ctrl+Shift+P`) e digite:
 
 - `Privacy Scanner: Analisar arquivo atual` — Analisa só o arquivo aberto
 - `Privacy Scanner: Analisar projeto inteiro` — Varre toda a pasta
+- `Privacy Scanner: Analisar banco SQLite` — Seleciona um ou mais bancos `.db/.sqlite`
 - `Privacy Scanner: Exportar relatório HTML` — Gera HTML na raiz do projeto
 - `Privacy Scanner: Exportar relatório JSON` — Gera JSON na raiz do projeto
 

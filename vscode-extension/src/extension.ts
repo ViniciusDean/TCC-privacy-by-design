@@ -48,6 +48,9 @@ let allVulnerabilities: Map<string, Vulnerability[]> = new Map();
 let vulnerabilitiesProvider: VulnerabilitiesProvider;
 let summaryProvider: SummaryProvider;
 
+const DB_FILE_PATTERN = '**/*.{db,sqlite,sqlite3}';
+const EXCLUDE_PATTERN = '**/{node_modules,.git,__pycache__,htmlcov,.pytest_cache}/**';
+
 const riskToSeverity = (risk: string): vscode.DiagnosticSeverity => {
     switch (risk) {
         case 'ALTO': return vscode.DiagnosticSeverity.Error;
@@ -56,6 +59,18 @@ const riskToSeverity = (risk: string): vscode.DiagnosticSeverity => {
         default: return vscode.DiagnosticSeverity.Information;
     }
 };
+
+const riskOrder: Record<string, number> = { ALTO: 0, MEDIO: 1, BAIXO: 2 };
+
+function isDatabaseUri(uri: vscode.Uri): boolean {
+    const filePath = uri.fsPath.toLowerCase();
+    return filePath.endsWith('.db') || filePath.endsWith('.sqlite') || filePath.endsWith('.sqlite3');
+}
+
+function refreshViews(): void {
+    vulnerabilitiesProvider.refresh();
+    summaryProvider.refresh();
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Inicialização da extensão
@@ -126,6 +141,13 @@ function registerCommands(context: vscode.ExtensionContext) {
         })
     );
 
+    // Analisar banco SQLite
+    context.subscriptions.push(
+        vscode.commands.registerCommand('privacy-scanner.analyzeDatabase', async () => {
+            await analyzeDatabaseFromPicker();
+        })
+    );
+
     // Exportar HTML
     context.subscriptions.push(
         vscode.commands.registerCommand('privacy-scanner.exportHTML', async () => {
@@ -169,7 +191,7 @@ function registerCommands(context: vscode.ExtensionContext) {
 
 async function analyzeFile(uri: vscode.Uri) {
     const isPython = uri.path.endsWith('.py');
-    const isDB = uri.path.endsWith('.db') || uri.path.endsWith('.sqlite') || uri.path.endsWith('.sqlite3');
+    const isDB = isDatabaseUri(uri);
 
     if (!isPython && !isDB) {
         return;
@@ -202,9 +224,7 @@ async function analyzeFile(uri: vscode.Uri) {
                 allVulnerabilities.delete(filePath);
             }
 
-            // Refresh TreeViews
-            vulnerabilitiesProvider.refresh();
-            summaryProvider.refresh();
+            refreshViews();
 
             updateStatusBar(`${vulns.length} vulnerabilidades`, vulns.length === 0 ? 'pass' : 'alert');
         }
@@ -212,6 +232,53 @@ async function analyzeFile(uri: vscode.Uri) {
         console.error('Erro ao analisar arquivo:', error);
         updateStatusBar('Erro na análise', 'error');
     }
+}
+
+async function analyzeDatabaseFromPicker() {
+    const files = await vscode.window.showOpenDialog({
+        canSelectFiles: true,
+        canSelectFolders: false,
+        canSelectMany: true,
+        filters: {
+            'SQLite databases': ['db', 'sqlite', 'sqlite3']
+        },
+        title: 'Selecionar banco SQLite para análise LGPD'
+    });
+
+    if (!files || files.length === 0) {
+        return;
+    }
+
+    let total = 0;
+    for (const file of files) {
+        total += await analyzeDatabaseUri(file);
+    }
+
+    refreshViews();
+    vscode.window.showInformationMessage(
+        `Análise de banco concluída: ${total} vulnerabilidades encontradas`
+    );
+}
+
+async function analyzeDatabaseUri(uri: vscode.Uri): Promise<number> {
+    const filePath = uri.fsPath;
+    const response = await axios.post<AnalysisResponse>(
+        `http://localhost:${serverPort}/api/analyze-database`,
+        { database: filePath }
+    );
+
+    if (!response.data.success) {
+        return 0;
+    }
+
+    const vulns = response.data.vulnerabilities;
+    if (vulns.length > 0) {
+        allVulnerabilities.set(filePath, vulns);
+    } else {
+        allVulnerabilities.delete(filePath);
+    }
+
+    return vulns.length;
 }
 
 async function analyzeWorkspace() {
@@ -232,6 +299,7 @@ async function analyzeWorkspace() {
         if (response.data.success) {
             // Limpar mapa global antes de análise completa
             allVulnerabilities.clear();
+            let totalVulnerabilities = response.data.vulnerabilities.length;
 
             // Agrupar vulnerabilidades por arquivo
             const grouped = new Map<string, Vulnerability[]>();
@@ -253,14 +321,18 @@ async function analyzeWorkspace() {
                 }
             }
 
+            const databaseUris = await vscode.workspace.findFiles(DB_FILE_PATTERN, EXCLUDE_PATTERN);
+            for (const dbUri of databaseUris) {
+                totalVulnerabilities += await analyzeDatabaseUri(dbUri);
+            }
+
             // Refresh TreeViews
-            vulnerabilitiesProvider.refresh();
-            summaryProvider.refresh();
+            refreshViews();
 
             vscode.window.showInformationMessage(
-                `✅ Análise concluída: ${response.data.vulnerabilities.length} vulnerabilidades encontradas`
+                `Análise concluída: ${totalVulnerabilities} vulnerabilidades encontradas`
             );
-            updateStatusBar(`${response.data.vulnerabilities.length} vulns`, 'alert');
+            updateStatusBar(`${totalVulnerabilities} vulns`, totalVulnerabilities === 0 ? 'pass' : 'alert');
         }
     } catch (error) {
         console.error('Erro ao analisar projeto:', error);
@@ -446,27 +518,36 @@ class VulnerabilityTreeItem extends vscode.TreeItem {
     constructor(
         public readonly label: string,
         public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-        public readonly type: 'file' | 'vulnerability' | 'summary' | 'empty',
+        public readonly type: 'risk' | 'file' | 'vulnerability' | 'summary' | 'empty',
         public readonly data?: any
     ) {
         super(label, collapsibleState);
 
-        if (type === 'file') {
-            this.iconPath = new vscode.ThemeIcon('file');
+        if (type === 'risk') {
+            this.iconPath = new vscode.ThemeIcon(
+                data.risk === 'ALTO' ? 'error' : data.risk === 'MEDIO' ? 'warning' : 'info'
+            );
+            this.description = `${data.count}`;
+        } else if (type === 'file') {
+            this.iconPath = new vscode.ThemeIcon(data?.isDatabase ? 'database' : 'file-code');
             this.contextValue = 'file';
-            this.resourceUri = vscode.Uri.file(label);
+            this.resourceUri = vscode.Uri.file(data?.filePath || label);
+            this.tooltip = data?.filePath || label;
+            this.description = `${data?.count || 0}`;
         } else if (type === 'vulnerability') {
             const risk = data.risco;
             this.iconPath = new vscode.ThemeIcon(
                 risk === 'ALTO' ? 'error' : risk === 'MEDIO' ? 'warning' : 'info'
             );
-            this.description = `Linha ${data.linha}`;
+            this.description = data.linha > 0 ? `Linha ${data.linha}` : path.basename(data.arquivo);
             this.tooltip = `${data.categoria}: ${data.descricao}\nLGPD: ${data.artigo_lgpd}`;
-            this.command = {
-                command: 'privacy-scanner.openVulnerability',
-                title: 'Abrir Vulnerabilidade',
-                arguments: [data.arquivo, data.linha]
-            };
+            if (data.linha > 0) {
+                this.command = {
+                    command: 'privacy-scanner.openVulnerability',
+                    title: 'Abrir Vulnerabilidade',
+                    arguments: [data.arquivo, data.linha]
+                };
+            }
         } else if (type === 'summary') {
             this.iconPath = new vscode.ThemeIcon(data.icon);
         }
@@ -487,18 +568,53 @@ class VulnerabilitiesProvider implements vscode.TreeDataProvider<VulnerabilityTr
 
     getChildren(element?: VulnerabilityTreeItem): Thenable<VulnerabilityTreeItem[]> {
         if (!element) {
-            // Root: Files
             if (allVulnerabilities.size === 0) {
                 return Promise.resolve([new VulnerabilityTreeItem('Nenhuma vulnerabilidade encontrada', vscode.TreeItemCollapsibleState.None, 'empty')]);
             }
 
-            const files = Array.from(allVulnerabilities.keys()).sort();
-            return Promise.resolve(files.map(f => new VulnerabilityTreeItem(f, vscode.TreeItemCollapsibleState.Collapsed, 'file')));
+            const risks: Array<'ALTO' | 'MEDIO' | 'BAIXO'> = ['ALTO', 'MEDIO', 'BAIXO'];
+            const groups = risks
+                .map(risk => ({
+                    risk,
+                    count: Array.from(allVulnerabilities.values())
+                        .flat()
+                        .filter(v => v.risco === risk).length
+                }))
+                .filter(group => group.count > 0);
+
+            return Promise.resolve(groups.map(group =>
+                new VulnerabilityTreeItem(
+                    `Risco ${group.risk}`,
+                    vscode.TreeItemCollapsibleState.Expanded,
+                    'risk',
+                    group
+                )
+            ));
+        } else if (element.type === 'risk') {
+            const risk = element.data.risk;
+            const files = Array.from(allVulnerabilities.entries())
+                .filter(([, vulns]) => vulns.some(v => v.risco === risk))
+                .sort(([a], [b]) => a.localeCompare(b));
+
+            return Promise.resolve(files.map(([filePath, vulns]) => {
+                const count = vulns.filter(v => v.risco === risk).length;
+                const isDatabase = isDatabaseUri(vscode.Uri.file(filePath));
+                return new VulnerabilityTreeItem(
+                    path.basename(filePath),
+                    vscode.TreeItemCollapsibleState.Collapsed,
+                    'file',
+                    { filePath, risk, count, isDatabase }
+                );
+            }));
         } else if (element.type === 'file') {
-            // Children: Vulnerabilities for this file
-            const vulns = allVulnerabilities.get(element.label) || [];
+            const filePath = element.data.filePath;
+            const risk = element.data.risk;
+            const vulns = (allVulnerabilities.get(filePath) || [])
+                .filter(v => v.risco === risk)
+                .sort((a, b) => a.linha - b.linha || a.categoria.localeCompare(b.categoria));
+
             return Promise.resolve(vulns.map(v => 
-                new VulnerabilityTreeItem(`[${v.risco}] ${v.categoria}`, vscode.TreeItemCollapsibleState.None, 'vulnerability', v)
+                new VulnerabilityTreeItem(v.categoria, vscode.TreeItemCollapsibleState.None, 'vulnerability', v)
             ));
         }
         return Promise.resolve([]);
@@ -529,10 +645,15 @@ class SummaryProvider implements vscode.TreeDataProvider<VulnerabilityTreeItem> 
 
         const total = allVulns.length;
         const score = Math.max(0, 100 - (counts.ALTO * 10 + counts.MEDIO * 5 + counts.BAIXO * 2));
+        const filesWithFindings = Array.from(allVulnerabilities.keys());
+        const databaseCount = filesWithFindings.filter(f => isDatabaseUri(vscode.Uri.file(f))).length;
+        const pythonCount = filesWithFindings.filter(f => f.endsWith('.py')).length;
 
         return Promise.resolve([
             new VulnerabilityTreeItem(`Score LGPD: ${score}/100`, vscode.TreeItemCollapsibleState.None, 'summary', { icon: 'shield' }),
             new VulnerabilityTreeItem(`Total: ${total} vulnerabilidades`, vscode.TreeItemCollapsibleState.None, 'summary', { icon: 'search' }),
+            new VulnerabilityTreeItem(`Arquivos Python: ${pythonCount}`, vscode.TreeItemCollapsibleState.None, 'summary', { icon: 'file-code' }),
+            new VulnerabilityTreeItem(`Bancos SQLite: ${databaseCount}`, vscode.TreeItemCollapsibleState.None, 'summary', { icon: 'database' }),
             new VulnerabilityTreeItem(`Risco ALTO: ${counts.ALTO}`, vscode.TreeItemCollapsibleState.None, 'summary', { icon: 'error' }),
             new VulnerabilityTreeItem(`Risco MÉDIO: ${counts.MEDIO}`, vscode.TreeItemCollapsibleState.None, 'summary', { icon: 'warning' }),
             new VulnerabilityTreeItem(`Risco BAIXO: ${counts.BAIXO}`, vscode.TreeItemCollapsibleState.None, 'summary', { icon: 'info' })

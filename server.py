@@ -20,6 +20,20 @@ from dataclasses import asdict
 
 app = Flask(__name__)
 port = int(sys.argv[1]) if len(sys.argv) > 1 else 5000
+DB_EXTENSIONS = ('.db', '.sqlite', '.sqlite3')
+
+
+def analisar_bancos_diretorio(directory):
+    resultados = []
+    for root, dirs, files in os.walk(directory):
+        dirs[:] = [
+            d for d in dirs
+            if d not in {'node_modules', '.git', '__pycache__', 'htmlcov', '.pytest_cache'}
+        ]
+        for filename in files:
+            if filename.lower().endswith(DB_EXTENSIONS):
+                resultados.extend(analisar_banco(os.path.join(root, filename)))
+    return resultados
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -182,6 +196,7 @@ def export_report():
             return jsonify({'success': False, 'error': 'format deve ser html ou json'}), 400
 
         reporter = Reporter(alvo_codigo=directory).coletar()
+        reporter.resultados += analisar_bancos_diretorio(directory)
 
         if format_type == 'json':
             # Gerar JSON em memória

@@ -55,6 +55,7 @@ code .
 Pressione `Ctrl+Shift+P` e escolha:
 - `Privacy Scanner: Analisar arquivo atual`
 - `Privacy Scanner: Analisar projeto inteiro`
+- `Privacy Scanner: Analisar banco SQLite`
 - `Privacy Scanner: Exportar relatório HTML`
 - `Privacy Scanner: Exportar relatório JSON`
 

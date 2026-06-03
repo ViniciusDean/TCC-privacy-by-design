@@ -11,8 +11,7 @@
     "url": "https://github.com/seu-usuario/privacy-scanner"
   },
   "engines": {
-    "vscode": "^1.60.0",
-    "node": "^14.0.0"
+    "vscode": "^1.60.0"
   },
   "categories": [
     "Linters",
@@ -30,6 +29,7 @@
     "onLanguage:python",
     "onCommand:privacy-scanner.analyze",
     "onCommand:privacy-scanner.analyzeAll",
+    "onCommand:privacy-scanner.analyzeDatabase",
     "onCommand:privacy-scanner.exportHTML",
     "onCommand:privacy-scanner.exportJSON"
   ],
@@ -44,6 +44,11 @@
       {
         "command": "privacy-scanner.analyzeAll",
         "title": "Privacy Scanner: Analisar projeto inteiro",
+        "category": "Privacy Scanner"
+      },
+      {
+        "command": "privacy-scanner.analyzeDatabase",
+        "title": "Privacy Scanner: Analisar banco SQLite",
         "category": "Privacy Scanner"
       },
       {

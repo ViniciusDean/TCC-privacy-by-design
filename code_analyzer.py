@@ -42,6 +42,12 @@ CAMPOS_SENSIVEIS = [
     "religiao", "religion", "etnia", "ethnicity",
 ]
 
+CAMPOS_AMBIGUOS = {"nome", "name", "idade", "age"}
+CONTEXTO_PESSOAL = {
+    "usuario", "user", "cliente", "customer", "pessoa", "person", "titular",
+    "paciente", "patient", "funcionario", "employee",
+}
+
 # Funções de log mais comuns em Python
 FUNCOES_LOG = [
     "print", "logging.debug", "logging.info",
@@ -108,13 +114,23 @@ class CodeAnalyzer(ast.NodeVisitor):
 
     def _nome_contem_campo_sensivel(self, nome: str) -> Optional[str]:
         """Verifica se um nome de variável/atributo contém campo sensível.
-        Usa word boundary para evitar falsos positivos (ex: 'age' em 'user_agent').
+        Usa tokens para evitar falsos positivos (ex: 'age' em 'user_agent').
         """
         nome_lower = nome.lower()
+        tokens = [t for t in re.split(r"[^a-z0-9]+|_", nome_lower) if t]
+
         for campo in CAMPOS_SENSIVEIS:
-            # Usa word boundary (\b) para matching exato de palavra
-            if re.search(r'\b' + re.escape(campo) + r'\b', nome_lower):
+            if nome_lower == campo:
                 return campo
+
+            if campo not in CAMPOS_AMBIGUOS and campo in tokens:
+                return campo
+
+            if campo in CAMPOS_AMBIGUOS and campo in tokens:
+                if tokens[0] == campo:
+                    return campo
+                if tokens[-1] == campo and any(t in CONTEXTO_PESSOAL for t in tokens[:-1]):
+                    return campo
         return None
 
     # ── Regra 1: variável com dado sensível atribuída como string simples ────

@@ -33,7 +33,7 @@ Privacy Scanner LGPD é uma **ferramenta de análise estática** que detecta vul
 - Recomendações por categoria
 
 ✅ **Testes Completos**
-- **51 testes unitários** — 100% passando
+- **54 testes unitários** — 100% passando
 - **74% cobertura de código**
 - Validação de todos os bug fixes
 
@@ -45,7 +45,7 @@ Privacy Scanner LGPD é uma **ferramenta de análise estática** que detecta vul
 ┌─────────────────────────────────────────┐
 │ Testes Unitários                        │
 ├─────────────────────────────────────────┤
-│ ✅ 51/51 PASSOU (0 falhas)              │
+│ ✅ 54/54 PASSOU (0 falhas)              │
 │ ✅ 74% cobertura média                  │
 │ ✅ 0 erros, 0 warnings                  │
 └─────────────────────────────────────────┘
@@ -190,7 +190,7 @@ cd vscode-extension && npm install
 ### 2. Rodar Testes (validar)
 ```bash
 pytest tests/ -v
-# Resultado: ===== 51 passed in 0.59s =====
+# Resultado: ===== 54 passed in 0.17s =====
 ```
 
 ### 3. Usar no VS Code
@@ -220,7 +220,7 @@ Fórmula: `Score = 100 - (ALTO×10 + MÉDIO×5 + BAIXO×2)`
 ## 📝 Próximas Fases (Futuro)
 
 ### Fase 2: UX Melhorada
-- [ ] Sidebar com resumo visual
+- [x] Sidebar com resumo visual
 - [ ] Code actions (reparos sugeridos)
 - [ ] Histórico de análises
 
@@ -269,4 +269,4 @@ FATEC — 2026
 **Status Final**: ✅ **MVP ENTREGUE**  
 **Versão**: 1.0.0  
 **Última atualização**: 2026-06-01  
-**Próxima milestone**: Fase 2 (Sidebar + Code Actions)
+**Próxima milestone**: Fase 2 (Code Actions + histórico de análises)

@@ -266,22 +266,21 @@ class DBAnalyzer:
 
     # ── Execução de todas as regras ──────────────────────────────────────────
     def analisar(self) -> list[Vulnerability]:
-        tabelas = self._tabelas()
+        try:
+            tabelas = self._tabelas()
 
-        if not tabelas:
-            return []
+            for tabela in tabelas:
+                colunas = self._colunas(tabela)
+                self._verificar_criptografia(tabela, colunas)
+                self._verificar_exclusao(tabela, colunas)
+                self._verificar_retencao(tabela, colunas)
+                self._verificar_separacao(tabela, colunas)
+                self._verificar_consentimento(tabela, colunas)
+                self._verificar_exposicao_indice(tabela, colunas)
 
-        for tabela in tabelas:
-            colunas = self._colunas(tabela)
-            self._verificar_criptografia(tabela, colunas)
-            self._verificar_exclusao(tabela, colunas)
-            self._verificar_retencao(tabela, colunas)
-            self._verificar_separacao(tabela, colunas)
-            self._verificar_consentimento(tabela, colunas)
-            self._verificar_exposicao_indice(tabela, colunas)
-
-        self.conn.close()
-        return self.resultados
+            return self.resultados
+        finally:
+            self.conn.close()
 
 
 # ─────────────────────────────────────────────────────────────────────────────

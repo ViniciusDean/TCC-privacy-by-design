@@ -1,6 +1,6 @@
 # 🧪 Privacy Scanner — Testes Unitários
 
-Suite completa de testes com **51 testes** cobrindo todas as funcionalidades principais.
+Suite completa de testes com **54 testes** cobrindo todas as funcionalidades principais.
 
 ## 📊 Cobertura
 
@@ -117,7 +117,7 @@ def test_summary_calculation_with_alto_risk(self):
 ## ✅ Resultados Atuais
 
 ```
-===== 51 passed in 0.44s =====
+===== 54 passed in 0.17s =====
 
 Test Results by Component:
 - code_analyzer.py: 22/22 PASSED ✅

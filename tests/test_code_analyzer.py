@@ -177,6 +177,29 @@ class TestWordBoundary:
         
         assert len(results) == 0
 
+    def test_detects_sensitive_snake_case_prefixes(self, temp_py_file):
+        """Should detect sensitive fields embedded as snake_case tokens."""
+        code = '''
+cpf_usuario = input("CPF: ")
+email_cliente = input("Email: ")
+'''
+        temp_py_file.write(code)
+        temp_py_file.flush()
+
+        results = analisar_arquivo(temp_py_file.name)
+
+        assert sum(1 for v in results if v.categoria == "DADO_SEM_CRIPTOGRAFIA") == 2
+
+    def test_detects_personal_context_for_ambiguous_name(self, temp_py_file):
+        """Should flag ambiguous fields when the variable context is personal."""
+        code = 'user_name = input("Nome: ")\n'
+        temp_py_file.write(code)
+        temp_py_file.flush()
+
+        results = analisar_arquivo(temp_py_file.name)
+
+        assert any(v.categoria == "DADO_SEM_CRIPTOGRAFIA" for v in results)
+
 
 class TestNoFalsePositives:
     """Test that correct code doesn't trigger false positives."""

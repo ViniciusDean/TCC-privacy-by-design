@@ -303,6 +303,31 @@ class TestHTMLExport:
         assert "1" in html_content  # ALTO count
         assert "100" in html_content  # Score field (100 - score)
 
+    def test_html_escapes_vulnerability_content(self, tmp_path):
+        """HTML export should escape code excerpts and descriptions."""
+        reporter = Reporter()
+        reporter.resultados = [
+            Vulnerability(
+                "test.py",
+                1,
+                "DADO_HARDCODED",
+                "<script>alert('x')</script>",
+                "ALTO",
+                "Art. 46",
+                trecho='senha = "<b>123</b>"',
+            )
+        ]
+
+        html_file = tmp_path / "report.html"
+        reporter.exportar_html(str(html_file))
+
+        with open(html_file, encoding="utf-8") as f:
+            html_content = f.read()
+
+        assert "<script>alert" not in html_content
+        assert "&lt;script&gt;alert" in html_content
+        assert "&lt;b&gt;123&lt;/b&gt;" in html_content
+
 
 class TestIntegration:
     """Integration tests for reporter."""

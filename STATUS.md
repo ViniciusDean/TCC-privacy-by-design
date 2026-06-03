@@ -77,7 +77,7 @@ TCC/ (c:\Users\deanv\OneDrive\Documents\TCC)
 - [x] Mapeamento LGPD (13 artigos) — 100%
 
 ### Testing
-- [x] Testes unitários completos — 51/51 ✅
+- [x] Testes unitários completos — 54/54 ✅
 - [x] Cobertura 74% — Acima de 60% ✅
 - [x] Testes de bug fixes — 100%
 - [x] Edge cases cobertos — 100%
@@ -129,7 +129,7 @@ TCC/ (c:\Users\deanv\OneDrive\Documents\TCC)
 | test_code_analyzer.py | 22 | 22 | ✅ | 86% |
 | test_db_analyzer.py | 16 | 16 | ✅ | 80% |
 | test_reporter.py | 13 | 13 | ✅ | 48% |
-| **TOTAL** | **51** | **51** | **✅** | **74%** |
+| **TOTAL** | **54** | **54** | **✅** | **74%** |
 
 ### Documentação
 
@@ -185,7 +185,7 @@ TCC/ (c:\Users\deanv\OneDrive\Documents\TCC)
 ### Testes (Validação Rápida)
 ```bash
 pytest tests/ -v
-# Resultado: 51/51 PASSOU ✅
+# Resultado: 54/54 PASSOU ✅
 ```
 
 ### Extensão VS Code (Recomendado)
@@ -258,7 +258,7 @@ TOTAL:             74% (acima do mínimo 60%)
    - Flask server (~250 linhas)
 
 4. **Validação** ✅
-   - 51 testes unitários
+   - 54 testes unitários
    - 74% cobertura
    - Bug fixes validados
 
@@ -272,7 +272,7 @@ TOTAL:             74% (acima do mínimo 60%)
 ## 📞 Próximos Passos (Fase 2)
 
 ### Curto Prazo
-- [ ] Sidebar com TreeView de vulnerabilidades
+- [x] Sidebar com TreeView de vulnerabilidades
 - [ ] Code actions (reparos sugeridos)
 - [ ] Histórico de análises
 - [ ] PDF export
@@ -310,7 +310,7 @@ TOTAL:             74% (acima do mínimo 60%)
 
 ## 🏆 Destaques
 
-✨ **51/51 testes passando** — 100% de confiabilidade  
+✨ **54/54 testes passando** — 100% de confiabilidade  
 ✨ **74% cobertura** — Acima da meta 60%  
 ✨ **3 bugs corrigidos** — Com validação completa  
 ✨ **Documentação completa** — 5 documentos detalhados  

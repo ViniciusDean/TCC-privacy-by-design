@@ -185,8 +185,6 @@ Use o caminho absoluto em Settings:
 
 ## 🎓 Próximos Passos
 
-1. **Testes unitários** — Add pytest para code_analyzer e db_analyzer
-2. **Sidebar com resumo** — TreeView mostrando vulnerabilidades por risco
-3. **Code actions** — Sugestões de correção direto no editor
-4. **Publicação** — Empacotar como .vsix e publicar no marketplace
-5. **CI/CD** — GitHub Actions para testar a cada commit
+1. **Code actions** — Sugestões de correção direto no editor
+2. **Publicação** — Empacotar como .vsix e publicar no marketplace
+3. **CI/CD** — GitHub Actions para testar a cada commit

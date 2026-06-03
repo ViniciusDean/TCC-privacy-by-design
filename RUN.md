@@ -14,7 +14,7 @@ pytest tests/ -v
 
 **Saída esperada**:
 ```
-===== 51 passed in 0.59s =====
+===== 54 passed in 0.17s =====
 ```
 
 ### Gerar relatório de cobertura
@@ -136,7 +136,7 @@ pytest --version  # Deve estar instalado
 ### 2️⃣ Rodar testes
 ```bash
 pytest tests/ -v --tb=short
-# Esperado: 51 passed
+# Esperado: 54 passed
 ```
 
 ### 3️⃣ Testar análise manual
@@ -239,7 +239,7 @@ Tempo de execução esperado:
 |----------|-------|
 | Analisar arquivo único | ~50ms |
 | Analisar projeto (10 arquivos) | ~200ms |
-| Testes completos (51) | ~600ms |
+| Testes completos (54) | ~600ms |
 | Exportar HTML | ~100ms |
 
 ---
@@ -248,7 +248,7 @@ Tempo de execução esperado:
 
 ### Checklist de Validação
 - [x] Testes unitários rodando
-- [x] Todos os testes passando (51/51)
+- [x] Todos os testes passando (54/54)
 - [x] Cobertura 74%+
 - [x] Exemplos funcionando
 - [x] Extensão VS Code funcional
@@ -256,7 +256,7 @@ Tempo de execução esperado:
 - [x] Bugs corrigidos e validados
 
 ### Métricas Finais
-- Testes: **51/51 ✅**
+- Testes: **54/54 ✅**
 - Cobertura: **74% ✅**
 - Completude: **76% ✅**
 - Status: **MVP ENTREGUE ✅**
@@ -265,10 +265,9 @@ Tempo de execução esperado:
 
 ## 📞 Próximos Passos
 
-1. **Sidebar**: Implementar TreeView de vulnerabilidades
-2. **Code Actions**: Sugestões inline de correção
-3. **PDF Export**: Relatórios em PDF
-4. **CI/CD**: GitHub Actions para testes automáticos
+1. **Code Actions**: Sugestões inline de correção
+2. **PDF Export**: Relatórios em PDF
+3. **CI/CD**: GitHub Actions para testes automáticos
 
 ---
 

@@ -229,7 +229,7 @@ Mude em VS Code Settings:
 
 ## 🧪 Testes Unitários
 
-**Suite completa com 51 testes** — Todas as funcionalidades validadas ✅
+**Suite completa com 54 testes** — Todas as funcionalidades validadas ✅
 
 ### Executar Testes
 ```bash
@@ -264,10 +264,10 @@ Detalhes em [TESTS.md](TESTS.md)
 - [x] Servidor Flask
 - [x] Casos de teste (vulnerável, correto, parcial)
 - [x] Configurações
-- [x] Testes unitários (51 testes, 74% cobertura) ✅
+- [x] Testes unitários (54 testes, 74% cobertura) ✅
+- [x] Sidebar com resumo na extensão
 
 ### Próximos Passos (no escopo)
-- [ ] Sidebar com resumo na extensão
 - [ ] Code actions (sugestões inline)
 - [ ] Exportação PDF
 - [ ] CI/CD (GitHub Actions)
@@ -288,7 +288,7 @@ Detalhes em [TESTS.md](TESTS.md)
 | reporter.py | ~350 | ✅ | 60% | **48%** |
 | server.py | ~250 | ✅ NEW | 100% | - |
 | extension.ts | ~400 | ✅ NEW | 100% | - |
-| **Testes** | **~1600** | ✅ NEW | **100%** | **51/51** ✅ |
+| **Testes** | **~1600** | ✅ NEW | **100%** | **54/54** ✅ |
 | **Total** | **~3450** | ✅ | **76%** | **74%** |
 
 ## 👥 Autor
@@ -303,4 +303,4 @@ MIT
 
 **Status**: Versão 1.0.0 — Funcional ✅  
 **Última atualização**: 2026-06-01  
-**Próxima release**: Testes unitários + Sidebar
+**Próxima release**: Code Actions + PDF Export

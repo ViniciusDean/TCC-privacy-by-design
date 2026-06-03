@@ -6,6 +6,7 @@ classifica por risco e gera relatório em JSON e HTML.
 
 import json
 import os
+import html as html_lib
 from datetime import datetime
 from dataclasses import asdict
 from code_analyzer import analisar_arquivo, analisar_diretorio
@@ -155,22 +156,26 @@ class Reporter:
                 "BAIXO": '<span class="badge baixo">BAIXO</span>',
             }.get(v.risco, v.risco)
 
-            rec = RECOMENDACOES.get(v.categoria, "—")
+            rec = html_lib.escape(RECOMENDACOES.get(v.categoria, "—"))
             trecho_html = (
-                f'<code>{v.trecho}</code>' if v.trecho else "—"
+                f'<code>{html_lib.escape(v.trecho)}</code>' if v.trecho else "—"
             )
             local = (
                 f"{os.path.basename(v.arquivo)}:{v.linha}"
                 if v.linha > 0 else os.path.basename(v.arquivo)
             )
+            local = html_lib.escape(local)
+            categoria = html_lib.escape(v.categoria)
+            artigo_lgpd = html_lib.escape(v.artigo_lgpd)
+            descricao = html_lib.escape(v.descricao)
 
             linhas_tabela += f"""
             <tr>
               <td>{badge_risco}</td>
-              <td><strong>{v.categoria}</strong></td>
+              <td><strong>{categoria}</strong></td>
               <td>{local}</td>
-              <td>{v.artigo_lgpd}</td>
-              <td>{v.descricao}</td>
+              <td>{artigo_lgpd}</td>
+              <td>{descricao}</td>
               <td>{rec}</td>
               <td>{trecho_html}</td>
             </tr>"""

@@ -22,10 +22,20 @@ TCC/
 
 ## 🚀 Instalação Rápida
 
-### 1️⃣ Python: Instale Flask
+### Opção Windows automática
+
+Na raiz do projeto, execute:
+
+```bat
+setup_windows.bat
+```
+
+Esse script instala dependências Python, cria o workspace externo de teste, instala dependências npm e compila a extensão.
+
+### 1️⃣ Python: Instale dependências
 
 ```bash
-pip install flask
+python -m pip install -r requirements.txt
 ```
 
 ### 2️⃣ Node.js: Compile a extensão
@@ -44,6 +54,12 @@ cd ..
 - Clique em "Run Extension" ou `F5`
 
 Abre uma nova janela VS Code com a extensão ativa! 🎉
+
+Para gerar o workspace externo usado na demo:
+
+```bash
+python scripts/create_test_workspace.py
+```
 
 ## 🧪 Teste Rápido
 
@@ -65,7 +81,7 @@ Abre uma nova janela VS Code com a extensão ativa! 🎉
 
 | Projeto | Dependência | Versão | Instalação |
 |---------|-------------|--------|------------|
-| **Python** | Flask | 2.x+ | `pip install flask` |
+| **Python** | Flask/Pytest | 2.x+/8.x+ | `python -m pip install -r requirements.txt` |
 | **Node.js** | TypeScript | 4.x+ | `npm install` (automático) |
 | **Node.js** | Axios | 1.4+ | `npm install` (automático) |
 | **VS Code** | API | 1.60+ | Já incluído |
@@ -89,7 +105,7 @@ Em VS Code, pressione `Ctrl+,` e procure por `privacy-scanner`:
 ### ❌ "Erro: Flask module not found"
 
 ```bash
-pip install flask
+python -m pip install -r requirements.txt
 ```
 
 ### ❌ "Erro: npm not found"
@@ -174,8 +190,8 @@ Use o caminho absoluto em Settings:
 ## ✅ Checklist de Deploy
 
 - [ ] Python 3.8+ instalado
-- [ ] Flask instalado (`pip install flask`)
-- [ ] Node.js 14+ instalado
+- [ ] Dependências Python instaladas (`python -m pip install -r requirements.txt`)
+- [ ] Node.js instalado
 - [ ] Dependências npm instaladas (`npm install`)
 - [ ] TypeScript compilado (`npm run compile`)
 - [ ] Extensão testada localmente (`F5`)

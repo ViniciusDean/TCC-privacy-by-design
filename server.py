@@ -343,8 +343,8 @@ def generate_html_report(reporter):
 # Main
 # ─────────────────────────────────────────────────────────────────────────────
 if __name__ == '__main__':
-    print(f'🚀 Privacy Scanner Server iniciando na porta {port}...')
-    print(f'📡 Endpoints:')
+    print(f'Privacy Scanner Server iniciando na porta {port}...')
+    print('Endpoints:')
     print(f'   GET  /health')
     print(f'   POST /api/analyze-file')
     print(f'   POST /api/analyze-directory')

@@ -27,15 +27,23 @@
   "activationEvents": [
     "onStartupFinished",
     "onLanguage:python",
+    "onCommand:privacy-scanner.analyzeNow",
     "onCommand:privacy-scanner.analyze",
     "onCommand:privacy-scanner.analyzeAll",
     "onCommand:privacy-scanner.analyzeDatabase",
+    "onCommand:privacy-scanner.clearResults",
     "onCommand:privacy-scanner.exportHTML",
     "onCommand:privacy-scanner.exportJSON"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
+      {
+        "command": "privacy-scanner.analyzeNow",
+        "title": "Privacy Scanner: Analisar agora",
+        "category": "Privacy Scanner",
+        "icon": "$(refresh)"
+      },
       {
         "command": "privacy-scanner.analyze",
         "title": "Privacy Scanner: Analisar arquivo atual",
@@ -50,6 +58,12 @@
         "command": "privacy-scanner.analyzeDatabase",
         "title": "Privacy Scanner: Analisar banco SQLite",
         "category": "Privacy Scanner"
+      },
+      {
+        "command": "privacy-scanner.clearResults",
+        "title": "Privacy Scanner: Limpar resultados",
+        "category": "Privacy Scanner",
+        "icon": "$(clear-all)"
       },
       {
         "command": "privacy-scanner.exportHTML",
@@ -87,6 +101,20 @@
           "id": "privacy-scanner-summary",
           "name": "Resumo",
           "when": "privacy-scanner:showSummary"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "privacy-scanner.analyzeNow",
+          "when": "view == privacy-scanner-vulnerabilities",
+          "group": "navigation@1"
+        },
+        {
+          "command": "privacy-scanner.clearResults",
+          "when": "view == privacy-scanner-vulnerabilities",
+          "group": "navigation@2"
         }
       ]
     },

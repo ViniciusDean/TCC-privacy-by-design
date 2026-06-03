@@ -16,8 +16,8 @@ Análise estática de vulnerabilidades de privacidade em Python conforme **LGPD 
 
 - VS Code 1.60+
 - Python 3.8+
-- Flask (`pip install flask`)
-- Axios (`npm install axios`)
+- Dependências Python da raiz (`python -m pip install -r requirements.txt`)
+- Dependências Node da extensão (`npm install`)
 
 ### Setup da Extensão
 
@@ -30,11 +30,11 @@ npm install
 npm run compile
 ```
 
-2. **Instale Flask**
+2. **Instale dependências Python**
 
 ```bash
 cd ..  # Volte para raiz TCC
-pip install flask
+python -m pip install -r requirements.txt
 ```
 
 3. **Abra como extensão em desenvolvimento**
@@ -56,8 +56,11 @@ Abra a Paleta de Comandos (`Ctrl+Shift+P`) e digite:
 - `Privacy Scanner: Analisar arquivo atual` — Analisa só o arquivo aberto
 - `Privacy Scanner: Analisar projeto inteiro` — Varre toda a pasta
 - `Privacy Scanner: Analisar banco SQLite` — Seleciona um ou mais bancos `.db/.sqlite`
+- `Privacy Scanner: Limpar resultados` — Limpa sidebar e diagnostics
 - `Privacy Scanner: Exportar relatório HTML` — Gera HTML na raiz do projeto
 - `Privacy Scanner: Exportar relatório JSON` — Gera JSON na raiz do projeto
+
+Arquivos Python tambem sao analisados ao abrir, trocar para a aba ou salvar.
 
 ### Configurações
 
@@ -101,7 +104,7 @@ vscode-extension/
 ## Troubleshooting
 
 ### "Servidor Flask não inicia"
-- Verifique se Flask está instalado: `pip install flask`
+- Verifique se as dependências Python foram instaladas: `python -m pip install -r requirements.txt`
 - Verifique a porta em uso: `netstat -ano | findstr :5000`
 - Altere em Settings: `privacy-scanner.serverPort`
 
@@ -130,9 +133,11 @@ Pressione `F5` para iniciar debug com breakpoints.
 - [x] Análise de arquivo
 - [x] Análise de projeto
 - [x] Diagnostics API
-- [ ] Sidebar com resumo
+- [x] Sidebar com resumo
+- [x] Análise de banco SQLite
+- [x] Export HTML/JSON
 - [ ] Code actions (sugestões de correção)
-- [ ] Testes unitários
+- [x] Testes unitários
 
 ## Licença
 

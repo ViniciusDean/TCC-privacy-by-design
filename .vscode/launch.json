@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Privacy Scanner Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/vscode-extension",
+        "C:/Users/deanv/OneDrive/Documents/privacy-scanner-testes"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/vscode-extension/out/**/*.js"
+      ],
+      "preLaunchTask": "npm: compile - vscode-extension"
+    }
+  ]
+}

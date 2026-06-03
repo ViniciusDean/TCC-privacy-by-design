@@ -47,6 +47,13 @@ CONTEXTO_PESSOAL = {
     "usuario", "user", "cliente", "customer", "pessoa", "person", "titular",
     "paciente", "patient", "funcionario", "employee",
 }
+CAMPOS_TECNICOS = {
+    "ip_address", "ip_addr", "user_agent", "user_id", "session_id",
+    "request_id", "trace_id",
+}
+METODOS_EXCLUSAO_ANONIMIZACAO = (
+    "delete", "delet", "remov", "exclu", "anonimiz", "anonymiz", "purge",
+)
 
 # Funções de log mais comuns em Python
 FUNCOES_LOG = [
@@ -92,6 +99,16 @@ class CodeAnalyzer(ast.NodeVisitor):
         self.caminho    = caminho_arquivo
         self.linhas     = codigo_fonte.splitlines()
         self.resultados: list[Vulnerability] = []
+        self._pilha_funcoes: list[ast.FunctionDef] = []
+
+    def visit(self, node):
+        if isinstance(node, ast.FunctionDef):
+            self._pilha_funcoes.append(node)
+            try:
+                return super().visit(node)
+            finally:
+                self._pilha_funcoes.pop()
+        return super().visit(node)
 
     # ── Utilitários ──────────────────────────────────────────────────────────
 
@@ -117,7 +134,12 @@ class CodeAnalyzer(ast.NodeVisitor):
         Usa tokens para evitar falsos positivos (ex: 'age' em 'user_agent').
         """
         nome_lower = nome.lower()
+        if nome_lower in CAMPOS_TECNICOS:
+            return None
+
         tokens = [t for t in re.split(r"[^a-z0-9]+|_", nome_lower) if t]
+        if tokens and tokens[0] == "ip":
+            return None
 
         for campo in CAMPOS_SENSIVEIS:
             if nome_lower == campo:
@@ -132,6 +154,23 @@ class CodeAnalyzer(ast.NodeVisitor):
                 if tokens[-1] == campo and any(t in CONTEXTO_PESSOAL for t in tokens[:-1]):
                     return campo
         return None
+
+    def _funcao_atual(self) -> Optional[ast.FunctionDef]:
+        return self._pilha_funcoes[-1] if self._pilha_funcoes else None
+
+    def _em_funcao_exclusao_anonimizacao(self) -> bool:
+        funcao = self._funcao_atual()
+        if not funcao:
+            return False
+        nome = funcao.name.lower()
+        return any(p in nome for p in METODOS_EXCLUSAO_ANONIMIZACAO)
+
+    def _valor_e_parametro(self, nome: str, node: ast.Assign) -> bool:
+        funcao = self._funcao_atual()
+        if not funcao or not isinstance(node.value, ast.Name):
+            return False
+        parametros = {arg.arg for arg in funcao.args.args}
+        return node.value.id == nome and node.value.id in parametros
 
     # ── Regra 1: variável com dado sensível atribuída como string simples ────
 
@@ -152,6 +191,8 @@ class CodeAnalyzer(ast.NodeVisitor):
             if nome:
                 campo = self._nome_contem_campo_sensivel(nome)
                 if campo:
+                    if self._em_funcao_exclusao_anonimizacao():
+                        continue
                     # Verifica se o valor é string literal (dado hardcoded)
                     if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
                         # Ignora atribuições vazias (inicializações) — não é dado real
@@ -167,6 +208,8 @@ class CodeAnalyzer(ast.NodeVisitor):
                                 "Art. 46 — Segurança e prevenção"
                             )
                     else:
+                        if self._valor_e_parametro(nome, node):
+                            continue
                         # Atribuição normal — verifica se há criptografia na mesma linha
                         trecho = self._trecho(node.lineno).lower()
                         tem_cripto = any(c in trecho for c in FUNCOES_CRIPTOGRAFIA)

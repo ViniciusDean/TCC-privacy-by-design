@@ -114,6 +114,10 @@ export async function activate(context: vscode.ExtensionContext) {
     // Listeners
     registerListeners(context);
 
+    if (vscode.window.activeTextEditor) {
+        await analyzeFile(vscode.window.activeTextEditor.document.uri);
+    }
+
     updateStatusBar('Privacy Scanner pronto', 'pass');
 }
 
@@ -122,6 +126,24 @@ export async function activate(context: vscode.ExtensionContext) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function registerCommands(context: vscode.ExtensionContext) {
+    // Analisar agora: workspace quando aberto, senao arquivo atual
+    context.subscriptions.push(
+        vscode.commands.registerCommand('privacy-scanner.analyzeNow', async () => {
+            if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+                await analyzeWorkspace();
+                return;
+            }
+
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                vscode.window.showWarningMessage('Nenhuma pasta ou arquivo aberto para analisar');
+                return;
+            }
+
+            await analyzeFile(editor.document.uri);
+        })
+    );
+
     // Analisar arquivo atual
     context.subscriptions.push(
         vscode.commands.registerCommand('privacy-scanner.analyze', async () => {
@@ -145,6 +167,16 @@ function registerCommands(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('privacy-scanner.analyzeDatabase', async () => {
             await analyzeDatabaseFromPicker();
+        })
+    );
+
+    // Limpar resultados
+    context.subscriptions.push(
+        vscode.commands.registerCommand('privacy-scanner.clearResults', async () => {
+            allVulnerabilities.clear();
+            diagnosticCollection.clear();
+            refreshViews();
+            updateStatusBar('Resultados limpos', 'pass');
         })
     );
 
@@ -393,8 +425,21 @@ function registerListeners(context: vscode.ExtensionContext) {
     if (autoAnalyze) {
         context.subscriptions.push(
             vscode.workspace.onDidSaveTextDocument(async (document) => {
-                if (document.languageId === 'python') {
+                if (document.languageId === 'python' || isDatabaseUri(document.uri)) {
                     await analyzeFile(document.uri);
+                }
+            }),
+            vscode.workspace.onDidOpenTextDocument(async (document) => {
+                if (document.languageId === 'python' || isDatabaseUri(document.uri)) {
+                    await analyzeFile(document.uri);
+                }
+            }),
+            vscode.window.onDidChangeActiveTextEditor(async (editor) => {
+                if (!editor) {
+                    return;
+                }
+                if (editor.document.languageId === 'python' || isDatabaseUri(editor.document.uri)) {
+                    await analyzeFile(editor.document.uri);
                 }
             })
         );

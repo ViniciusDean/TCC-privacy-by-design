@@ -1,10 +1,17 @@
-# ▶️ RUN.md — Como Executar Privacy Scanner
+﻿# â–¶ï¸ RUN.md â€” Como Executar Privacy Scanner
 
 Guia passo a passo para rodar a ferramenta completa.
 
 ---
 
-## 🚀 Opção 1: Testes (Quick Validation)
+## ðŸš€ OpÃ§Ã£o 1: Testes (Quick Validation)
+
+### ValidaÃ§Ã£o completa no Windows
+```bat
+validate_project.bat
+```
+
+Esse script recria o workspace de teste, roda `pytest` e compila a extensÃ£o.
 
 ### Rodar todos os testes
 ```bash
@@ -12,30 +19,36 @@ cd c:\Users\deanv\OneDrive\Documents\TCC
 pytest tests/ -v
 ```
 
-**Saída esperada**:
+**SaÃ­da esperada**:
 ```
-===== 54 passed in 0.17s =====
+===== 56 passed in 0.17s =====
 ```
 
-### Gerar relatório de cobertura
+### Gerar relatÃ³rio de cobertura
 ```bash
 pytest tests/ --cov=code_analyzer --cov=db_analyzer --cov=reporter --cov-report=html
 ```
 
-Abre relatório em: `htmlcov/index.html`
+Abre relatÃ³rio em: `htmlcov/index.html`
 
 ---
 
-## 🎨 Opção 2: VS Code Extension (Recomendado)
+## ðŸŽ¨ OpÃ§Ã£o 2: VS Code Extension (Recomendado)
 
-### Pré-requisitos
+### PrÃ©-requisitos
 ```bash
 # Windows/PowerShell
-pip install flask
-npm install -g typescript  # Se não tiver
+python -m pip install -r requirements.txt
+npm install -g typescript  # Se nÃ£o tiver
 ```
 
-### Abrir extensão no VS Code
+Para preparar a pasta externa usada no teste da extensÃ£o:
+
+```bash
+python scripts/create_test_workspace.py
+```
+
+### Abrir extensÃ£o no VS Code
 ```bash
 cd c:\Users\deanv\OneDrive\Documents\TCC
 code .
@@ -44,24 +57,24 @@ code .
 ### Rodar no modo debug
 1. Pressione `F5` ou `Ctrl+Shift+D`
 2. Selecione **"Run Extension"**
-3. Nova janela VS Code abre com extensão ativa
+3. Nova janela VS Code abre com extensÃ£o ativa
 
-### Testar análise
+### Testar anÃ¡lise
 1. Abra arquivo: `exemplo_vulneravel.py`
 2. Pressione `Ctrl+S` (salvar)
-3. Vulnerabilidades aparecem em **vermelho** ✨
+3. Vulnerabilidades aparecem em **vermelho** âœ¨
 
-### Comandos disponíveis
+### Comandos disponÃ­veis
 Pressione `Ctrl+Shift+P` e escolha:
 - `Privacy Scanner: Analisar arquivo atual`
 - `Privacy Scanner: Analisar projeto inteiro`
 - `Privacy Scanner: Analisar banco SQLite`
-- `Privacy Scanner: Exportar relatório HTML`
-- `Privacy Scanner: Exportar relatório JSON`
+- `Privacy Scanner: Exportar relatÃ³rio HTML`
+- `Privacy Scanner: Exportar relatÃ³rio JSON`
 
 ---
 
-## 🖥️ Opção 3: Server Flask + CLI
+## ðŸ–¥ï¸ OpÃ§Ã£o 3: Server Flask + CLI
 
 ### Iniciar servidor Flask
 ```bash
@@ -69,7 +82,7 @@ cd c:\Users\deanv\OneDrive\Documents\TCC
 python server.py
 ```
 
-**Saída**:
+**SaÃ­da**:
 ```
  * Running on http://127.0.0.1:5000
  * Debug mode: on
@@ -91,21 +104,21 @@ curl -X POST http://localhost:5000/api/analyze-directory \
 
 ---
 
-## 📊 Opção 4: CLI Python Direto
+## ðŸ“Š OpÃ§Ã£o 4: CLI Python Direto
 
 ### Analisar um arquivo
 ```bash
 python code_analyzer.py exemplo_vulneravel.py
 ```
 
-**Saída**:
+**SaÃ­da**:
 ```
-🔍 Analisando: exemplo_vulneravel.py
-═══════════════════════════════════════════════════════════
+ðŸ” Analisando: exemplo_vulneravel.py
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 Vulnerabilidade: DADO_HARDCODED
   Arquivo: exemplo_vulneravel.py, Linha: 1
-  Descrição: Dado pessoal encontrado hardcoded
+  DescriÃ§Ã£o: Dado pessoal encontrado hardcoded
   Risco: ALTO
   LGPD: Art. 46
 
@@ -118,43 +131,43 @@ Vulnerabilidade: CRIPTOGRAFIA_FRACA
 python db_analyzer.py seu_banco.db
 ```
 
-### Exportar relatório
+### Exportar relatÃ³rio
 ```bash
 python reporter.py --codigo . --json resultado.json --html resultado.html
 ```
 
 ---
 
-## 📋 Validação Passo a Passo
+## ðŸ“‹ ValidaÃ§Ã£o Passo a Passo
 
-### 1️⃣ Verificar instalação
+### 1ï¸âƒ£ Verificar instalaÃ§Ã£o
 ```bash
 python --version  # Deve ser 3.8+
 flask --version   # Deve estar instalado
 pytest --version  # Deve estar instalado
 ```
 
-### 2️⃣ Rodar testes
+### 2ï¸âƒ£ Rodar testes
 ```bash
 pytest tests/ -v --tb=short
-# Esperado: 54 passed
+# Esperado: 56 passed
 ```
 
-### 3️⃣ Testar análise manual
+### 3ï¸âƒ£ Testar anÃ¡lise manual
 ```bash
 python code_analyzer.py exemplo_vulneravel.py
 # Esperado: 6 vulnerabilidades detectadas
 ```
 
-### 4️⃣ Testar análise correto (falsos positivos)
+### 4ï¸âƒ£ Testar anÃ¡lise correto (falsos positivos)
 ```bash
 python code_analyzer.py exemplo_correto.py
 # Esperado: 0 vulnerabilidades
 ```
 
-### 5️⃣ Rodar extensão
+### 5ï¸âƒ£ Rodar extensÃ£o
 ```bash
-# VS Code: F5 → Run Extension
+# VS Code: F5 â†’ Run Extension
 # Em nova janela, abra exemplo_vulneravel.py
 # Salve: Ctrl+S
 # Esperado: Gutter icons vermelhos aparecem
@@ -162,14 +175,14 @@ python code_analyzer.py exemplo_correto.py
 
 ---
 
-## 🔍 Analisando Seu Código
+## ðŸ” Analisando Seu CÃ³digo
 
-### Arquivo único
+### Arquivo Ãºnico
 ```bash
 python code_analyzer.py seu_arquivo.py
 ```
 
-### Diretório inteiro
+### DiretÃ³rio inteiro
 ```bash
 python reporter.py --codigo ./meu_projeto --json relatorio.json
 ```
@@ -181,11 +194,11 @@ python db_analyzer.py ./database.db
 
 ---
 
-## 📊 Visualizar Relatórios
+## ðŸ“Š Visualizar RelatÃ³rios
 
 ### HTML (recomendado)
 ```bash
-# Após gerar:
+# ApÃ³s gerar:
 start resultado.html  # Windows
 open resultado.html   # Mac
 xdg-open resultado.html  # Linux
@@ -204,27 +217,27 @@ python reporter.py --codigo . --imprimir
 
 ---
 
-## 🔧 Troubleshooting
+## ðŸ”§ Troubleshooting
 
-### ❌ Erro: "ModuleNotFoundError: No module named 'flask'"
+### âŒ Erro: "ModuleNotFoundError: No module named 'flask'"
 ```bash
-pip install flask
+python -m pip install -r requirements.txt
 ```
 
-### ❌ Porta 5000 em uso
+### âŒ Porta 5000 em uso
 ```bash
 # Mudar em VS Code Settings:
 "privacy-scanner.serverPort": 5001
 ```
 
-### ❌ TypeScript não compila
+### âŒ TypeScript nÃ£o compila
 ```bash
 cd vscode-extension
 npm install
 npm run compile
 ```
 
-### ❌ Testes falham
+### âŒ Testes falham
 ```bash
 # Limpar cache pytest:
 pytest --cache-clear tests/ -v
@@ -232,45 +245,46 @@ pytest --cache-clear tests/ -v
 
 ---
 
-## 📈 Performance
+## ðŸ“ˆ Performance
 
-Tempo de execução esperado:
+Tempo de execuÃ§Ã£o esperado:
 
-| Operação | Tempo |
+| OperaÃ§Ã£o | Tempo |
 |----------|-------|
-| Analisar arquivo único | ~50ms |
+| Analisar arquivo Ãºnico | ~50ms |
 | Analisar projeto (10 arquivos) | ~200ms |
-| Testes completos (54) | ~600ms |
+| Testes completos (56) | ~600ms |
 | Exportar HTML | ~100ms |
 
 ---
 
-## 🎓 Validação para TCC
+## ðŸŽ“ ValidaÃ§Ã£o para TCC
 
-### Checklist de Validação
-- [x] Testes unitários rodando
-- [x] Todos os testes passando (54/54)
+### Checklist de ValidaÃ§Ã£o
+- [x] Testes unitÃ¡rios rodando
+- [x] Todos os testes passando (56/56)
 - [x] Cobertura 74%+
 - [x] Exemplos funcionando
-- [x] Extensão VS Code funcional
-- [x] Relatórios gerando corretamente
+- [x] ExtensÃ£o VS Code funcional
+- [x] RelatÃ³rios gerando corretamente
 - [x] Bugs corrigidos e validados
 
-### Métricas Finais
-- Testes: **54/54 ✅**
-- Cobertura: **74% ✅**
-- Completude: **76% ✅**
-- Status: **MVP ENTREGUE ✅**
+### MÃ©tricas Finais
+- Testes: **56/56 âœ…**
+- Cobertura: **74% âœ…**
+- Completude: **76% âœ…**
+- Status: **MVP ENTREGUE âœ…**
 
 ---
 
-## 📞 Próximos Passos
+## ðŸ“ž PrÃ³ximos Passos
 
-1. **Code Actions**: Sugestões inline de correção
-2. **PDF Export**: Relatórios em PDF
-3. **CI/CD**: GitHub Actions para testes automáticos
+1. **Code Actions**: SugestÃµes inline de correÃ§Ã£o
+2. **PDF Export**: RelatÃ³rios em PDF
+3. **CI/CD**: GitHub Actions para testes automÃ¡ticos
 
 ---
 
-**Última atualização**: 2026-06-01  
-**Status**: ✅ Tudo funcionando
+**Ãšltima atualizaÃ§Ã£o**: 2026-06-01  
+**Status**: âœ… Tudo funcionando
+

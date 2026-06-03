@@ -1,52 +1,52 @@
-# 🧪 Privacy Scanner — Testes Unitários
+﻿# ðŸ§ª Privacy Scanner â€” Testes UnitÃ¡rios
 
-Suite completa de testes com **54 testes** cobrindo todas as funcionalidades principais.
+Suite completa de testes com **56 testes** cobrindo todas as funcionalidades principais.
 
-## 📊 Cobertura
+## ðŸ“Š Cobertura
 
 ### code_analyzer.py (22 testes)
-- ✅ Detecção de dados hardcoded (senhas, CPF)
-- ✅ Detecção de criptografia fraca (MD5, SHA1)
-- ✅ Detecção de dados em logs
-- ✅ Detecção de transferências sem base legal
-- ✅ Detecção de coleta excessiva
-- ✅ Detecção de ausência de método de exclusão
-- ✅ Word boundary (Bug 2 fix)
-- ✅ Inicializações vazias (Bug 1 fix)
-- ✅ Sem falsos positivos
-- ✅ Mapeamento de artigos LGPD
-- ✅ Análise de diretório
-- ✅ Integração end-to-end
+- âœ… DetecÃ§Ã£o de dados hardcoded (senhas, CPF)
+- âœ… DetecÃ§Ã£o de criptografia fraca (MD5, SHA1)
+- âœ… DetecÃ§Ã£o de dados em logs
+- âœ… DetecÃ§Ã£o de transferÃªncias sem base legal
+- âœ… DetecÃ§Ã£o de coleta excessiva
+- âœ… DetecÃ§Ã£o de ausÃªncia de mÃ©todo de exclusÃ£o
+- âœ… Word boundary (Bug 2 fix)
+- âœ… InicializaÃ§Ãµes vazias (Bug 1 fix)
+- âœ… Sem falsos positivos
+- âœ… Mapeamento de artigos LGPD
+- âœ… AnÃ¡lise de diretÃ³rio
+- âœ… IntegraÃ§Ã£o end-to-end
 
 ### db_analyzer.py (16 testes)
-- ✅ Campos sensíveis em texto puro
-- ✅ Ausência de soft-delete
-- ✅ Ausência de retenção
-- ✅ Ausência de coluna de consentimento
-- ✅ Dados sensíveis como chave primária
-- ✅ Schemas corretos sem alertas
-- ✅ Separação de dados
-- ✅ Edge cases (banco vazio, múltiplas tabelas, caracteres especiais)
-- ✅ Mapeamento de artigos LGPD
-- ✅ Auditoria completa de banco de dados
+- âœ… Campos sensÃ­veis em texto puro
+- âœ… AusÃªncia de soft-delete
+- âœ… AusÃªncia de retenÃ§Ã£o
+- âœ… AusÃªncia de coluna de consentimento
+- âœ… Dados sensÃ­veis como chave primÃ¡ria
+- âœ… Schemas corretos sem alertas
+- âœ… SeparaÃ§Ã£o de dados
+- âœ… Edge cases (banco vazio, mÃºltiplas tabelas, caracteres especiais)
+- âœ… Mapeamento de artigos LGPD
+- âœ… Auditoria completa de banco de dados
 
 ### reporter.py (13 testes)
-- ✅ Cálculo de sumário (zero vulns, todos os riscos)
-- ✅ Score de conformidade LGPD
-- ✅ Ordenação por risco e arquivo
-- ✅ Recomendações para todas as categorias
-- ✅ Exportação JSON (estrutura, unicode)
-- ✅ Exportação HTML (estrutura, sumário)
-- ✅ Fluxo completo de relatório
+- âœ… CÃ¡lculo de sumÃ¡rio (zero vulns, todos os riscos)
+- âœ… Score de conformidade LGPD
+- âœ… OrdenaÃ§Ã£o por risco e arquivo
+- âœ… RecomendaÃ§Ãµes para todas as categorias
+- âœ… ExportaÃ§Ã£o JSON (estrutura, unicode)
+- âœ… ExportaÃ§Ã£o HTML (estrutura, sumÃ¡rio)
+- âœ… Fluxo completo de relatÃ³rio
 
-## 🚀 Executar Testes
+## ðŸš€ Executar Testes
 
 ### Todos os testes
 ```bash
 pytest tests/ -v
 ```
 
-### Teste específico
+### Teste especÃ­fico
 ```bash
 pytest tests/test_code_analyzer.py::TestCodeAnalyzerBasic::test_detects_hardcoded_password -v
 ```
@@ -56,25 +56,25 @@ pytest tests/test_code_analyzer.py::TestCodeAnalyzerBasic::test_detects_hardcode
 pytest tests/ --cov=. --cov-report=html
 ```
 
-### Apenas testes rápidos
+### Apenas testes rÃ¡pidos
 ```bash
 pytest tests/ -v -m "not slow"
 ```
 
-## 📋 Estrutura dos Testes
+## ðŸ“‹ Estrutura dos Testes
 
 ```
 tests/
-├── conftest.py              ← Fixtures compartilhadas
-├── test_code_analyzer.py    ← 22 testes para código Python
-├── test_db_analyzer.py      ← 16 testes para banco SQLite
-├── test_reporter.py         ← 13 testes para relatórios
-└── __init__.py
+â”œâ”€â”€ conftest.py              â† Fixtures compartilhadas
+â”œâ”€â”€ test_code_analyzer.py    â† 22 testes para cÃ³digo Python
+â”œâ”€â”€ test_db_analyzer.py      â† 16 testes para banco SQLite
+â”œâ”€â”€ test_reporter.py         â† 13 testes para relatÃ³rios
+â””â”€â”€ __init__.py
 ```
 
-## 🔍 Exemplos de Testes
+## ðŸ” Exemplos de Testes
 
-### Test: Detecção de Password Hardcoded
+### Test: DetecÃ§Ã£o de Password Hardcoded
 ```python
 def test_detects_hardcoded_password(self, temp_py_file):
     """Should detect hardcoded password (DADO_HARDCODED)."""
@@ -114,44 +114,44 @@ def test_summary_calculation_with_alto_risk(self):
     assert summary['score_conformidade'] == 90
 ```
 
-## ✅ Resultados Atuais
+## âœ… Resultados Atuais
 
 ```
-===== 54 passed in 0.17s =====
+===== 56 passed in 0.17s =====
 
 Test Results by Component:
-- code_analyzer.py: 22/22 PASSED ✅
-- db_analyzer.py:   16/16 PASSED ✅
-- reporter.py:      13/13 PASSED ✅
+- code_analyzer.py: 22/22 PASSED âœ…
+- db_analyzer.py:   16/16 PASSED âœ…
+- reporter.py:      13/13 PASSED âœ…
 
 Total Coverage:
-- Análise de código: 100%
-- Análise de banco: 100%
-- Geração de relatórios: 100%
+- AnÃ¡lise de cÃ³digo: 100%
+- AnÃ¡lise de banco: 100%
+- GeraÃ§Ã£o de relatÃ³rios: 100%
 ```
 
-## 🎯 Cobertura por Categoria de Vulnerabilidade
+## ðŸŽ¯ Cobertura por Categoria de Vulnerabilidade
 
 | Categoria | Testado | Status |
 |-----------|---------|--------|
-| DADO_HARDCODED | Sim | ✅ |
-| DADO_SEM_CRIPTOGRAFIA | Sim | ✅ |
-| CRIPTOGRAFIA_FRACA | Sim | ✅ |
-| DADO_EM_LOG | Sim | ✅ |
-| TRANSFERENCIA_SEM_BASE_LEGAL | Sim | ✅ |
-| COLETA_EXCESSIVA | Sim | ✅ |
-| AUSENCIA_EXCLUSAO | Sim | ✅ |
-| CAMPO_SEM_HASH | Sim | ✅ |
-| AUSENCIA_SOFT_DELETE | Sim | ✅ |
-| AUSENCIA_RETENCAO | Sim | ✅ |
-| AUSENCIA_CONSENTIMENTO | Sim | ✅ |
-| MISTURA_DADOS | Sim | ✅ |
-| DADO_SENSIVEL_COMO_PK | Sim | ✅ |
+| DADO_HARDCODED | Sim | âœ… |
+| DADO_SEM_CRIPTOGRAFIA | Sim | âœ… |
+| CRIPTOGRAFIA_FRACA | Sim | âœ… |
+| DADO_EM_LOG | Sim | âœ… |
+| TRANSFERENCIA_SEM_BASE_LEGAL | Sim | âœ… |
+| COLETA_EXCESSIVA | Sim | âœ… |
+| AUSENCIA_EXCLUSAO | Sim | âœ… |
+| CAMPO_SEM_HASH | Sim | âœ… |
+| AUSENCIA_SOFT_DELETE | Sim | âœ… |
+| AUSENCIA_RETENCAO | Sim | âœ… |
+| AUSENCIA_CONSENTIMENTO | Sim | âœ… |
+| MISTURA_DADOS | Sim | âœ… |
+| DADO_SENSIVEL_COMO_PK | Sim | âœ… |
 
-## 🔧 Fixtures Disponíveis
+## ðŸ”§ Fixtures DisponÃ­veis
 
 ### temp_py_file
-Cria arquivo Python temporário para testes
+Cria arquivo Python temporÃ¡rio para testes
 ```python
 def test_something(self, temp_py_file):
     temp_py_file.write(code)
@@ -160,7 +160,7 @@ def test_something(self, temp_py_file):
 ```
 
 ### temp_db_file
-Cria banco SQLite temporário
+Cria banco SQLite temporÃ¡rio
 ```python
 def test_database(self, temp_db_file):
     conn = sqlite3.connect(temp_db_file)
@@ -169,41 +169,41 @@ def test_database(self, temp_db_file):
 ```
 
 ### sample_vulnerable_code
-Código com 6 vulnerabilidades propositais
+CÃ³digo com 6 vulnerabilidades propositais
 
 ### sample_correct_code
-Código sem vulnerabilidades (valida falsos positivos)
+CÃ³digo sem vulnerabilidades (valida falsos positivos)
 
 ### sample_word_boundary_code
-Código para testar matching de word boundary
+CÃ³digo para testar matching de word boundary
 
-## 🚨 Casos Críticos Testados
+## ðŸš¨ Casos CrÃ­ticos Testados
 
 1. **Bug Fixes**
-   - ✅ Inicializações vazias em classes (`nome = ""`)
-   - ✅ Word boundary em `age` vs `user_agent`
-   - ✅ Linha 0 em vulnerabilidades de banco
+   - âœ… InicializaÃ§Ãµes vazias em classes (`nome = ""`)
+   - âœ… Word boundary em `age` vs `user_agent`
+   - âœ… Linha 0 em vulnerabilidades de banco
 
 2. **Falsos Positivos**
-   - ✅ Bcrypt não gera alerta
-   - ✅ Método `delete()` satisfaz requirement
-   - ✅ Logs genéricos sem dados pessoais OK
-   - ✅ IDs técnicos (UUID) sem alerta
+   - âœ… Bcrypt nÃ£o gera alerta
+   - âœ… MÃ©todo `delete()` satisfaz requirement
+   - âœ… Logs genÃ©ricos sem dados pessoais OK
+   - âœ… IDs tÃ©cnicos (UUID) sem alerta
 
 3. **Edge Cases**
-   - ✅ Banco vazio
-   - ✅ Múltiplas tabelas
-   - ✅ Caracteres especiais em nomes
-   - ✅ Unicode (português)
+   - âœ… Banco vazio
+   - âœ… MÃºltiplas tabelas
+   - âœ… Caracteres especiais em nomes
+   - âœ… Unicode (portuguÃªs)
 
-## 📈 Próximos Passos
+## ðŸ“ˆ PrÃ³ximos Passos
 
 - [ ] Aumentar cobertura para 100% (linhas)
 - [ ] Testes de performance
-- [ ] Testes de integração CI/CD
+- [ ] Testes de integraÃ§Ã£o CI/CD
 - [ ] Benchmarks de velocidade
 
-## 📚 Referências
+## ðŸ“š ReferÃªncias
 
 - [pytest Documentation](https://docs.pytest.org/)
 - [pytest-cov](https://pytest-cov.readthedocs.io/)
@@ -211,6 +211,7 @@ Código para testar matching de word boundary
 
 ---
 
-**Status**: ✅ Suite completa e 100% passando  
-**Última atualização**: 2026-06-01  
+**Status**: âœ… Suite completa e 100% passando  
+**Ãšltima atualizaÃ§Ã£o**: 2026-06-01  
 **Executar**: `pytest tests/ -v`
+

@@ -177,6 +177,45 @@ class TestWordBoundary:
         
         assert len(results) == 0
 
+    def test_constructor_parameter_assignment_no_alert(self, temp_py_file):
+        """Should not flag model fields assigned from constructor parameters."""
+        code = '''
+class Usuario:
+    nome = ""
+    email = ""
+    cpf = ""
+
+    def __init__(self, nome: str, email: str, cpf: str):
+        self.nome = nome
+        self.email = email
+        self.cpf = cpf
+
+    def anonimizar(self):
+        self.nome = "Anonimo"
+        self.email = "anonimo@anon.com"
+        self.cpf = "000.000.000-00"
+'''
+        temp_py_file.write(code)
+        temp_py_file.flush()
+
+        results = analisar_arquivo(temp_py_file.name)
+
+        assert len(results) == 0
+
+    def test_technical_ip_address_log_no_alert(self, temp_py_file):
+        """Should not flag technical user_agent/ip_address logging."""
+        code = '''
+import logging
+def registrar_acesso(user_agent: str, ip_address: str):
+    logging.info(f"Novo acesso: user_agent={user_agent}, ip={ip_address}")
+'''
+        temp_py_file.write(code)
+        temp_py_file.flush()
+
+        results = analisar_arquivo(temp_py_file.name)
+
+        assert len(results) == 0
+
     def test_detects_sensitive_snake_case_prefixes(self, temp_py_file):
         """Should detect sensitive fields embedded as snake_case tokens."""
         code = '''

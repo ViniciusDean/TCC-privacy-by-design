@@ -1,43 +1,43 @@
 # Privacy Scanner LGPD - TCC FATEC
 
-Ferramenta de analise estatica para detectar vulnerabilidades de privacidade em codigo Python e bancos SQLite, com mapeamento das ocorrencias para artigos da Lei Geral de Protecao de Dados Pessoais (LGPD).
+Ferramenta de análise estática para detectar vulnerabilidades de privacidade em código Python e bancos SQLite, com mapeamento das ocorrências para artigos da Lei Geral de Proteção de Dados Pessoais (LGPD).
 
 Projeto desenvolvido no contexto de TCC sobre **Privacy by Design no Ciclo de Desenvolvimento de Software**.
 
-## Visao Geral
+## Visão Geral
 
-O Privacy Scanner LGPD ajuda desenvolvedores a identificar riscos de privacidade ainda durante o desenvolvimento, sem executar o codigo analisado.
+O Privacy Scanner LGPD ajuda desenvolvedores a identificar riscos de privacidade ainda durante o desenvolvimento, sem executar o código analisado.
 
 Principais recursos:
 
-- Analise estatica de codigo Python usando AST.
-- Analise de schema SQLite.
-- Mapeamento automatico para artigos da LGPD.
+- Análise estática de código Python usando AST.
+- Análise de schema SQLite.
+- Mapeamento automático para artigos da LGPD.
 - Score de conformidade de 0 a 100.
-- Extensao VS Code com diagnosticos no editor.
+- Extensão VS Code com diagnósticos no editor.
 - Sidebar com resumo e agrupamento por risco.
-- Code Actions com recomendacoes LGPD.
-- Exportacao de relatorio HTML interativo.
-- Exportacao JSON estruturada.
-- Preparacao para exportacao PDF.
+- Code Actions com recomendações LGPD.
+- Exportação de relatório HTML interativo.
+- Exportação JSON estruturada.
+- Preparação para exportação PDF.
 
 ## Estrutura do Projeto
 
 ```text
 TCC/
-|-- code_analyzer.py              # Analise de codigo Python via AST
-|-- db_analyzer.py                # Analise de schema SQLite
-|-- reporter.py                   # Agregacao e relatorios JSON/HTML
-|-- server.py                     # API Flask usada pela extensao VS Code
-|-- requirements.txt              # Dependencias Python
-|-- pytest.ini                    # Configuracao dos testes
+|-- code_analyzer.py              # Análise de código Python via AST
+|-- db_analyzer.py                # Análise de schema SQLite
+|-- reporter.py                   # Agregação e relatórios JSON/HTML
+|-- server.py                     # API Flask usada pela extensão VS Code
+|-- requirements.txt              # Dependências Python
+|-- pytest.ini                    # Configuração dos testes
 |-- push_github.bat               # Script local para commit/push
 |-- setup_windows.bat             # Setup inicial no Windows
-|-- validate_project.bat          # Validacao local do projeto
+|-- validate_project.bat          # Validação local do projeto
 |
 |-- exemplo_vulneravel.py         # Exemplo com vulnerabilidades propositais
 |-- exemplo_correto.py            # Exemplo sem falsos positivos esperados
-|-- exemplo_parcial.py            # Exemplo intermediario/realista
+|-- exemplo_parcial.py            # Exemplo intermediário/realista
 |
 |-- tests/
 |   |-- test_code_analyzer.py
@@ -45,10 +45,10 @@ TCC/
 |   |-- test_reporter.py
 |
 |-- vscode-extension/
-|   |-- src/extension.ts          # Codigo principal da extensao
-|   |-- package.json              # Manifesto da extensao
-|   |-- tsconfig.json             # Configuracao TypeScript
-|   |-- resources/icon.svg        # Icone da extensao
+|   |-- src/extension.ts          # Código principal da extensão
+|   |-- package.json              # Manifesto da extensão
+|   |-- tsconfig.json             # Configuração TypeScript
+|   |-- resources/icon.svg        # Ícone da extensão
 |
 |-- scripts/
 |   |-- create_test_workspace.py  # Recria workspace externo de testes
@@ -60,13 +60,13 @@ TCC/
 
 ## Quick Start
 
-### 1. Instalar dependencias Python
+### 1. Instalar dependências Python
 
 ```powershell
 python -m pip install -r requirements.txt
 ```
 
-### 2. Instalar e compilar a extensao
+### 2. Instalar e compilar a extensão
 
 ```powershell
 cd vscode-extension
@@ -87,11 +87,11 @@ Resultado esperado:
 56 passed
 ```
 
-### 4. Testar a extensao no VS Code
+### 4. Testar a extensão no VS Code
 
 1. Abra a pasta `TCC` no VS Code.
 2. Pressione `F5`.
-3. Uma nova janela `[Extension Development Host]` sera aberta.
+3. Uma nova janela `[Extension Development Host]` será aberta.
 4. Abra a pasta de teste ou um arquivo Python.
 5. Use a sidebar `Privacy Scanner`.
 
@@ -109,13 +109,13 @@ Analisar um arquivo Python:
 python code_analyzer.py exemplo_vulneravel.py
 ```
 
-Gerar relatorio HTML:
+Gerar relatório HTML:
 
 ```powershell
 python reporter.py --codigo exemplo_vulneravel.py --html relatorio.html
 ```
 
-Gerar relatorio JSON:
+Gerar relatório JSON:
 
 ```powershell
 python reporter.py --codigo exemplo_vulneravel.py --json relatorio.json
@@ -133,9 +133,9 @@ Analisar projeto inteiro:
 python reporter.py --codigo . --html relatorio_projeto.html
 ```
 
-## Uso pela Extensao VS Code
+## Uso pela Extensão VS Code
 
-Comandos disponiveis na Paleta de Comandos (`Ctrl+Shift+P`):
+Comandos disponíveis na Paleta de Comandos (`Ctrl+Shift+P`):
 
 - `Privacy Scanner: Analisar agora`
 - `Privacy Scanner: Analisar arquivo atual`
@@ -143,12 +143,12 @@ Comandos disponiveis na Paleta de Comandos (`Ctrl+Shift+P`):
 - `Privacy Scanner: Analisar banco SQLite`
 - `Privacy Scanner: Limpar resultados`
 - `Privacy Scanner: Exportar relatorio`
-- `Privacy Scanner: Exportar relatorio HTML`
-- `Privacy Scanner: Exportar relatorio JSON`
+- `Privacy Scanner: Exportar relatório HTML`
+- `Privacy Scanner: Exportar relatório JSON`
 
-A extensao tambem analisa arquivos Python automaticamente ao abrir, trocar de aba ou salvar.
+A extensão também analisa arquivos Python automaticamente ao abrir, trocar de aba ou salvar.
 
-## Sidebar da Extensao
+## Sidebar da Extensão
 
 A sidebar mostra:
 
@@ -159,90 +159,90 @@ A sidebar mostra:
 - contagem por risco;
 - quantidade de arquivos Python e bancos SQLite com achados.
 
-Enquanto a analise esta em andamento, a sidebar mostra estado de carregamento em vez de exibir `100/100` antes da hora.
+Enquanto a análise está em andamento, a sidebar mostra estado de carregamento em vez de exibir `100/100` antes da hora.
 
 ## Code Actions
 
-Quando uma vulnerabilidade aparece sublinhada no editor, use a lampada/Quick Fix para:
+Quando uma vulnerabilidade aparece sublinhada no editor, use a lâmpada/Quick Fix para:
 
-- ver a recomendacao LGPD da regra;
-- copiar a recomendacao para a area de transferencia.
+- ver a recomendação LGPD da regra;
+- copiar a recomendação para a área de transferência.
 
-## Relatorios
+## Relatórios
 
 ### HTML
 
-O relatorio HTML inclui:
+O relatório HTML inclui:
 
 - score LGPD;
 - cards por risco;
 - escopo analisado;
-- resumo tecnico;
+- resumo técnico;
 - tabela de vulnerabilidades;
-- recomendacoes;
-- trecho de codigo/schema;
+- recomendações;
+- trecho de código/schema;
 - filtro por risco;
-- ordenacao ao clicar nos cabecalhos da tabela.
+- ordenação ao clicar nos cabeçalhos da tabela.
 
-Na extensao, ao exportar HTML, o VS Code abre a janela do Windows para escolher nome e destino do arquivo.
+Na extensão, ao exportar HTML, o VS Code abre a janela do Windows para escolher nome e destino do arquivo.
 
 ### JSON
 
-O JSON contem:
+O JSON contém:
 
 - metadados da ferramenta;
 - timestamp;
-- sumario;
+- sumário;
 - lista estruturada de vulnerabilidades;
-- recomendacao de correcao por categoria.
+- recomendação de correção por categoria.
 
 ### PDF
 
-A opcao PDF ja aparece no fluxo de exportacao, mas ainda esta reservada para a proxima etapa. A recomendacao do projeto e manter:
+A opção PDF já aparece no fluxo de exportação, mas ainda está reservada para a próxima etapa. A recomendação do projeto é manter:
 
-- HTML como relatorio interativo;
-- PDF como relatorio formal e estatico para entrega/compliance.
+- HTML como relatório interativo;
+- PDF como relatório formal e estático para entrega/compliance.
 
 ## Regras Detectadas
 
-### Codigo Python
+### Código Python
 
-| Categoria | Risco | Artigo LGPD | Descricao |
+| Categoria | Risco | Artigo LGPD | Descrição |
 |---|---|---|---|
-| DADO_HARDCODED | ALTO | Art. 46 | Dado pessoal fixo no codigo |
+| DADO_HARDCODED | ALTO | Art. 46 | Dado pessoal fixo no código |
 | CRIPTOGRAFIA_FRACA | ALTO | Art. 46 | Uso de MD5 ou SHA1 |
 | DADO_EM_LOG | ALTO | Art. 46 | Dado pessoal em print/logging |
 | TRANSFERENCIA_SEM_BASE_LEGAL | ALTO | Art. 7 / Art. 33 | Envio a terceiros sem base legal documentada |
-| COLETA_EXCESSIVA | MEDIO | Art. 6 | Coleta de muitos campos sensiveis |
-| AUSENCIA_EXCLUSAO | MEDIO | Art. 18 | Classe sem metodo de exclusao/anonimizacao |
-| DADO_SEM_CRIPTOGRAFIA | MEDIO | Art. 46 | Campo sensivel sem protecao esperada |
+| COLETA_EXCESSIVA | MÉDIO | Art. 6 | Coleta de muitos campos sensíveis |
+| AUSENCIA_EXCLUSAO | MÉDIO | Art. 18 | Classe sem método de exclusão/anonimização |
+| DADO_SEM_CRIPTOGRAFIA | MÉDIO | Art. 46 | Campo sensível sem proteção esperada |
 
 ### Banco SQLite
 
-| Categoria | Risco | Artigo LGPD | Descricao |
+| Categoria | Risco | Artigo LGPD | Descrição |
 |---|---|---|---|
-| CAMPO_SEM_HASH | ALTO | Art. 46 | Campo sensivel armazenado em texto puro |
-| AUSENCIA_SOFT_DELETE | MEDIO | Art. 18 | Ausencia de `deleted_at` ou `is_deleted` |
-| AUSENCIA_CONSENTIMENTO | MEDIO | Art. 7 | Ausencia de controle de consentimento |
-| DADO_SENSIVEL_COMO_PK | MEDIO | Art. 46 | CPF/email usado como chave primaria |
-| AUSENCIA_RETENCAO | BAIXO | Art. 15 | Ausencia de politica de retencao |
-| MISTURA_DADOS | BAIXO | Art. 6 | Dados pessoais e nao pessoais misturados |
+| CAMPO_SEM_HASH | ALTO | Art. 46 | Campo sensível armazenado em texto puro |
+| AUSENCIA_SOFT_DELETE | MÉDIO | Art. 18 | Ausência de `deleted_at` ou `is_deleted` |
+| AUSENCIA_CONSENTIMENTO | MÉDIO | Art. 7 | Ausência de controle de consentimento |
+| DADO_SENSIVEL_COMO_PK | MÉDIO | Art. 46 | CPF/email usado como chave primária |
+| AUSENCIA_RETENCAO | BAIXO | Art. 15 | Ausência de política de retenção |
+| MISTURA_DADOS | BAIXO | Art. 6 | Dados pessoais e não pessoais misturados |
 
 ## Score LGPD
 
-Formula:
+Fórmula:
 
 ```text
-100 - (ALTO * 10 + MEDIO * 5 + BAIXO * 2)
+100 - (ALTO * 10 + MÉDIO * 5 + BAIXO * 2)
 ```
 
-Interpretacao:
+Interpretação:
 
-| Score | Situacao |
+| Score | Situação |
 |---|---|
 | 80-100 | Boa conformidade |
-| 50-79 | Atencao |
-| 0-49 | Critico |
+| 50-79 | Atenção |
+| 0-49 | Crítico |
 
 ## API Flask
 
@@ -254,15 +254,15 @@ http://localhost:5000
 
 Endpoints:
 
-| Metodo | Endpoint | Funcao |
+| Método | Endpoint | Função |
 |---|---|---|
-| GET | `/health` | Verifica se o servidor esta ativo |
+| GET | `/health` | Verifica se o servidor está ativo |
 | POST | `/api/analyze-file` | Analisa um arquivo Python |
-| POST | `/api/analyze-directory` | Analisa um diretorio |
+| POST | `/api/analyze-directory` | Analisa um diretório |
 | POST | `/api/analyze-database` | Analisa um banco SQLite |
-| POST | `/api/export` | Exporta relatorio HTML/JSON |
+| POST | `/api/export` | Exporta relatório HTML/JSON |
 
-## Configuracoes da Extensao
+## Configurações da Extensão
 
 Exemplo em `settings.json`:
 
@@ -290,13 +290,13 @@ Executar com cobertura:
 python -m pytest --cov=code_analyzer --cov=db_analyzer --cov=reporter --cov-report=html
 ```
 
-Suite atual:
+Suíte atual:
 
-- `test_code_analyzer.py`: regras de codigo, falsos positivos, word boundary e artigos LGPD.
+- `test_code_analyzer.py`: regras de código, falsos positivos, word boundary e artigos LGPD.
 - `test_db_analyzer.py`: regras SQLite, schemas corretos, edge cases e erros.
-- `test_reporter.py`: score, ordenacao, recomendacoes, JSON e HTML.
+- `test_reporter.py`: score, ordenação, recomendações, JSON e HTML.
 
-## Scripts Uteis
+## Scripts Úteis
 
 Setup no Windows:
 
@@ -304,7 +304,7 @@ Setup no Windows:
 setup_windows.bat
 ```
 
-Validacao geral:
+Validação geral:
 
 ```powershell
 validate_project.bat
@@ -320,33 +320,33 @@ push_github.bat
 
 Implementado:
 
-- analise Python;
-- analise SQLite;
+- análise Python;
+- análise SQLite;
 - mapeamento LGPD;
 - score de conformidade;
-- relatorio terminal;
-- export JSON;
-- export HTML interativo;
+- relatório terminal;
+- exportação JSON;
+- exportação HTML interativa;
 - servidor Flask;
-- extensao VS Code;
+- extensão VS Code;
 - sidebar;
-- botao de analise;
-- botao de exportacao;
+- botão de análise;
+- botão de exportação;
 - Code Actions;
 - workspace de teste;
-- suite automatizada com 56 testes.
+- suíte automatizada com 56 testes.
 
-Proximas etapas:
+Próximas etapas:
 
-- exportacao PDF;
-- melhoria do relatorio PDF formal;
+- exportação PDF;
+- melhoria do relatório PDF formal;
 - CI/CD com GitHub Actions;
-- empacotamento da extensao VS Code.
+- empacotamento da extensão VS Code.
 
 ## Autor
 
 Desenvolvido por Dean V. como TCC na FATEC.
 
-## Licenca
+## Licença
 
 MIT

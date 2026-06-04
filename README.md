@@ -1,208 +1,270 @@
-﻿# ðŸ”’ Privacy Scanner LGPD â€” TCC FATEC
+# Privacy Scanner LGPD - TCC FATEC
 
-**Privacy by Design no Ciclo de Desenvolvimento de Software**
+Ferramenta de analise estatica para detectar vulnerabilidades de privacidade em codigo Python e bancos SQLite, com mapeamento das ocorrencias para artigos da Lei Geral de Protecao de Dados Pessoais (LGPD).
 
-Ferramenta de anÃ¡lise estÃ¡tica para detectar vulnerabilidades de privacidade em cÃ³digo Python e bancos SQLite conforme a Lei Geral de ProteÃ§Ã£o de Dados Pessoais (LGPD).
+Projeto desenvolvido no contexto de TCC sobre **Privacy by Design no Ciclo de Desenvolvimento de Software**.
 
-## ðŸ“Š VisÃ£o Geral
+## Visao Geral
 
-```
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚ Privacy Scanner LGPD (VersÃ£o 1.0.0)                        â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚                                                             â”‚
-â”‚  ðŸ” AnÃ¡lise EstÃ¡tica de CÃ³digo Python                      â”‚
-â”‚     â”œâ”€ Dados pessoais hardcoded                           â”‚
-â”‚     â”œâ”€ AusÃªncia/fraqueza de criptografia                  â”‚
-â”‚     â”œâ”€ Dados em logs                                      â”‚
-â”‚     â”œâ”€ TransferÃªncias sem base legal                      â”‚
-â”‚     â”œâ”€ Coleta excessiva                                   â”‚
-â”‚     â””â”€ AusÃªncia de mÃ©todos de exclusÃ£o                    â”‚
-â”‚                                                             â”‚
-â”‚  ðŸ—„ï¸  AnÃ¡lise de Banco SQLite                               â”‚
-â”‚     â”œâ”€ Campos sensÃ­veis em texto puro                     â”‚
-â”‚     â”œâ”€ AusÃªncia de soft-delete                            â”‚
-â”‚     â”œâ”€ AusÃªncia de retenÃ§Ã£o                               â”‚
-â”‚     â”œâ”€ AusÃªncia de consentimento                          â”‚
-â”‚     â”œâ”€ Mistura de dados                                   â”‚
-â”‚     â””â”€ Chaves primÃ¡rias sensÃ­veis                         â”‚
-â”‚                                                             â”‚
-â”‚  ðŸŽ¨ Interface VS Code                                       â”‚
-â”‚     â”œâ”€ AnÃ¡lise em tempo real                              â”‚
-â”‚     â”œâ”€ Gutter icons + Diagnostics API                     â”‚
-â”‚     â”œâ”€ Comando manual                                     â”‚
-â”‚     â”œâ”€ ExportaÃ§Ã£o de relatÃ³rios                           â”‚
-â”‚     â””â”€ ConfiguraÃ§Ãµes personalizÃ¡veis                      â”‚
-â”‚                                                             â”‚
-â”‚  ðŸ“Š RelatÃ³rios                                             â”‚
-â”‚     â”œâ”€ Terminal (sumÃ¡rio + detalhes)                      â”‚
-â”‚     â”œâ”€ JSON (estrutura completa)                          â”‚
-â”‚     â”œâ”€ HTML (visual com score)                            â”‚
-â”‚     â””â”€ (PDF â€” prÃ³ximo)                                    â”‚
-â”‚                                                             â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-```
+O Privacy Scanner LGPD ajuda desenvolvedores a identificar riscos de privacidade ainda durante o desenvolvimento, sem executar o codigo analisado.
 
-## ðŸ—‚ï¸ Estrutura de Arquivos
+Principais recursos:
 
-```
+- Analise estatica de codigo Python usando AST.
+- Analise de schema SQLite.
+- Mapeamento automatico para artigos da LGPD.
+- Score de conformidade de 0 a 100.
+- Extensao VS Code com diagnosticos no editor.
+- Sidebar com resumo e agrupamento por risco.
+- Code Actions com recomendacoes LGPD.
+- Exportacao de relatorio HTML interativo.
+- Exportacao JSON estruturada.
+- Preparacao para exportacao PDF.
+
+## Estrutura do Projeto
+
+```text
 TCC/
-â”œâ”€â”€ ðŸ“„ code_analyzer.py              â† AnÃ¡lise de cÃ³digo Python (AST)
-â”œâ”€â”€ ðŸ“„ db_analyzer.py                â† AnÃ¡lise de banco SQLite
-â”œâ”€â”€ ðŸ“„ reporter.py                   â† GeraÃ§Ã£o de relatÃ³rios
-â”œâ”€â”€ ðŸ“„ server.py                     â† Servidor Flask (NEW)
-â”‚
-â”œâ”€â”€ ðŸ“š Exemplos & Testes
-â”‚   â”œâ”€â”€ exemplo_vulneravel.py        â† 6 vulnerabilidades propositais
-â”‚   â”œâ”€â”€ exemplo_correto.py           â† Sem falsos positivos
-â”‚   â”œâ”€â”€ exemplo_parcial.py           â† Boas prÃ¡ticas parciais (NEW)
-â”‚   â””â”€â”€ teste_word_boundary.py       â† Teste de word boundary
-â”‚
-â”œâ”€â”€ ðŸŽ¨ vscode-extension/             â† ExtensÃ£o VS Code (NEW)
-â”‚   â”œâ”€â”€ src/
-â”‚   â”‚   â””â”€â”€ extension.ts             â† CÃ³digo TypeScript principal
-â”‚   â”œâ”€â”€ package.json                 â† Metadados & dependÃªncias
-â”‚   â”œâ”€â”€ tsconfig.json                â† ConfiguraÃ§Ã£o TypeScript
-â”‚   â”œâ”€â”€ .vscodeignore                â† Empacotamento
-â”‚   â”œâ”€â”€ .gitignore
-â”‚   â””â”€â”€ README.md                    â† DocumentaÃ§Ã£o da extensÃ£o
-â”‚
-â”œâ”€â”€ ðŸ“‹ SETUP.md                      â† Guia de instalaÃ§Ã£o (NEW)
-â””â”€â”€ ðŸ“‹ README.md                     â† Este arquivo
+|-- code_analyzer.py              # Analise de codigo Python via AST
+|-- db_analyzer.py                # Analise de schema SQLite
+|-- reporter.py                   # Agregacao e relatorios JSON/HTML
+|-- server.py                     # API Flask usada pela extensao VS Code
+|-- requirements.txt              # Dependencias Python
+|-- pytest.ini                    # Configuracao dos testes
+|-- push_github.bat               # Script local para commit/push
+|-- setup_windows.bat             # Setup inicial no Windows
+|-- validate_project.bat          # Validacao local do projeto
+|
+|-- exemplo_vulneravel.py         # Exemplo com vulnerabilidades propositais
+|-- exemplo_correto.py            # Exemplo sem falsos positivos esperados
+|-- exemplo_parcial.py            # Exemplo intermediario/realista
+|
+|-- tests/
+|   |-- test_code_analyzer.py
+|   |-- test_db_analyzer.py
+|   |-- test_reporter.py
+|
+|-- vscode-extension/
+|   |-- src/extension.ts          # Codigo principal da extensao
+|   |-- package.json              # Manifesto da extensao
+|   |-- tsconfig.json             # Configuracao TypeScript
+|   |-- resources/icon.svg        # Icone da extensao
+|
+|-- scripts/
+|   |-- create_test_workspace.py  # Recria workspace externo de testes
+|
+|-- docs/
+|   |-- DEMO.md
+|   |-- FASE_1_ESTABILIZACAO.md
 ```
 
-## ðŸš€ Quick Start
+## Quick Start
 
-### OpÃ§Ã£o rÃ¡pida no Windows
+### 1. Instalar dependencias Python
 
-```bat
-setup_windows.bat
-validate_project.bat
-```
-
-Depois abra o VS Code na pasta do projeto e pressione `F5`.
-
-### 1ï¸âƒ£ InstalaÃ§Ã£o Python
-
-```bash
+```powershell
 python -m pip install -r requirements.txt
 ```
 
-### 2ï¸âƒ£ Compilar extensÃ£o
+### 2. Instalar e compilar a extensao
 
-```bash
+```powershell
 cd vscode-extension
 npm install
 npm run compile
+cd ..
 ```
 
-### 3ï¸âƒ£ Testar no VS Code
+### 3. Rodar testes
 
-- Abra VS Code nesta pasta
-- Pressione `F5` ou `Ctrl+Shift+D` â†’ "Run Extension"
-- Uma nova janela VS Code abre com a extensÃ£o ativa no workspace de teste
+```powershell
+python -m pytest
+```
 
-### 4ï¸âƒ£ Testar anÃ¡lise
+Resultado esperado:
 
-- Se necessario, gere o workspace de teste:
-  ```bash
-  python scripts/create_test_workspace.py
-  ```
-- Abra `exemplo_vulneravel.py` na janela de teste
-- Salve o arquivo (`Ctrl+S`)
-- Vulnerabilidades aparecem em **vermelho** no editor âœ¨
+```text
+56 passed
+```
 
-## ðŸ“– Uso
+### 4. Testar a extensao no VS Code
 
-### CLI
+1. Abra a pasta `TCC` no VS Code.
+2. Pressione `F5`.
+3. Uma nova janela `[Extension Development Host]` sera aberta.
+4. Abra a pasta de teste ou um arquivo Python.
+5. Use a sidebar `Privacy Scanner`.
 
-```bash
-# Analisar arquivo Ãºnico
+Se precisar recriar a pasta externa de testes:
+
+```powershell
+python scripts/create_test_workspace.py
+```
+
+## Uso pela CLI
+
+Analisar um arquivo Python:
+
+```powershell
 python code_analyzer.py exemplo_vulneravel.py
-
-# Analisar projeto inteiro
-python reporter.py --codigo . --json resultado.json --html resultado.html
 ```
 
-### VS Code Extension
+Gerar relatorio HTML:
 
-Paleta de Comandos (`Ctrl+Shift+P`):
+```powershell
+python reporter.py --codigo exemplo_vulneravel.py --html relatorio.html
+```
+
+Gerar relatorio JSON:
+
+```powershell
+python reporter.py --codigo exemplo_vulneravel.py --json relatorio.json
+```
+
+Analisar banco SQLite:
+
+```powershell
+python reporter.py --banco banco_vulneravel.db --html relatorio_banco.html
+```
+
+Analisar projeto inteiro:
+
+```powershell
+python reporter.py --codigo . --html relatorio_projeto.html
+```
+
+## Uso pela Extensao VS Code
+
+Comandos disponiveis na Paleta de Comandos (`Ctrl+Shift+P`):
+
+- `Privacy Scanner: Analisar agora`
 - `Privacy Scanner: Analisar arquivo atual`
 - `Privacy Scanner: Analisar projeto inteiro`
 - `Privacy Scanner: Analisar banco SQLite`
 - `Privacy Scanner: Limpar resultados`
-- `Privacy Scanner: Exportar relatÃ³rio HTML`
-- `Privacy Scanner: Exportar relatÃ³rio JSON`
+- `Privacy Scanner: Exportar relatorio`
+- `Privacy Scanner: Exportar relatorio HTML`
+- `Privacy Scanner: Exportar relatorio JSON`
 
-A extensÃ£o tambÃ©m analisa automaticamente arquivos Python quando vocÃª abre, troca para a aba ou salva o arquivo.
-Nas vulnerabilidades exibidas no editor, use a lampada/Quick Fix para ver ou copiar a recomendacao LGPD da regra.
+A extensao tambem analisa arquivos Python automaticamente ao abrir, trocar de aba ou salvar.
 
-## ðŸ“Š Vulnerabilidades Detectadas
+## Sidebar da Extensao
 
-### CÃ³digo Python (7 regras)
+A sidebar mostra:
 
-| # | Categoria | Risco | DescriÃ§Ã£o |
-|---|-----------|-------|-----------|
-| 1 | DADO_HARDCODED | ðŸ”´ ALTO | Dado pessoal fixo no cÃ³digo |
-| 2 | DADO_SEM_CRIPTOGRAFIA | ðŸŸ¡ MÃ‰DIO | Sem hash ou criptografia |
-| 3 | CRIPTOGRAFIA_FRACA | ðŸ”´ ALTO | MD5, SHA1 (algoritmos fracos) |
-| 4 | DADO_EM_LOG | ðŸ”´ ALTO | Dado pessoal em print/logging |
-| 5 | TRANSFERENCIA_SEM_BASE_LEGAL | ðŸ”´ ALTO | Envio a terceiros sem justificaÃ§Ã£o |
-| 6 | COLETA_EXCESSIVA | ðŸŸ¡ MÃ‰DIO | Mais de 4 campos sensÃ­veis |
-| 7 | AUSENCIA_EXCLUSAO | ðŸŸ¡ MÃ‰DIO | Classe sem mÃ©todo delete/anonimizar |
+- vulnerabilidades agrupadas por risco;
+- arquivos afetados;
+- score LGPD;
+- total de vulnerabilidades;
+- contagem por risco;
+- quantidade de arquivos Python e bancos SQLite com achados.
 
-### Banco SQLite (6 regras)
+Enquanto a analise esta em andamento, a sidebar mostra estado de carregamento em vez de exibir `100/100` antes da hora.
 
-| # | Categoria | Risco | DescriÃ§Ã£o |
-|---|-----------|-------|-----------|
-| 1 | CAMPO_SEM_HASH | ðŸ”´ ALTO | Campo sensÃ­vel em TEXT puro |
-| 2 | AUSENCIA_SOFT_DELETE | ðŸŸ¡ MÃ‰DIO | Sem coluna deleted_at |
-| 3 | AUSENCIA_RETENCAO | ðŸ”µ BAIXO | Sem polÃ­tica de retenÃ§Ã£o |
-| 4 | AUSENCIA_CONSENTIMENTO | ðŸŸ¡ MÃ‰DIO | Sem coluna lgpd_aceito |
-| 5 | MISTURA_DADOS | ðŸ”µ BAIXO | Dados pessoais nÃ£o segregados |
-| 6 | DADO_SENSIVEL_COMO_PK | ðŸŸ¡ MÃ‰DIO | CPF/Email como chave primÃ¡ria |
+## Code Actions
 
-## ðŸ“ˆ Score de Conformidade
+Quando uma vulnerabilidade aparece sublinhada no editor, use a lampada/Quick Fix para:
 
-Score LGPD = `100 - (ALTOÃ—10 + MÃ‰DIOÃ—5 + BAIXOÃ—2)`
+- ver a recomendacao LGPD da regra;
+- copiar a recomendacao para a area de transferencia.
 
-- âœ… 80-100: Excelente conformidade
-- âš ï¸ 50-79: Conformidade aceitÃ¡vel
-- ðŸ”´ 0-49: CrÃ­tico â€” correÃ§Ãµes necessÃ¡rias
+## Relatorios
 
-## ðŸ§ª Exemplos
+### HTML
 
-### exemplo_vulneravel.py
-âœ— 7 vulnerabilidades detectadas
-```python
-senha = "minhasenha123"        # DADO_HARDCODED (ALTO)
-cpf = "123.456.789-00"         # DADO_HARDCODED (ALTO)
-hash = hashlib.md5(...)        # CRIPTOGRAFIA_FRACA (ALTO)
-logging.info(f"CPF: {cpf}")    # DADO_EM_LOG (ALTO)
-requests.post(..., json={"cpf": cpf})  # TRANSFERENCIA (ALTO)
+O relatorio HTML inclui:
+
+- score LGPD;
+- cards por risco;
+- escopo analisado;
+- resumo tecnico;
+- tabela de vulnerabilidades;
+- recomendacoes;
+- trecho de codigo/schema;
+- filtro por risco;
+- ordenacao ao clicar nos cabecalhos da tabela.
+
+Na extensao, ao exportar HTML, o VS Code abre a janela do Windows para escolher nome e destino do arquivo.
+
+### JSON
+
+O JSON contem:
+
+- metadados da ferramenta;
+- timestamp;
+- sumario;
+- lista estruturada de vulnerabilidades;
+- recomendacao de correcao por categoria.
+
+### PDF
+
+A opcao PDF ja aparece no fluxo de exportacao, mas ainda esta reservada para a proxima etapa. A recomendacao do projeto e manter:
+
+- HTML como relatorio interativo;
+- PDF como relatorio formal e estatico para entrega/compliance.
+
+## Regras Detectadas
+
+### Codigo Python
+
+| Categoria | Risco | Artigo LGPD | Descricao |
+|---|---|---|---|
+| DADO_HARDCODED | ALTO | Art. 46 | Dado pessoal fixo no codigo |
+| CRIPTOGRAFIA_FRACA | ALTO | Art. 46 | Uso de MD5 ou SHA1 |
+| DADO_EM_LOG | ALTO | Art. 46 | Dado pessoal em print/logging |
+| TRANSFERENCIA_SEM_BASE_LEGAL | ALTO | Art. 7 / Art. 33 | Envio a terceiros sem base legal documentada |
+| COLETA_EXCESSIVA | MEDIO | Art. 6 | Coleta de muitos campos sensiveis |
+| AUSENCIA_EXCLUSAO | MEDIO | Art. 18 | Classe sem metodo de exclusao/anonimizacao |
+| DADO_SEM_CRIPTOGRAFIA | MEDIO | Art. 46 | Campo sensivel sem protecao esperada |
+
+### Banco SQLite
+
+| Categoria | Risco | Artigo LGPD | Descricao |
+|---|---|---|---|
+| CAMPO_SEM_HASH | ALTO | Art. 46 | Campo sensivel armazenado em texto puro |
+| AUSENCIA_SOFT_DELETE | MEDIO | Art. 18 | Ausencia de `deleted_at` ou `is_deleted` |
+| AUSENCIA_CONSENTIMENTO | MEDIO | Art. 7 | Ausencia de controle de consentimento |
+| DADO_SENSIVEL_COMO_PK | MEDIO | Art. 46 | CPF/email usado como chave primaria |
+| AUSENCIA_RETENCAO | BAIXO | Art. 15 | Ausencia de politica de retencao |
+| MISTURA_DADOS | BAIXO | Art. 6 | Dados pessoais e nao pessoais misturados |
+
+## Score LGPD
+
+Formula:
+
+```text
+100 - (ALTO * 10 + MEDIO * 5 + BAIXO * 2)
 ```
 
-### exemplo_correto.py
-âœ“ Sem falsos positivos
-```python
-nome = ""              # InicializaÃ§Ã£o vazia (OK)
-user_agent = "..."    # NÃ£o Ã© 'age' isolado (OK)
-bcrypt.hashpw(...)    # Criptografia forte (OK)
-Usuario.deletar()     # MÃ©todo de exclusÃ£o (OK)
+Interpretacao:
+
+| Score | Situacao |
+|---|---|
+| 80-100 | Boa conformidade |
+| 50-79 | Atencao |
+| 0-49 | Critico |
+
+## API Flask
+
+Servidor local:
+
+```text
+http://localhost:5000
 ```
 
-### exemplo_parcial.py
-âš¡ Boas prÃ¡ticas parciais
-```python
-bcrypt.hashpw(...)         # âœ“ Forte
-logging.info(email)        # âœ— Ainda expÃµe email
-soft_delete()              # âœ“ Implementado
-exportar_usuario_json()    # âœ— Serializa tudo
-```
+Endpoints:
 
-## ðŸ”§ ConfiguraÃ§Ã£o
+| Metodo | Endpoint | Funcao |
+|---|---|---|
+| GET | `/health` | Verifica se o servidor esta ativo |
+| POST | `/api/analyze-file` | Analisa um arquivo Python |
+| POST | `/api/analyze-directory` | Analisa um diretorio |
+| POST | `/api/analyze-database` | Analisa um banco SQLite |
+| POST | `/api/export` | Exporta relatorio HTML/JSON |
 
-### VS Code Settings
+## Configuracoes da Extensao
+
+Exemplo em `settings.json`:
 
 ```json
 {
@@ -214,115 +276,77 @@ exportar_usuario_json()    # âœ— Serializa tudo
 }
 ```
 
-## ðŸ“¦ DependÃªncias
+## Testes
 
-- **Python**: 3.8+
-- **Flask**: 2.0+
-- **Node.js**: 14+
-- **TypeScript**: 4.0+
-- **VS Code**: 1.60+
+Executar tudo:
 
-## ðŸš¨ Troubleshooting
-
-### âŒ Flask not found
-```bash
-python -m pip install -r requirements.txt
+```powershell
+python -m pytest
 ```
 
-### âŒ npm not found
-Instale Node.js: https://nodejs.org/
+Executar com cobertura:
 
-### âŒ Porta 5000 em uso
-Mude em VS Code Settings:
-```json
-"privacy-scanner.serverPort": 5001
+```powershell
+python -m pytest --cov=code_analyzer --cov=db_analyzer --cov=reporter --cov-report=html
 ```
 
-## ðŸ“š DocumentaÃ§Ã£o
+Suite atual:
 
-- [SETUP.md](SETUP.md) â€” InstalaÃ§Ã£o detalhada
-- [docs/DEMO.md](docs/DEMO.md) â€” Roteiro de demonstraÃ§Ã£o
-- [docs/FASE_1_ESTABILIZACAO.md](docs/FASE_1_ESTABILIZACAO.md) â€” Checklist da Fase 1
-- [vscode-extension/README.md](vscode-extension/README.md) â€” Docs da extensÃ£o
-- [code_analyzer.py](code_analyzer.py) â€” Docstrings
-- [db_analyzer.py](db_analyzer.py) â€” Docstrings
+- `test_code_analyzer.py`: regras de codigo, falsos positivos, word boundary e artigos LGPD.
+- `test_db_analyzer.py`: regras SQLite, schemas corretos, edge cases e erros.
+- `test_reporter.py`: score, ordenacao, recomendacoes, JSON e HTML.
 
-## ðŸ§ª Testes UnitÃ¡rios
+## Scripts Uteis
 
-**Suite completa com 56 testes** â€” Todas as funcionalidades validadas âœ…
+Setup no Windows:
 
-### Executar Testes
-```bash
-pytest tests/ -v                    # Todos os testes
-pytest tests/ --cov=. --cov-report=html  # Com cobertura (gera HTML)
+```powershell
+setup_windows.bat
 ```
 
-### Cobertura Atual
-```
-code_analyzer.py:   86% (167 linhas, 23 nÃ£o cobertas)
-db_analyzer.py:     80% (128 linhas, 25 nÃ£o cobertas)
-reporter.py:        48% (103 linhas, 54 nÃ£o cobertas)
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-TOTAL:              74% (398 linhas, 102 nÃ£o cobertas)
+Validacao geral:
+
+```powershell
+validate_project.bat
 ```
 
-### Testes por Componente
-- **code_analyzer.py**: 22 testes (detecÃ§Ã£o, word boundary, falsos positivos, LGPD)
-- **db_analyzer.py**: 16 testes (schema, edge cases, artigos)
-- **reporter.py**: 13 testes (sumÃ¡rio, score, export JSON/HTML)
+Commit e push:
 
-Detalhes em [TESTS.md](TESTS.md)
+```powershell
+push_github.bat
+```
 
-## ðŸŽ“ Para o TCC
+## Status
 
-### Componentes Completados
-- [x] AnÃ¡lise estÃ¡tica de Python
-- [x] AnÃ¡lise de banco SQLite  
-- [x] Mapeamento de artigos LGPD
-- [x] RelatÃ³rios (terminal, JSON, HTML)
-- [x] ExtensÃ£o VS Code
-- [x] Servidor Flask
-- [x] Casos de teste (vulnerÃ¡vel, correto, parcial)
-- [x] ConfiguraÃ§Ãµes
-- [x] Testes unitÃ¡rios (56 testes, 74% cobertura) âœ…
-- [x] Sidebar com resumo na extensÃ£o
+Implementado:
 
-### PrÃ³ximos Passos (no escopo)
-- [ ] Code actions (sugestÃµes inline)
-- [ ] ExportaÃ§Ã£o PDF
-- [ ] CI/CD (GitHub Actions)
+- analise Python;
+- analise SQLite;
+- mapeamento LGPD;
+- score de conformidade;
+- relatorio terminal;
+- export JSON;
+- export HTML interativo;
+- servidor Flask;
+- extensao VS Code;
+- sidebar;
+- botao de analise;
+- botao de exportacao;
+- Code Actions;
+- workspace de teste;
+- suite automatizada com 56 testes.
 
-### Fora do Escopo (futuro)
-- [ ] Suporte a outras linguagens
-- [ ] Suporte a MySQL, PostgreSQL
-- [ ] AnÃ¡lise dinÃ¢mica (runtime)
-- [ ] Dashboard web
-- [ ] PublicaÃ§Ã£o no Marketplace
+Proximas etapas:
 
-## ðŸ“Š MÃ©tricas
+- exportacao PDF;
+- melhoria do relatorio PDF formal;
+- CI/CD com GitHub Actions;
+- empacotamento da extensao VS Code.
 
-| Componente | Linhas | Status | Completude | Cobertura |
-|-----------|--------|--------|-----------|-----------|
-| code_analyzer.py | ~350 | âœ… | 70% | **86%** |
-| db_analyzer.py | ~250 | âœ… | 65% | **80%** |
-| reporter.py | ~350 | âœ… | 60% | **48%** |
-| server.py | ~250 | âœ… NEW | 100% | - |
-| extension.ts | ~400 | âœ… NEW | 100% | - |
-| **Testes** | **~1600** | âœ… NEW | **100%** | **56/56** âœ… |
-| **Total** | **~3450** | âœ… | **76%** | **74%** |
+## Autor
 
-## ðŸ‘¥ Autor
+Desenvolvido por Dean V. como TCC na FATEC.
 
-Desenvolvido como **TCC** na **FATEC** sob metodologia **DSR** (Design Science Research).
-
-## ðŸ“„ LicenÃ§a
+## Licenca
 
 MIT
-
----
-
-**Status**: VersÃ£o 1.0.0 â€” Funcional âœ…  
-**Ãšltima atualizaÃ§Ã£o**: 2026-06-01  
-
-**PrÃ³xima release**: Code Actions + PDF Export
-

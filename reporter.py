@@ -138,7 +138,399 @@ class Reporter:
         print(f"📄 JSON gerado: {caminho}")
 
     # ── Exportar HTML ─────────────────────────────────────────────────────────
+    def gerar_html(self) -> str:
+        """Retorna o relatorio HTML em memoria."""
+        sumario = self._sumario()
+        score = sumario["score_conformidade"]
+        cor_score = "#15803d" if score >= 80 else "#b45309" if score >= 50 else "#b91c1c"
+        status_score = "Conforme" if score >= 80 else "Atencao" if score >= 50 else "Critico"
+
+        arquivos = sorted({v.arquivo for v in self.resultados if v.arquivo})
+        arquivos_python = sum(1 for a in arquivos if a.lower().endswith(".py"))
+        bancos_sqlite = sum(1 for a in arquivos if a.lower().endswith((".db", ".sqlite", ".sqlite3")))
+
+        def esc(valor) -> str:
+            return html_lib.escape(str(valor)) if valor is not None else ""
+
+        def barra(label, count, cor):
+            total = max(sumario["total"], 1)
+            largura = int((count / total) * 100)
+            return f"""
+            <div class="risk-row">
+              <div class="risk-label">{label}</div>
+              <div class="risk-track">
+                <div class="risk-fill" style="width:{largura}%;background:{cor}"></div>
+              </div>
+              <div class="risk-count">{count}</div>
+            </div>"""
+
+        linhas_tabela = ""
+        for idx, v in enumerate(self.resultados, start=1):
+            badge_risco = {
+                "ALTO": '<span class="badge alto">ALTO</span>',
+                "MEDIO": '<span class="badge medio">MEDIO</span>',
+                "BAIXO": '<span class="badge baixo">BAIXO</span>',
+            }.get(v.risco, esc(v.risco))
+
+            local = f"{os.path.basename(v.arquivo)}:{v.linha}" if v.linha > 0 else os.path.basename(v.arquivo)
+            recomendacao = RECOMENDACOES.get(v.categoria, "Sem recomendacao cadastrada.")
+            trecho = f"<code>{esc(v.trecho)}</code>" if v.trecho else '<span class="muted">Nao informado</span>'
+
+            risco_ordem = {"ALTO": 3, "MEDIO": 2, "BAIXO": 1}.get(v.risco, 0)
+            linhas_tabela += f"""
+            <tr data-risk="{esc(v.risco)}" data-risk-order="{risco_ordem}">
+              <td class="index">{idx}</td>
+              <td>{badge_risco}</td>
+              <td><strong>{esc(v.categoria)}</strong></td>
+              <td>{esc(local)}</td>
+              <td>{esc(v.artigo_lgpd)}</td>
+              <td>{esc(v.descricao)}</td>
+              <td>{esc(recomendacao)}</td>
+              <td>{trecho}</td>
+            </tr>"""
+
+        if not linhas_tabela:
+            linhas_tabela = """
+            <tr>
+              <td colspan="8" class="empty-state">
+                Nenhuma vulnerabilidade encontrada nos alvos analisados.
+              </td>
+            </tr>"""
+
+        barras = (
+            barra("ALTO", sumario["por_risco"]["ALTO"], "#dc2626") +
+            barra("MEDIO", sumario["por_risco"]["MEDIO"], "#d97706") +
+            barra("BAIXO", sumario["por_risco"]["BAIXO"], "#2563eb")
+        )
+
+        alvo_codigo = esc(self.alvo_codigo or "Nao informado")
+        alvo_banco = esc(self.alvo_banco or "Nao informado")
+        timestamp = esc(self.timestamp)
+
+        return f"""<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Privacy Scanner LGPD - Relatorio de Conformidade</title>
+  <style>
+    :root {{
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --ink: #172033;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --navy: #18233f;
+    }}
+    * {{ box-sizing: border-box; }}
+    body {{
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Segoe UI", Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+    }}
+    header {{
+      background: var(--navy);
+      color: #fff;
+      padding: 28px 40px;
+    }}
+    .header-grid {{
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 24px;
+      align-items: end;
+      max-width: 1280px;
+      margin: 0 auto;
+    }}
+    h1 {{ margin: 0 0 6px; font-size: 24px; font-weight: 700; letter-spacing: 0; }}
+    .subtitle, .meta, .muted {{ color: var(--muted); }}
+    header .subtitle, header .meta {{ color: rgba(255,255,255,.76); }}
+    .score-pill {{
+      min-width: 150px;
+      text-align: center;
+      background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 8px;
+      padding: 12px 16px;
+    }}
+    .score-pill strong {{ display: block; font-size: 30px; line-height: 1; color: #fff; }}
+    main {{ max-width: 1280px; margin: 0 auto; padding: 28px 40px 40px; }}
+    .section {{ margin-bottom: 24px; }}
+    .section h2 {{ margin: 0 0 12px; font-size: 16px; font-weight: 700; }}
+    .cards {{ display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }}
+    .card, .panel, .table-wrap {{
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }}
+    .card {{ padding: 16px; min-height: 94px; }}
+    .card .num {{ font-size: 30px; font-weight: 800; line-height: 1; color: var(--ink); }}
+    .card .lbl {{ margin-top: 8px; font-size: 12px; color: var(--muted); }}
+    .card.score {{ border-top: 4px solid {cor_score}; }}
+    .card.score .num {{ color: {cor_score}; }}
+    .panel {{ padding: 18px; }}
+    .targets {{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }}
+    .target-box {{ border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: #fbfdff; }}
+    .target-box span {{ display: block; color: var(--muted); font-size: 12px; margin-bottom: 4px; }}
+    .target-box code {{ word-break: break-all; }}
+    .risk-row {{ display: grid; grid-template-columns: 72px minmax(0, 1fr) 36px; gap: 12px; align-items: center; margin: 10px 0; }}
+    .risk-label, .risk-count {{ font-size: 12px; font-weight: 700; }}
+    .risk-count {{ text-align: right; }}
+    .risk-track {{ height: 12px; background: #edf2f7; border-radius: 999px; overflow: hidden; }}
+    .risk-fill {{ height: 100%; min-width: 3px; border-radius: 999px; }}
+    .table-wrap {{ overflow: hidden; }}
+    .table-toolbar {{
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfdff;
+    }}
+    .filter-group {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }}
+    .filter-btn {{
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }}
+    .filter-btn.active {{
+      background: #18233f;
+      border-color: #18233f;
+      color: #fff;
+    }}
+    .table-count {{
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }}
+    .table-scroll {{ overflow-x: auto; }}
+    table {{ width: 100%; min-width: 1080px; border-collapse: collapse; }}
+    th, td {{ padding: 11px 12px; border-bottom: 1px solid var(--line); vertical-align: top; text-align: left; }}
+    th {{ background: #f8fafc; color: #334155; font-size: 12px; font-weight: 700; white-space: nowrap; }}
+    th.sortable {{ cursor: pointer; user-select: none; }}
+    th.sortable::after {{ content: "  sort"; color: #94a3b8; font-weight: 400; }}
+    th.sortable.sort-asc::after {{ content: "  asc"; color: #18233f; }}
+    th.sortable.sort-desc::after {{ content: "  desc"; color: #18233f; }}
+    td {{ font-size: 12px; }}
+    tr:last-child td {{ border-bottom: 0; }}
+    .index {{ width: 44px; color: var(--muted); text-align: right; }}
+    .badge {{ display: inline-block; border-radius: 999px; padding: 3px 9px; font-size: 11px; font-weight: 800; white-space: nowrap; }}
+    .badge.alto {{ color: #991b1b; background: #fee2e2; }}
+    .badge.medio {{ color: #92400e; background: #fef3c7; }}
+    .badge.baixo {{ color: #1e40af; background: #dbeafe; }}
+    code {{
+      display: inline-block;
+      max-width: 360px;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 2px 6px;
+      color: #0f172a;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 11px;
+      word-break: break-word;
+    }}
+    .empty-state {{ padding: 28px; text-align: center; color: #15803d; font-weight: 700; }}
+    footer {{ max-width: 1280px; margin: 0 auto; padding: 0 40px 28px; color: var(--muted); font-size: 12px; }}
+    @media print {{
+      body {{ background: #fff; }}
+      header {{ padding: 22px 28px; }}
+      main {{ padding: 22px 28px; }}
+      .table-scroll {{ overflow: visible; }}
+      table {{ min-width: 0; }}
+    }}
+    @media (max-width: 900px) {{
+      header, main, footer {{ padding-left: 18px; padding-right: 18px; }}
+      .header-grid, .targets {{ grid-template-columns: 1fr; }}
+      .cards {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
+    }}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-grid">
+      <div>
+        <h1>Privacy Scanner LGPD</h1>
+        <div class="subtitle">Relatorio de conformidade e evidencias de privacidade em codigo Python e SQLite.</div>
+        <div class="meta">Gerado em {timestamp} | Privacy by Design no ciclo de desenvolvimento</div>
+      </div>
+      <div class="score-pill"><strong>{score}/100</strong><span>{status_score}</span></div>
+    </div>
+  </header>
+  <main>
+    <section class="section">
+      <div class="cards">
+        <div class="card"><div class="num">{sumario['total']}</div><div class="lbl">Total de vulnerabilidades</div></div>
+        <div class="card"><div class="num" style="color:#dc2626">{sumario['por_risco']['ALTO']}</div><div class="lbl">Risco alto</div></div>
+        <div class="card"><div class="num" style="color:#d97706">{sumario['por_risco']['MEDIO']}</div><div class="lbl">Risco medio</div></div>
+        <div class="card"><div class="num" style="color:#2563eb">{sumario['por_risco']['BAIXO']}</div><div class="lbl">Risco baixo</div></div>
+        <div class="card score"><div class="num">{score}</div><div class="lbl">Score LGPD ({status_score})</div></div>
+      </div>
+    </section>
+    <section class="section">
+      <h2>Escopo analisado</h2>
+      <div class="panel targets">
+        <div class="target-box"><span>Codigo Python</span><code>{alvo_codigo}</code></div>
+        <div class="target-box"><span>Banco SQLite</span><code>{alvo_banco}</code></div>
+      </div>
+    </section>
+    <section class="section">
+      <h2>Resumo tecnico</h2>
+      <div class="panel">
+        <div class="risk-row">
+          <div class="risk-label">Arquivos</div>
+          <div class="muted">{arquivos_python} arquivo(s) Python com achados e {bancos_sqlite} banco(s) SQLite com achados.</div>
+          <div class="risk-count">{len(arquivos)}</div>
+        </div>
+        {barras}
+      </div>
+    </section>
+    <section class="section">
+      <h2>Vulnerabilidades e recomendacoes</h2>
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <div class="filter-group" aria-label="Filtrar por risco">
+            <button class="filter-btn active" type="button" data-filter-risk="TODOS">Todos</button>
+            <button class="filter-btn" type="button" data-filter-risk="ALTO">Alto</button>
+            <button class="filter-btn" type="button" data-filter-risk="MEDIO">Medio</button>
+            <button class="filter-btn" type="button" data-filter-risk="BAIXO">Baixo</button>
+          </div>
+          <div class="table-count" id="table-count">{sumario['total']} item(ns)</div>
+        </div>
+        <div class="table-scroll">
+          <table id="vulnerabilities-table">
+            <thead>
+              <tr>
+                <th class="sortable" data-sort="number">#</th>
+                <th class="sortable" data-sort="risk">Risco</th>
+                <th class="sortable" data-sort="text">Categoria</th>
+                <th class="sortable" data-sort="text">Local</th>
+                <th class="sortable" data-sort="text">LGPD</th>
+                <th class="sortable" data-sort="text">Descricao</th>
+                <th>Recomendacao</th>
+                <th>Trecho</th>
+              </tr>
+            </thead>
+            <tbody>{linhas_tabela}</tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script>
+    (function () {{
+      const table = document.getElementById('vulnerabilities-table');
+      if (!table) return;
+
+      const tbody = table.querySelector('tbody');
+      const headers = table.querySelectorAll('th.sortable');
+      const filterButtons = document.querySelectorAll('[data-filter-risk]');
+      const countEl = document.getElementById('table-count');
+      let currentRisk = 'TODOS';
+      let sortState = {{ index: 1, direction: 'desc', type: 'risk' }};
+
+      function getRows() {{
+        return Array.from(tbody.querySelectorAll('tr')).filter(row => row.dataset.risk);
+      }}
+
+      function cellText(row, index) {{
+        return (row.children[index]?.textContent || '').trim().toLowerCase();
+      }}
+
+      function sortRows() {{
+        const rows = getRows();
+        rows.sort((a, b) => {{
+          let av;
+          let bv;
+
+          if (sortState.type === 'risk') {{
+            av = Number(a.dataset.riskOrder || 0);
+            bv = Number(b.dataset.riskOrder || 0);
+          }} else if (sortState.type === 'number') {{
+            av = Number(cellText(a, sortState.index)) || 0;
+            bv = Number(cellText(b, sortState.index)) || 0;
+          }} else {{
+            av = cellText(a, sortState.index);
+            bv = cellText(b, sortState.index);
+          }}
+
+          if (av < bv) return sortState.direction === 'asc' ? -1 : 1;
+          if (av > bv) return sortState.direction === 'asc' ? 1 : -1;
+          return 0;
+        }});
+
+        rows.forEach(row => tbody.appendChild(row));
+      }}
+
+      function applyFilter() {{
+        let visible = 0;
+        getRows().forEach(row => {{
+          const show = currentRisk === 'TODOS' || row.dataset.risk === currentRisk;
+          row.style.display = show ? '' : 'none';
+          if (show) visible += 1;
+        }});
+        if (countEl) {{
+          countEl.textContent = visible + ' item(ns)';
+        }}
+      }}
+
+      headers.forEach((header, index) => {{
+        header.addEventListener('click', () => {{
+          const type = header.dataset.sort || 'text';
+          if (sortState.index === index) {{
+            sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+          }} else {{
+            sortState = {{
+              index,
+              type,
+              direction: type === 'risk' ? 'desc' : 'asc'
+            }};
+          }}
+
+          headers.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+          header.classList.add(sortState.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+          sortRows();
+          applyFilter();
+        }});
+      }});
+
+      filterButtons.forEach(button => {{
+        button.addEventListener('click', () => {{
+          currentRisk = button.dataset.filterRisk || 'TODOS';
+          filterButtons.forEach(btn => btn.classList.remove('active'));
+          button.classList.add('active');
+          applyFilter();
+        }});
+      }});
+
+      sortRows();
+      applyFilter();
+    }})();
+  </script>
+  <footer>Privacy Scanner LGPD v1.0.0 | TCC FATEC | Relatorio gerado automaticamente.</footer>
+</body>
+</html>"""
+
     def exportar_html(self, caminho: str):
+        html = self.gerar_html()
+        with open(caminho, "w", encoding="utf-8") as f:
+            f.write(html)
+        print(f"HTML gerado: {caminho}")
+        return
+
         sumario = self._sumario()
         score   = sumario["score_conformidade"]
         cor_score = (
@@ -362,6 +754,43 @@ class Reporter:
 # ─────────────────────────────────────────────────────────────────────────────
 # CLI
 # ─────────────────────────────────────────────────────────────────────────────
+def _imprimir_ascii(self):
+    """Imprime resumo ASCII, compativel com terminal Windows."""
+    sumario = self._sumario()
+    print("\n" + "=" * 60)
+    print("  PRIVACY SCANNER - Relatorio de Conformidade LGPD")
+    print("=" * 60)
+    print(f"  Gerado em  : {self.timestamp}")
+    print(f"  Codigo     : {self.alvo_codigo or '-'}")
+    print(f"  Banco      : {self.alvo_banco or '-'}")
+    print(f"  Total      : {sumario['total']} vulnerabilidade(s)")
+    print(f"  ALTO       : {sumario['por_risco']['ALTO']}")
+    print(f"  MEDIO      : {sumario['por_risco']['MEDIO']}")
+    print(f"  BAIXO      : {sumario['por_risco']['BAIXO']}")
+    print(f"  Score LGPD : {sumario['score_conformidade']}/100")
+    print("=" * 60 + "\n")
+
+    if not self.resultados:
+        print("  Nenhuma vulnerabilidade encontrada.\n")
+        return
+
+    for v in self.resultados:
+        local = f"{v.arquivo}:{v.linha}" if v.linha > 0 else v.arquivo
+        print(f"  [{v.risco}] {v.categoria}")
+        print(f"  Local    : {local}")
+        print(f"  LGPD     : {v.artigo_lgpd}")
+        print(f"  Detalhe  : {v.descricao}")
+        rec = RECOMENDACOES.get(v.categoria)
+        if rec:
+            print(f"  Correcao : {rec}")
+        if v.trecho:
+            print(f"  Trecho   : {v.trecho}")
+        print()
+
+
+Reporter.imprimir = _imprimir_ascii
+
+
 if __name__ == "__main__":
     import sys
     import argparse

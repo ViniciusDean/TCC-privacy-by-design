@@ -135,6 +135,7 @@ Paleta de Comandos (`Ctrl+Shift+P`):
 - `Privacy Scanner: Exportar relatÃ³rio JSON`
 
 A extensÃ£o tambÃ©m analisa automaticamente arquivos Python quando vocÃª abre, troca para a aba ou salva o arquivo.
+Nas vulnerabilidades exibidas no editor, use a lampada/Quick Fix para ver ou copiar a recomendacao LGPD da regra.
 
 ## ðŸ“Š Vulnerabilidades Detectadas
 

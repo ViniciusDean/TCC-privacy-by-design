@@ -228,6 +228,8 @@ def export_report():
 
 def generate_html_report(reporter):
     """Gera HTML do relatório (adaptação do reporter.exportar_html)."""
+    return reporter.gerar_html()
+
     sumario = reporter._sumario()
     score = sumario['score_conformidade']
     cor_score = (

@@ -32,6 +32,7 @@
     "onCommand:privacy-scanner.analyzeAll",
     "onCommand:privacy-scanner.analyzeDatabase",
     "onCommand:privacy-scanner.clearResults",
+    "onCommand:privacy-scanner.exportReport",
     "onCommand:privacy-scanner.exportHTML",
     "onCommand:privacy-scanner.exportJSON"
   ],
@@ -64,6 +65,12 @@
         "title": "Privacy Scanner: Limpar resultados",
         "category": "Privacy Scanner",
         "icon": "$(clear-all)"
+      },
+      {
+        "command": "privacy-scanner.exportReport",
+        "title": "Privacy Scanner: Exportar relatorio",
+        "category": "Privacy Scanner",
+        "icon": "$(export)"
       },
       {
         "command": "privacy-scanner.exportHTML",
@@ -112,9 +119,14 @@
           "group": "navigation@1"
         },
         {
-          "command": "privacy-scanner.clearResults",
+          "command": "privacy-scanner.exportReport",
           "when": "view == privacy-scanner-vulnerabilities",
           "group": "navigation@2"
+        },
+        {
+          "command": "privacy-scanner.clearResults",
+          "when": "view == privacy-scanner-vulnerabilities",
+          "group": "navigation@3"
         }
       ]
     },

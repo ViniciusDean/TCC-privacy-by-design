@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
-import { exec } from 'child_process';
+import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -34,6 +34,12 @@ interface AnalysisResponse {
     };
 }
 
+interface RecommendationPayload {
+    categoria: string;
+    mensagem: string;
+    recomendacao: string;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Configuração global
 // ─────────────────────────────────────────────────────────────────────────────
@@ -41,7 +47,9 @@ interface AnalysisResponse {
 let diagnosticCollection: vscode.DiagnosticCollection;
 let serverPort: number = 5000;
 let serverRunning: boolean = false;
+let flaskProcess: ChildProcessWithoutNullStreams | undefined;
 let statusBar: vscode.StatusBarItem;
+let isAnalyzing: boolean = false;
 
 // Mapa global de vulnerabilidades: filePath -> Vulnerability[]
 let allVulnerabilities: Map<string, Vulnerability[]> = new Map();
@@ -72,6 +80,14 @@ function refreshViews(): void {
     summaryProvider.refresh();
 }
 
+function setAnalyzing(value: boolean, message: string = 'Analisando...'): void {
+    isAnalyzing = value;
+    if (value) {
+        updateStatusBar(message, 'loading');
+    }
+    refreshViews();
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Inicialização da extensão
 // ─────────────────────────────────────────────────────────────────────────────
@@ -83,11 +99,20 @@ export async function activate(context: vscode.ExtensionContext) {
     statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     statusBar.command = 'privacy-scanner.analyze';
     updateStatusBar('Iniciando...', 'loading');
+    isAnalyzing = true;
     context.subscriptions.push(statusBar);
 
     // Diagnostic collection
     diagnosticCollection = vscode.languages.createDiagnosticCollection('privacy-scanner');
     context.subscriptions.push(diagnosticCollection);
+
+    context.subscriptions.push(
+        vscode.languages.registerCodeActionsProvider(
+            { scheme: 'file', language: 'python' },
+            new PrivacyCodeActionProvider(),
+            { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }
+        )
+    );
 
     // Tree View Providers
     vulnerabilitiesProvider = new VulnerabilitiesProvider();
@@ -114,11 +139,16 @@ export async function activate(context: vscode.ExtensionContext) {
     // Listeners
     registerListeners(context);
 
-    if (vscode.window.activeTextEditor) {
-        await analyzeFile(vscode.window.activeTextEditor.document.uri);
+    const activeEditor = vscode.window.activeTextEditor;
+    if (activeEditor && (activeEditor.document.languageId === 'python' || isDatabaseUri(activeEditor.document.uri))) {
+        await analyzeFile(activeEditor.document.uri);
+    } else {
+        setAnalyzing(false);
     }
 
-    updateStatusBar('Privacy Scanner pronto', 'pass');
+    if (!isAnalyzing) {
+        updateStatusBar('Privacy Scanner pronto', 'pass');
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -183,14 +213,21 @@ function registerCommands(context: vscode.ExtensionContext) {
     // Exportar HTML
     context.subscriptions.push(
         vscode.commands.registerCommand('privacy-scanner.exportHTML', async () => {
-            await exportReport('html');
+            await exportReportWithSaveDialog('html');
         })
     );
 
     // Exportar JSON
     context.subscriptions.push(
         vscode.commands.registerCommand('privacy-scanner.exportJSON', async () => {
-            await exportReport('json');
+            await exportReportWithSaveDialog('json');
+        })
+    );
+
+    // Exportar relatorio: seletor de formato
+    context.subscriptions.push(
+        vscode.commands.registerCommand('privacy-scanner.exportReport', async () => {
+            await exportReportFromPicker();
         })
     );
 
@@ -198,6 +235,30 @@ function registerCommands(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('privacy-scanner.showSidebar', async () => {
             vscode.commands.executeCommand('workbench.view.extension.privacy-scanner-sidebar');
+        })
+    );
+
+    // Mostra recomendacao LGPD via Code Action
+    context.subscriptions.push(
+        vscode.commands.registerCommand('privacy-scanner.showRecommendation', async (payload: RecommendationPayload) => {
+            const choice = await vscode.window.showInformationMessage(
+                `${payload.categoria}: ${payload.recomendacao}`,
+                { modal: true },
+                'Copiar'
+            );
+
+            if (choice === 'Copiar') {
+                await vscode.env.clipboard.writeText(payload.recomendacao);
+                vscode.window.showInformationMessage('Recomendacao LGPD copiada');
+            }
+        })
+    );
+
+    // Copia recomendacao LGPD via Code Action
+    context.subscriptions.push(
+        vscode.commands.registerCommand('privacy-scanner.copyRecommendation', async (payload: RecommendationPayload) => {
+            await vscode.env.clipboard.writeText(payload.recomendacao);
+            vscode.window.showInformationMessage(`Recomendacao copiada: ${payload.categoria}`);
         })
     );
 
@@ -230,7 +291,7 @@ async function analyzeFile(uri: vscode.Uri) {
     }
 
     try {
-        updateStatusBar('Analisando...', 'loading');
+        setAnalyzing(true);
 
         const filePath = uri.fsPath;
         let endpoint = isPython ? '/api/analyze-file' : '/api/analyze-database';
@@ -256,13 +317,89 @@ async function analyzeFile(uri: vscode.Uri) {
                 allVulnerabilities.delete(filePath);
             }
 
-            refreshViews();
+            setAnalyzing(false);
 
             updateStatusBar(`${vulns.length} vulnerabilidades`, vulns.length === 0 ? 'pass' : 'alert');
+        } else {
+            setAnalyzing(false);
         }
     } catch (error) {
         console.error('Erro ao analisar arquivo:', error);
+        setAnalyzing(false);
         updateStatusBar('Erro na análise', 'error');
+    }
+}
+
+function getRecommendationFromDiagnostic(diagnostic: vscode.Diagnostic): string | undefined {
+    const relatedMessage = diagnostic.relatedInformation?.find(info =>
+        info.message.toLowerCase().startsWith('corre')
+    )?.message;
+
+    if (relatedMessage) {
+        return relatedMessage.replace(/^Corre[cç][aã]o:\s*/i, '').trim();
+    }
+
+    return undefined;
+}
+
+function getCategoryFromDiagnostic(diagnostic: vscode.Diagnostic): string {
+    if (typeof diagnostic.code === 'string') {
+        return diagnostic.code;
+    }
+
+    return diagnostic.message.split(':')[0] || 'Vulnerabilidade LGPD';
+}
+
+class PrivacyCodeActionProvider implements vscode.CodeActionProvider {
+    provideCodeActions(
+        document: vscode.TextDocument,
+        range: vscode.Range,
+        context: vscode.CodeActionContext
+    ): vscode.CodeAction[] {
+        const actions: vscode.CodeAction[] = [];
+        const diagnostics = context.diagnostics.filter(diagnostic =>
+            diagnostic.source === 'Privacy Scanner' && diagnostic.range.intersection(range)
+        );
+
+        for (const diagnostic of diagnostics) {
+            const recomendacao = getRecommendationFromDiagnostic(diagnostic);
+
+            if (!recomendacao) {
+                continue;
+            }
+
+            const payload: RecommendationPayload = {
+                categoria: getCategoryFromDiagnostic(diagnostic),
+                mensagem: diagnostic.message,
+                recomendacao
+            };
+
+            const showAction = new vscode.CodeAction(
+                `Ver recomendacao LGPD: ${payload.categoria}`,
+                vscode.CodeActionKind.QuickFix
+            );
+            showAction.diagnostics = [diagnostic];
+            showAction.command = {
+                command: 'privacy-scanner.showRecommendation',
+                title: 'Ver recomendacao LGPD',
+                arguments: [payload]
+            };
+            actions.push(showAction);
+
+            const copyAction = new vscode.CodeAction(
+                `Copiar recomendacao LGPD: ${payload.categoria}`,
+                vscode.CodeActionKind.QuickFix
+            );
+            copyAction.diagnostics = [diagnostic];
+            copyAction.command = {
+                command: 'privacy-scanner.copyRecommendation',
+                title: 'Copiar recomendacao LGPD',
+                arguments: [payload]
+            };
+            actions.push(copyAction);
+        }
+
+        return actions;
     }
 }
 
@@ -281,12 +418,13 @@ async function analyzeDatabaseFromPicker() {
         return;
     }
 
+    setAnalyzing(true, 'Analisando banco...');
     let total = 0;
     for (const file of files) {
         total += await analyzeDatabaseUri(file);
     }
 
-    refreshViews();
+    setAnalyzing(false);
     vscode.window.showInformationMessage(
         `Análise de banco concluída: ${total} vulnerabilidades encontradas`
     );
@@ -315,10 +453,11 @@ async function analyzeDatabaseUri(uri: vscode.Uri): Promise<number> {
 
 async function analyzeWorkspace() {
     try {
-        updateStatusBar('Analisando projeto...', 'loading');
+        setAnalyzing(true, 'Analisando projeto...');
 
         if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
             vscode.window.showWarningMessage('Nenhuma pasta de trabalho aberta');
+            setAnalyzing(false);
             return;
         }
 
@@ -359,15 +498,18 @@ async function analyzeWorkspace() {
             }
 
             // Refresh TreeViews
-            refreshViews();
+            setAnalyzing(false);
 
             vscode.window.showInformationMessage(
                 `Análise concluída: ${totalVulnerabilities} vulnerabilidades encontradas`
             );
             updateStatusBar(`${totalVulnerabilities} vulns`, totalVulnerabilities === 0 ? 'pass' : 'alert');
+        } else {
+            setAnalyzing(false);
         }
     } catch (error) {
         console.error('Erro ao analisar projeto:', error);
+        setAnalyzing(false);
         vscode.window.showErrorMessage('Erro ao analisar projeto');
     }
 }
@@ -465,14 +607,29 @@ async function startFlaskServer(context: vscode.ExtensionContext): Promise<void>
             return;
         }
 
-        const command = `"${pythonPath}" "${serverScript}" ${serverPort}`;
+        flaskProcess = spawn(pythonPath, [serverScript, String(serverPort)], {
+            cwd: path.dirname(serverScript),
+            windowsHide: true
+        });
 
-        exec(command, (error, stdout, stderr) => {
-            if (error) {
-                console.error(`Erro ao iniciar servidor Flask: ${error}`);
-                vscode.window.showErrorMessage(`Erro ao iniciar servidor Flask: ${error.message}`);
-                resolve();
-                return;
+        flaskProcess.stdout.on('data', (data) => {
+            console.log(`[Privacy Scanner Server] ${data.toString().trim()}`);
+        });
+
+        flaskProcess.stderr.on('data', (data) => {
+            console.error(`[Privacy Scanner Server] ${data.toString().trim()}`);
+        });
+
+        flaskProcess.on('error', (error) => {
+            console.error(`Erro ao iniciar servidor Flask: ${error}`);
+            vscode.window.showErrorMessage(`Erro ao iniciar servidor Flask: ${error.message}`);
+            resolve();
+        });
+
+        flaskProcess.on('exit', (code) => {
+            serverRunning = false;
+            if (code !== 0 && code !== null) {
+                console.error(`Servidor Flask encerrado com codigo ${code}`);
             }
         });
 
@@ -501,7 +658,83 @@ async function startFlaskServer(context: vscode.ExtensionContext): Promise<void>
 // Exportação de relatórios
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function exportReport(format: 'html' | 'json') {
+async function exportReportFromPicker() {
+    const choice = await vscode.window.showQuickPick(
+        [
+            {
+                label: 'HTML',
+                description: 'Disponivel agora',
+                detail: 'Gera um relatorio visual em HTML na raiz do workspace',
+                format: 'html' as const
+            },
+            {
+                label: 'PDF',
+                description: 'Em desenvolvimento',
+                detail: 'Formato reservado para a proxima etapa do projeto',
+                format: 'pdf' as const
+            }
+        ],
+        {
+            title: 'Exportar relatorio LGPD',
+            placeHolder: 'Selecione o formato do relatorio'
+        }
+    );
+
+    if (!choice) {
+        return;
+    }
+
+    const saveUri = await vscode.window.showSaveDialog({
+        title: `Salvar relatorio ${choice.label}`,
+        defaultUri: getDefaultReportUri(choice.format),
+        filters: choice.format === 'html'
+            ? { 'Relatorio HTML': ['html', 'htm'] }
+            : { 'Relatorio PDF': ['pdf'] },
+        saveLabel: 'Exportar'
+    });
+
+    if (!saveUri) {
+        return;
+    }
+
+    if (choice.format === 'pdf') {
+        vscode.window.showInformationMessage('Exportacao em PDF ainda sera implementada. Use HTML por enquanto.');
+        return;
+    }
+
+    await exportReport(choice.format, saveUri);
+}
+
+function getDefaultReportUri(format: 'html' | 'json' | 'pdf'): vscode.Uri | undefined {
+    if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
+        return undefined;
+    }
+
+    const workspacePath = vscode.workspace.workspaceFolders[0].uri.fsPath;
+    const timestamp = new Date().toISOString().split('T')[0];
+    return vscode.Uri.file(path.join(workspacePath, `privacy-scan-${timestamp}.${format}`));
+}
+
+async function exportReportWithSaveDialog(format: 'html' | 'json') {
+    const filters: { [name: string]: string[] } = format === 'html'
+        ? { 'Relatorio HTML': ['html', 'htm'] }
+        : { 'Relatorio JSON': ['json'] };
+
+    const saveUri = await vscode.window.showSaveDialog({
+        title: `Salvar relatorio ${format.toUpperCase()}`,
+        defaultUri: getDefaultReportUri(format),
+        filters,
+        saveLabel: 'Exportar'
+    });
+
+    if (!saveUri) {
+        return;
+    }
+
+    await exportReport(format, saveUri);
+}
+
+async function exportReport(format: 'html' | 'json', targetUri?: vscode.Uri) {
     try {
         if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
             vscode.window.showWarningMessage('Nenhuma pasta de trabalho aberta');
@@ -509,9 +742,14 @@ async function exportReport(format: 'html' | 'json') {
         }
 
         const workspacePath = vscode.workspace.workspaceFolders[0].uri.fsPath;
-        const timestamp = new Date().toISOString().split('T')[0];
-        const filename = `privacy-scan-${timestamp}.${format}`;
-        const filepath = path.join(workspacePath, filename);
+        const filepath = targetUri?.fsPath || getDefaultReportUri(format)?.fsPath;
+
+        if (!filepath) {
+            vscode.window.showWarningMessage('Destino do relatorio nao informado');
+            return;
+        }
+
+        const filename = path.basename(filepath);
 
         const response = await axios.post(
             `http://localhost:${serverPort}/api/export`,
@@ -563,7 +801,7 @@ class VulnerabilityTreeItem extends vscode.TreeItem {
     constructor(
         public readonly label: string,
         public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-        public readonly type: 'risk' | 'file' | 'vulnerability' | 'summary' | 'empty',
+        public readonly type: 'risk' | 'file' | 'vulnerability' | 'summary' | 'empty' | 'loading',
         public readonly data?: any
     ) {
         super(label, collapsibleState);
@@ -595,6 +833,8 @@ class VulnerabilityTreeItem extends vscode.TreeItem {
             }
         } else if (type === 'summary') {
             this.iconPath = new vscode.ThemeIcon(data.icon);
+        } else if (type === 'loading') {
+            this.iconPath = new vscode.ThemeIcon('loading~spin');
         }
     }
 }
@@ -613,6 +853,12 @@ class VulnerabilitiesProvider implements vscode.TreeDataProvider<VulnerabilityTr
 
     getChildren(element?: VulnerabilityTreeItem): Thenable<VulnerabilityTreeItem[]> {
         if (!element) {
+            if (isAnalyzing) {
+                return Promise.resolve([
+                    new VulnerabilityTreeItem('Analisando...', vscode.TreeItemCollapsibleState.None, 'loading')
+                ]);
+            }
+
             if (allVulnerabilities.size === 0) {
                 return Promise.resolve([new VulnerabilityTreeItem('Nenhuma vulnerabilidade encontrada', vscode.TreeItemCollapsibleState.None, 'empty')]);
             }
@@ -681,6 +927,14 @@ class SummaryProvider implements vscode.TreeDataProvider<VulnerabilityTreeItem> 
     getChildren(element?: VulnerabilityTreeItem): Thenable<VulnerabilityTreeItem[]> {
         if (element) return Promise.resolve([]);
 
+        if (isAnalyzing) {
+            return Promise.resolve([
+                new VulnerabilityTreeItem('Score LGPD: calculando...', vscode.TreeItemCollapsibleState.None, 'loading'),
+                new VulnerabilityTreeItem('Analise em andamento', vscode.TreeItemCollapsibleState.None, 'loading'),
+                new VulnerabilityTreeItem('Aguardando resultado do scanner', vscode.TreeItemCollapsibleState.None, 'loading')
+            ]);
+        }
+
         const allVulns = Array.from(allVulnerabilities.values()).flat();
         const counts = {
             ALTO: allVulns.filter(v => v.risco === 'ALTO').length,
@@ -707,5 +961,9 @@ class SummaryProvider implements vscode.TreeDataProvider<VulnerabilityTreeItem> 
 }
 
 export function deactivate() {
+    if (flaskProcess && !flaskProcess.killed) {
+        flaskProcess.kill();
+        flaskProcess = undefined;
+    }
     console.log('Privacy Scanner desativado');
 }

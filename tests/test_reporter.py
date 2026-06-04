@@ -329,6 +329,25 @@ class TestHTMLExport:
         assert "&lt;b&gt;123&lt;/b&gt;" in html_content
 
 
+class TestPDFExport:
+    """Test PDF export format."""
+
+    def test_pdf_export_creates_valid_pdf(self, tmp_path):
+        """PDF export should create a valid PDF file."""
+        reporter = Reporter()
+        reporter.resultados = [
+            Vulnerability("test.py", 1, "DADO_HARDCODED", "Test", "ALTO", "Art. 46")
+        ]
+
+        pdf_file = tmp_path / "report.pdf"
+        reporter.exportar_pdf(str(pdf_file))
+
+        assert pdf_file.exists()
+        assert pdf_file.stat().st_size > 0
+        with open(pdf_file, "rb") as f:
+            assert f.read(4) == b"%PDF"
+
+
 class TestIntegration:
     """Integration tests for reporter."""
     

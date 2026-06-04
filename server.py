@@ -10,6 +10,8 @@ Uso:
 import sys
 import os
 import json
+import base64
+import tempfile
 import html as html_lib
 from flask import Flask, request, jsonify
 from code_analyzer import analisar_arquivo, analisar_diretorio
@@ -192,8 +194,8 @@ def export_report():
         if not directory:
             return jsonify({'success': False, 'error': 'directory é obrigatório'}), 400
 
-        if format_type not in ['html', 'json']:
-            return jsonify({'success': False, 'error': 'format deve ser html ou json'}), 400
+        if format_type not in ['html', 'json', 'pdf']:
+            return jsonify({'success': False, 'error': 'format deve ser html, json ou pdf'}), 400
 
         reporter = Reporter(alvo_codigo=directory).coletar()
         reporter.resultados += analisar_bancos_diretorio(directory)
@@ -212,6 +214,16 @@ def export_report():
                 ]
             }
             content = json.dumps(payload, ensure_ascii=False, indent=2)
+        elif format_type == 'pdf':
+            with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+                temp_path = tmp.name
+            try:
+                reporter.exportar_pdf(temp_path)
+                with open(temp_path, 'rb') as f:
+                    content = base64.b64encode(f.read()).decode('ascii')
+            finally:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
         else:
             # Gerar HTML — usar método interno (precisa ser ajustado para retornar string)
             content = generate_html_report(reporter)
@@ -219,7 +231,8 @@ def export_report():
         return jsonify({
             'success': True,
             'content': content,
-            'format': format_type
+            'format': format_type,
+            'encoding': 'base64' if format_type == 'pdf' else 'utf-8'
         })
 
     except Exception as e:

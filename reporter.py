@@ -718,6 +718,229 @@ class Reporter:
         print(f"🌐 HTML gerado: {caminho}")
 
     # ── Imprimir no terminal ──────────────────────────────────────────────────
+    def exportar_pdf(self, caminho: str):
+        """Exporta relatorio PDF formal e estatico."""
+        try:
+            from reportlab.lib import colors
+            from reportlab.lib.enums import TA_CENTER
+            from reportlab.lib.pagesizes import A4
+            from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+            from reportlab.lib.units import cm
+            from reportlab.platypus import (
+                SimpleDocTemplate,
+                Paragraph,
+                Spacer,
+                Table,
+                TableStyle,
+                PageBreak,
+            )
+        except ImportError as exc:
+            raise RuntimeError(
+                "Dependencia ausente: instale com 'python -m pip install -r requirements.txt'"
+            ) from exc
+
+        def esc(valor) -> str:
+            return html_lib.escape(str(valor)) if valor is not None else ""
+
+        sumario = self._sumario()
+        score = sumario["score_conformidade"]
+        status_score = "Conforme" if score >= 80 else "Atencao" if score >= 50 else "Critico"
+        score_color = colors.HexColor("#15803d" if score >= 80 else "#b45309" if score >= 50 else "#b91c1c")
+        risk_colors = {
+            "ALTO": colors.HexColor("#dc2626"),
+            "MEDIO": colors.HexColor("#d97706"),
+            "BAIXO": colors.HexColor("#2563eb"),
+        }
+
+        doc = SimpleDocTemplate(
+            caminho,
+            pagesize=A4,
+            rightMargin=1.4 * cm,
+            leftMargin=1.4 * cm,
+            topMargin=1.2 * cm,
+            bottomMargin=1.2 * cm,
+            title="Privacy Scanner LGPD - Relatorio de Conformidade",
+        )
+
+        styles = getSampleStyleSheet()
+        styles.add(ParagraphStyle(
+            name="TitleCenter",
+            parent=styles["Title"],
+            alignment=TA_CENTER,
+            textColor=colors.HexColor("#172033"),
+            fontSize=20,
+            leading=24,
+            spaceAfter=8,
+        ))
+        styles.add(ParagraphStyle(
+            name="SubtitleCenter",
+            parent=styles["Normal"],
+            alignment=TA_CENTER,
+            textColor=colors.HexColor("#64748b"),
+            fontSize=9,
+            leading=12,
+            spaceAfter=18,
+        ))
+        styles.add(ParagraphStyle(
+            name="Section",
+            parent=styles["Heading2"],
+            textColor=colors.HexColor("#172033"),
+            fontSize=13,
+            leading=16,
+            spaceBefore=12,
+            spaceAfter=8,
+        ))
+        styles.add(ParagraphStyle(
+            name="Small",
+            parent=styles["Normal"],
+            fontSize=7,
+            leading=9,
+        ))
+        styles.add(ParagraphStyle(
+            name="Cell",
+            parent=styles["Normal"],
+            fontSize=7,
+            leading=9,
+            wordWrap="CJK",
+        ))
+
+        story = [
+            Paragraph("Privacy Scanner LGPD", styles["TitleCenter"]),
+            Paragraph(
+                f"Relatorio de conformidade gerado em {esc(self.timestamp)} | Privacy by Design no ciclo de desenvolvimento",
+                styles["SubtitleCenter"],
+            ),
+        ]
+
+        summary_table = Table(
+            [
+                ["Score LGPD", "Status", "Total", "ALTO", "MEDIO", "BAIXO"],
+                [
+                    f"{score}/100",
+                    status_score,
+                    str(sumario["total"]),
+                    str(sumario["por_risco"]["ALTO"]),
+                    str(sumario["por_risco"]["MEDIO"]),
+                    str(sumario["por_risco"]["BAIXO"]),
+                ],
+            ],
+            colWidths=[3.0 * cm, 3.0 * cm, 2.4 * cm, 2.2 * cm, 2.2 * cm, 2.2 * cm],
+        )
+        summary_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#18233f")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("BACKGROUND", (0, 1), (-1, 1), colors.HexColor("#f8fafc")),
+            ("TEXTCOLOR", (0, 1), (0, 1), score_color),
+            ("FONTNAME", (0, 1), (0, 1), "Helvetica-Bold"),
+            ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#cbd5e1")),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+            ("TOPPADDING", (0, 0), (-1, -1), 8),
+        ]))
+        story.append(summary_table)
+        story.append(Spacer(1, 12))
+
+        story.append(Paragraph("Escopo analisado", styles["Section"]))
+        scope_table = Table(
+            [
+                ["Codigo Python", Paragraph(esc(self.alvo_codigo or "Nao informado"), styles["Small"])],
+                ["Banco SQLite", Paragraph(esc(self.alvo_banco or "Nao informado"), styles["Small"])],
+            ],
+            colWidths=[3.4 * cm, 13.4 * cm],
+        )
+        scope_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#f8fafc")),
+            ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+            ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#e2e8f0")),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ]))
+        story.append(scope_table)
+        story.append(Spacer(1, 8))
+
+        if not self.resultados:
+            story.append(Paragraph("Nenhuma vulnerabilidade encontrada nos alvos analisados.", styles["Section"]))
+        else:
+            for risco in ["ALTO", "MEDIO", "BAIXO"]:
+                vulns = [v for v in self.resultados if v.risco == risco]
+                if not vulns:
+                    continue
+
+                story.append(Paragraph(f"Vulnerabilidades de risco {risco}", styles["Section"]))
+                table_data = [["#", "Categoria", "Local", "LGPD", "Descricao", "Recomendacao"]]
+
+                for idx, v in enumerate(vulns, start=1):
+                    local = f"{os.path.basename(v.arquivo)}:{v.linha}" if v.linha > 0 else os.path.basename(v.arquivo)
+                    recomendacao = RECOMENDACOES.get(v.categoria, "Sem recomendacao cadastrada.")
+                    table_data.append([
+                        str(idx),
+                        Paragraph(esc(v.categoria), styles["Cell"]),
+                        Paragraph(esc(local), styles["Cell"]),
+                        Paragraph(esc(v.artigo_lgpd), styles["Cell"]),
+                        Paragraph(esc(v.descricao), styles["Cell"]),
+                        Paragraph(esc(recomendacao), styles["Cell"]),
+                    ])
+
+                findings_table = Table(
+                    table_data,
+                    colWidths=[0.7 * cm, 3.0 * cm, 2.8 * cm, 2.5 * cm, 5.0 * cm, 5.0 * cm],
+                    repeatRows=1,
+                )
+                findings_table.setStyle(TableStyle([
+                    ("BACKGROUND", (0, 0), (-1, 0), risk_colors.get(risco, colors.HexColor("#334155"))),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("ALIGN", (0, 0), (0, -1), "CENTER"),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#cbd5e1")),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8fafc")]),
+                    ("TOPPADDING", (0, 0), (-1, -1), 5),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                ]))
+                story.append(findings_table)
+                story.append(Spacer(1, 10))
+
+            story.append(PageBreak())
+            story.append(Paragraph("Evidencias tecnicas", styles["Section"]))
+            evidence_data = [["Risco", "Categoria", "Local", "Trecho"]]
+            for v in self.resultados:
+                local = f"{os.path.basename(v.arquivo)}:{v.linha}" if v.linha > 0 else os.path.basename(v.arquivo)
+                evidence_data.append([
+                    v.risco,
+                    Paragraph(esc(v.categoria), styles["Cell"]),
+                    Paragraph(esc(local), styles["Cell"]),
+                    Paragraph(esc(v.trecho or "Nao informado"), styles["Cell"]),
+                ])
+            evidence_table = Table(
+                evidence_data,
+                colWidths=[1.6 * cm, 3.2 * cm, 3.2 * cm, 10.0 * cm],
+                repeatRows=1,
+            )
+            evidence_table.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#18233f")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#cbd5e1")),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8fafc")]),
+                ("TOPPADDING", (0, 0), (-1, -1), 5),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ]))
+            story.append(evidence_table)
+
+        def footer(canvas, doc_obj):
+            canvas.saveState()
+            canvas.setFont("Helvetica", 8)
+            canvas.setFillColor(colors.HexColor("#64748b"))
+            canvas.drawString(1.4 * cm, 0.8 * cm, "Privacy Scanner LGPD v1.0.0 - TCC FATEC")
+            canvas.drawRightString(19.6 * cm, 0.8 * cm, f"Pagina {doc_obj.page}")
+            canvas.restoreState()
+
+        doc.build(story, onFirstPage=footer, onLaterPages=footer)
+        print(f"PDF gerado: {caminho}")
+
     def imprimir(self):
         sumario = self._sumario()
         print("\n" + "═" * 60)
@@ -802,6 +1025,7 @@ if __name__ == "__main__":
     parser.add_argument("--banco",  "-b", help="Arquivo .db (SQLite)")
     parser.add_argument("--json",   "-j", help="Exportar relatório JSON")
     parser.add_argument("--html",   "-H", help="Exportar relatório HTML")
+    parser.add_argument("--pdf",    "-P", help="Exportar relatório PDF")
     args = parser.parse_args()
 
     if not args.codigo and not args.banco:
@@ -819,3 +1043,5 @@ if __name__ == "__main__":
         reporter.exportar_json(args.json)
     if args.html:
         reporter.exportar_html(args.html)
+    if args.pdf:
+        reporter.exportar_pdf(args.pdf)

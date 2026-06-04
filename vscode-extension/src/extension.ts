@@ -669,8 +669,8 @@ async function exportReportFromPicker() {
             },
             {
                 label: 'PDF',
-                description: 'Em desenvolvimento',
-                detail: 'Formato reservado para a proxima etapa do projeto',
+                description: 'Relatorio formal',
+                detail: 'Gera um relatorio PDF estatico para entrega/compliance',
                 format: 'pdf' as const
             }
         ],
@@ -694,11 +694,6 @@ async function exportReportFromPicker() {
     });
 
     if (!saveUri) {
-        return;
-    }
-
-    if (choice.format === 'pdf') {
-        vscode.window.showInformationMessage('Exportacao em PDF ainda sera implementada. Use HTML por enquanto.');
         return;
     }
 
@@ -734,7 +729,7 @@ async function exportReportWithSaveDialog(format: 'html' | 'json') {
     await exportReport(format, saveUri);
 }
 
-async function exportReport(format: 'html' | 'json', targetUri?: vscode.Uri) {
+async function exportReport(format: 'html' | 'json' | 'pdf', targetUri?: vscode.Uri) {
     try {
         if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
             vscode.window.showWarningMessage('Nenhuma pasta de trabalho aberta');
@@ -757,7 +752,10 @@ async function exportReport(format: 'html' | 'json', targetUri?: vscode.Uri) {
         );
 
         if (response.data.content) {
-            fs.writeFileSync(filepath, response.data.content);
+            const content = response.data.encoding === 'base64'
+                ? Buffer.from(response.data.content, 'base64')
+                : response.data.content;
+            fs.writeFileSync(filepath, content);
             vscode.window.showInformationMessage(
                 `📄 Relatório ${format.toUpperCase()} gerado: ${filename}`,
                 'Abrir'

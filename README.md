@@ -18,8 +18,8 @@ Principais recursos:
 - Sidebar com resumo e agrupamento por risco.
 - Code Actions com recomendações LGPD.
 - Exportação de relatório HTML interativo.
+- Exportação de relatório PDF formal.
 - Exportação JSON estruturada.
-- Preparação para exportação PDF.
 
 ## Estrutura do Projeto
 
@@ -84,7 +84,7 @@ python -m pytest
 Resultado esperado:
 
 ```text
-56 passed
+57 passed
 ```
 
 ### 4. Testar a extensão no VS Code
@@ -198,7 +198,18 @@ O JSON contém:
 
 ### PDF
 
-A opção PDF já aparece no fluxo de exportação, mas ainda está reservada para a próxima etapa. A recomendação do projeto é manter:
+O relatório PDF inclui:
+
+- cabeçalho formal;
+- score LGPD;
+- resumo por risco;
+- escopo analisado;
+- vulnerabilidades agrupadas por risco;
+- recomendações;
+- seção de evidências técnicas;
+- rodapé com paginação.
+
+A recomendação do projeto é manter:
 
 - HTML como relatório interativo;
 - PDF como relatório formal e estático para entrega/compliance.
@@ -327,6 +338,7 @@ Implementado:
 - relatório terminal;
 - exportação JSON;
 - exportação HTML interativa;
+- exportação PDF formal;
 - servidor Flask;
 - extensão VS Code;
 - sidebar;
@@ -334,11 +346,10 @@ Implementado:
 - botão de exportação;
 - Code Actions;
 - workspace de teste;
-- suíte automatizada com 56 testes.
+- suíte automatizada com 57 testes.
 
 Próximas etapas:
 
-- exportação PDF;
 - melhoria do relatório PDF formal;
 - CI/CD com GitHub Actions;
 - empacotamento da extensão VS Code.

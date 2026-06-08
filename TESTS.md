@@ -1,6 +1,6 @@
 # Testes do Privacy Scanner LGPD
 
-A suíte automatizada possui atualmente **64 testes**, todos passando.
+A suíte automatizada possui atualmente **79 testes**, todos passando.
 
 ## Executar
 
@@ -13,7 +13,7 @@ python -m pytest
 Resultado esperado:
 
 ```text
-64 passed
+79 passed
 ```
 
 Para saída detalhada:
@@ -49,17 +49,23 @@ Valida o analisador Python:
 
 ### `test_java_analyzer.py`
 
-Valida o suporte Java inicial:
+Valida as sete categorias de código no suporte Java:
 
 - dado pessoal hardcoded;
-- MD5 com `MessageDigest`;
+- MD5 e SHA-1 com `MessageDigest`, Apache Commons Codec e Guava;
 - dado pessoal em logs;
-- inicialização vazia sem alerta;
-- mensagem fixa de log sem falso positivo;
-- exemplo Java correto;
+- transferência externa sem marcador de base legal;
+- coleta excessiva em métodos e construtores;
+- classe sem exclusão ou anonimização;
+- atribuição de dado sensível sem proteção;
+- instruções multilinha, comentários e precisão das linhas;
+- inicializações vazias e atribuições de construtor sem falso positivo;
+- identificadores técnicos, SHA-256 e payload anonimizado sem alerta;
+- exemplos Java correto e vulnerável;
 - diretório contendo Python e Java.
 
-O suporte Java atual usa regras textuais e não possui a mesma cobertura do analisador Python.
+O suporte Java usa análise léxica conservadora. Ele não compila o projeto nem
+acompanha o fluxo de um valor entre métodos diferentes.
 
 ### `test_db_analyzer.py`
 
@@ -116,5 +122,4 @@ Essa compilação verifica erros de tipo e gera `out/extension.js`.
 - Os testes usam exemplos controlados.
 - Eles não comprovam cobertura completa da LGPD.
 - Eles não substituem avaliação jurídica.
-- O suporte Java cobre somente três categorias iniciais.
-
+- O suporte Java não realiza análise de fluxo entre métodos ou resolução de tipos.

@@ -7,7 +7,7 @@ A extensão conversa com o servidor Flask do projeto e exibe os resultados dentr
 ## Recursos Implementados
 
 - Análise de arquivo Python.
-- Análise inicial de arquivo Java.
+- Análise de arquivo Java com sete categorias de privacidade.
 - Análise de projeto inteiro.
 - Análise de banco SQLite (`.db`, `.sqlite`, `.sqlite3`).
 - Diagnósticos no editor e no painel `Problems`.
@@ -224,7 +224,7 @@ python -m pytest
 Resultado esperado:
 
 ```text
-64 passed
+79 passed
 ```
 
 ## Troubleshooting
@@ -270,7 +270,7 @@ Depois recarregue a janela `[Extension Development Host]`.
 ## Status
 
 - [x] Análise de arquivo Python
-- [x] Análise inicial de arquivo Java
+- [x] Análise de arquivo Java com sete categorias
 - [x] Análise de projeto
 - [x] Análise de banco SQLite
 - [x] Diagnostics API
@@ -288,6 +288,6 @@ Depois recarregue a janela `[Extension Development Host]`.
 
 - A análise é estática e baseada em regras.
 - A extensão não substitui auditoria jurídica.
-- O MVP tem cobertura principal para Python e SQLite, com suporte Java inicial.
-- O suporte Java atual cobre três regras textuais.
+- O suporte Java usa análise léxica e não compila o projeto.
+- O Java cobre sete categorias, mas não acompanha fluxo de dados entre métodos.
 - Algumas ocorrências podem exigir revisão manual.

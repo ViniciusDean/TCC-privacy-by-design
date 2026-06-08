@@ -23,11 +23,13 @@ RECOMENDACOES = {
     ),
     "DADO_SEM_CRIPTOGRAFIA": (
         "Aplique hash ou criptografia antes de armazenar o dado. "
-        "Para senhas use bcrypt ou argon2. Para outros dados use AES-256 ou Fernet."
+        "Para senhas use bcrypt, argon2 ou um PasswordEncoder seguro. "
+        "Para outros dados use AES-256 com gerenciamento adequado de chaves."
     ),
     "CRIPTOGRAFIA_FRACA": (
         "Substitua MD5/SHA1 por algoritmos modernos. "
-        "Para senhas: bcrypt, argon2 ou pbkdf2. Para integridade: SHA-256 ou SHA-512."
+        "Para senhas: bcrypt, argon2 ou PBKDF2. "
+        "Para integridade: SHA-256 ou SHA-512."
     ),
     "DADO_EM_LOG": (
         "Remova dados pessoais de logs. Use IDs técnicos (UUID) no lugar de CPF/email. "

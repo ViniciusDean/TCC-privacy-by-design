@@ -1,68 +1,344 @@
-"""Testes da versão inicial do analisador Java."""
+"""Testes das regras conservadoras de análise estática para Java."""
+
+from pathlib import Path
 
 from code_analyzer import analisar_arquivo, analisar_diretorio
 
 
-def test_detects_hardcoded_personal_data(temp_java_file):
-    temp_java_file.write('private String cpf = "123.456.789-00";\n')
-    temp_java_file.flush()
-
-    results = analisar_arquivo(temp_java_file.name)
-
-    assert any(v.categoria == "DADO_HARDCODED" for v in results)
-    assert any(v.risco == "ALTO" for v in results)
+def analisar(tmp_path: Path, codigo: str):
+    arquivo = tmp_path / "Exemplo.java"
+    arquivo.write_text(codigo, encoding="utf-8")
+    return analisar_arquivo(str(arquivo))
 
 
-def test_ignores_empty_java_initialization(temp_java_file):
-    temp_java_file.write('private String email = "";\n')
-    temp_java_file.flush()
-
-    results = analisar_arquivo(temp_java_file.name)
-
-    assert not any(v.categoria == "DADO_HARDCODED" for v in results)
+def categorias(resultados):
+    return [resultado.categoria for resultado in resultados]
 
 
-def test_detects_java_md5(temp_java_file):
-    temp_java_file.write('MessageDigest digest = MessageDigest.getInstance("MD5");\n')
-    temp_java_file.flush()
+def test_detecta_dado_pessoal_hardcoded(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        'class Exemplo { private String cpf = "123.456.789-00"; '
+        'public void anonimizar() {} }',
+    )
 
-    results = analisar_arquivo(temp_java_file.name)
-
-    assert any(v.categoria == "CRIPTOGRAFIA_FRACA" for v in results)
-
-
-def test_detects_personal_data_in_java_log(temp_java_file):
-    temp_java_file.write('logger.info("Usuario: " + email);\n')
-    temp_java_file.flush()
-
-    results = analisar_arquivo(temp_java_file.name)
-
-    assert any(v.categoria == "DADO_EM_LOG" for v in results)
+    assert "DADO_HARDCODED" in categorias(resultados)
 
 
-def test_ignores_fixed_log_message_without_personal_variable(temp_java_file):
-    temp_java_file.write('logger.info("Email enviado com sucesso");\n')
-    temp_java_file.flush()
+def test_ignora_inicializacao_vazia_e_null(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        "class Exemplo { private String email = \"\"; private String cpf = null; "
+        "public void anonimizar() {} }",
+    )
 
-    results = analisar_arquivo(temp_java_file.name)
-
-    assert not any(v.categoria == "DADO_EM_LOG" for v in results)
-
-
-def test_java_correct_example_has_no_findings():
-    results = analisar_arquivo("exemplo_correto.java")
-
-    assert results == []
+    assert "DADO_HARDCODED" not in categorias(resultados)
+    assert "DADO_SEM_CRIPTOGRAFIA" not in categorias(resultados)
 
 
-def test_directory_analyzes_python_and_java(tmp_path):
-    (tmp_path / "exemplo.py").write_text('cpf = "123.456.789-00"\n', encoding="utf-8")
+def test_ignora_codigo_comentado(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        """
+        class Exemplo {
+            // private String cpf = "123.456.789-00";
+            /* logger.info(email); */
+        }
+        """,
+    )
+
+    assert resultados == []
+
+
+def test_detecta_md5_e_sha1(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        """
+        class Exemplo {
+            void executar() throws Exception {
+                MessageDigest.getInstance("MD5");
+                MessageDigest.getInstance("SHA-1");
+            }
+        }
+        """,
+    )
+
+    assert categorias(resultados).count("CRIPTOGRAFIA_FRACA") == 2
+
+
+def test_detecta_digestutils_e_guava_hashing_fracos(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        """
+        class Exemplo {
+            void executar(byte[] dados) {
+                DigestUtils.md5Hex(dados);
+                Hashing.sha1().hashBytes(dados);
+            }
+        }
+        """,
+    )
+
+    assert categorias(resultados).count("CRIPTOGRAFIA_FRACA") == 2
+
+
+def test_detecta_criptografia_fraca_em_instrucao_multilinha(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        """
+        class Exemplo {
+            void executar() throws Exception {
+                MessageDigest digest = MessageDigest.getInstance(
+                    "MD5"
+                );
+            }
+        }
+        """,
+    )
+
+    assert "CRIPTOGRAFIA_FRACA" in categorias(resultados)
+
+
+def test_sha256_nao_e_criptografia_fraca(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        """
+        class Exemplo {
+            void executar() throws Exception {
+                MessageDigest.getInstance("SHA-256");
+            }
+        }
+        """,
+    )
+
+    assert "CRIPTOGRAFIA_FRACA" not in categorias(resultados)
+
+
+def test_detecta_dado_em_logger_e_system_out(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        """
+        class Exemplo {
+            void executar(String email, String cpf) {
+                logger.info("E-mail: " + email);
+                System.out.println("CPF: " + cpf);
+            }
+        }
+        """,
+    )
+
+    assert categorias(resultados).count("DADO_EM_LOG") == 2
+
+
+def test_ignora_mensagem_fixa_e_identificadores_tecnicos_no_log(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        """
+        class Exemplo {
+            void executar(String userId, String userAgent, String ipAddress) {
+                logger.info("Operação concluída");
+                logger.info("Acesso: " + userId + userAgent + ipAddress);
+            }
+        }
+        """,
+    )
+
+    assert "DADO_EM_LOG" not in categorias(resultados)
+
+
+def test_detecta_transferencia_externa_com_dados_pessoais(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        """
+        class Exemplo {
+            void enviar(String cpf, String email) {
+                new RestTemplate().postForEntity(
+                    "https://terceiro.exemplo",
+                    new Payload(cpf, email),
+                    Void.class
+                );
+            }
+        }
+        """,
+    )
+
+    assert "TRANSFERENCIA_SEM_BASE_LEGAL" in categorias(resultados)
+
+
+def test_ignora_transferencia_de_dados_anonimizados(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        """
+        class Exemplo {
+            void enviar(DadosAnonimizados dadosAnonimizados) {
+                new RestTemplate().postForEntity(
+                    "https://terceiro.exemplo", dadosAnonimizados, Void.class
+                );
+            }
+        }
+        """,
+    )
+
+    assert "TRANSFERENCIA_SEM_BASE_LEGAL" not in categorias(resultados)
+
+
+def test_detecta_coleta_excessiva_em_metodo(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        """
+        class Exemplo {
+            void cadastrar(String nome, String email, String cpf, String telefone) {}
+        }
+        """,
+    )
+
+    assert "COLETA_EXCESSIVA" in categorias(resultados)
+
+
+def test_detecta_coleta_excessiva_em_construtor(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        """
+        class Usuario {
+            Usuario(String nome, String email, String cpf, String telefone) {}
+        }
+        """,
+    )
+
+    assert "COLETA_EXCESSIVA" in categorias(resultados)
+
+
+def test_detecta_classe_sem_exclusao(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        """
+        class Usuario {
+            private String cpf;
+            private String email;
+            void salvar() {}
+        }
+        """,
+    )
+
+    assert "AUSENCIA_EXCLUSAO" in categorias(resultados)
+
+
+def test_aceita_metodo_de_exclusao_ou_anonimizacao(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        """
+        class Usuario {
+            private String cpf;
+            private String email;
+            void anonimizarDados() {
+                this.cpf = "000.000.000-00";
+                this.email = "anonimo@exemplo.invalid";
+            }
+        }
+        """,
+    )
+
+    assert "AUSENCIA_EXCLUSAO" not in categorias(resultados)
+    assert "DADO_HARDCODED" not in categorias(resultados)
+
+
+def test_detecta_atribuicao_sem_protecao(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        """
+        class Usuario {
+            private String cpf;
+            Usuario(String cpf) { this.cpf = cpf; }
+            void atualizar(Request request) { this.cpf = request.getCpf(); }
+            void anonimizar() {}
+        }
+        """,
+    )
+
+    assert categorias(resultados).count("DADO_SEM_CRIPTOGRAFIA") == 1
+
+
+def test_ignora_atribuicao_direta_de_parametro_do_construtor(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        """
+        class Usuario {
+            private String email;
+            Usuario(String email) { this.email = email; }
+            void anonimizar() {}
+        }
+        """,
+    )
+
+    assert "DADO_SEM_CRIPTOGRAFIA" not in categorias(resultados)
+
+
+def test_ignora_valor_protegido_por_criptografia(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        """
+        class Usuario {
+            private String passwordHash;
+            void salvar(String password) {
+                this.passwordHash = passwordEncoder.encode(password);
+            }
+            void delete() {}
+        }
+        """,
+    )
+
+    assert "DADO_SEM_CRIPTOGRAFIA" not in categorias(resultados)
+
+
+def test_exemplo_correto_nao_tem_achados():
+    assert analisar_arquivo("exemplo_correto.java") == []
+
+
+def test_exemplo_vulneravel_cobre_as_sete_regras():
+    resultados = analisar_arquivo("exemplo_vulneravel.java")
+
+    assert set(categorias(resultados)) == {
+        "DADO_HARDCODED",
+        "CRIPTOGRAFIA_FRACA",
+        "DADO_EM_LOG",
+        "TRANSFERENCIA_SEM_BASE_LEGAL",
+        "COLETA_EXCESSIVA",
+        "AUSENCIA_EXCLUSAO",
+        "DADO_SEM_CRIPTOGRAFIA",
+    }
+
+
+def test_linhas_dos_achados_apontam_para_codigo(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        """
+        class Exemplo {
+            // Comentário antes do campo.
+            private String cpf = "123.456.789-00";
+            void anonimizar() {}
+        }
+        """,
+    )
+
+    hardcoded = next(
+        resultado for resultado in resultados
+        if resultado.categoria == "DADO_HARDCODED"
+    )
+    assert hardcoded.linha == 4
+    assert "private String cpf" in hardcoded.trecho
+
+
+def test_diretorio_analisa_python_e_java(tmp_path):
+    (tmp_path / "exemplo.py").write_text(
+        'cpf = "123.456.789-00"\n',
+        encoding="utf-8",
+    )
     (tmp_path / "Exemplo.java").write_text(
-        'String password = "senha123";\n',
+        'class Exemplo { String password = "senha123"; void delete() {} }',
         encoding="utf-8",
     )
 
-    results = analisar_diretorio(str(tmp_path))
+    resultados = analisar_diretorio(str(tmp_path))
 
-    extensions = {v.arquivo.rsplit(".", 1)[-1] for v in results}
-    assert extensions == {"py", "java"}
+    extensoes = {resultado.arquivo.rsplit(".", 1)[-1] for resultado in resultados}
+    assert extensoes == {"py", "java"}

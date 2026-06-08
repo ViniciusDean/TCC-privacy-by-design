@@ -89,7 +89,7 @@ python -m pytest
 Resultado esperado:
 
 ```text
-64 passed
+79 passed
 ```
 
 ### 4. Testar a extensão no VS Code
@@ -237,15 +237,22 @@ A recomendação do projeto é manter:
 | AUSENCIA_EXCLUSAO | MÉDIO | Art. 18 | Classe sem método de exclusão/anonimização |
 | DADO_SEM_CRIPTOGRAFIA | MÉDIO | Art. 46 | Campo sensível sem proteção esperada |
 
-### Código Java - versão inicial
+### Código Java
 
 | Categoria | Risco | Artigo LGPD | Descrição |
 |---|---|---|---|
 | DADO_HARDCODED | ALTO | Art. 46 | Dado pessoal literal atribuído a campo sensível |
-| CRIPTOGRAFIA_FRACA | ALTO | Art. 46 | Uso de `MessageDigest` com MD5 ou SHA-1 |
+| CRIPTOGRAFIA_FRACA | ALTO | Art. 46 | MD5 ou SHA-1 via `MessageDigest`, Apache Commons Codec ou Guava |
 | DADO_EM_LOG | ALTO | Art. 46 / Art. 6 | Dado pessoal em logger ou `System.out/System.err` |
+| TRANSFERENCIA_SEM_BASE_LEGAL | ALTO | Art. 7 / Art. 33 | Dado pessoal enviado por clientes HTTP conhecidos sem marcador de base legal |
+| COLETA_EXCESSIVA | MÉDIO | Art. 6 | Método ou construtor com quatro ou mais parâmetros sensíveis |
+| AUSENCIA_EXCLUSAO | MÉDIO | Art. 18 | Classe com campos sensíveis sem método de exclusão/anonimização |
+| DADO_SEM_CRIPTOGRAFIA | MÉDIO | Art. 46 | Campo sensível recebe valor sem indício de proteção |
 
-O suporte Java inicial usa análise textual por linhas. Ele não compila o projeto Java e ainda não possui a mesma cobertura da AST Python.
+O suporte Java usa análise léxica conservadora, com reconhecimento de comentários,
+strings, instruções multilinha, classes e assinaturas de métodos. Ele não compila
+o projeto e não realiza análise de fluxo de dados entre métodos; por isso, os
+achados devem ser revisados pelo desenvolvedor.
 
 ### Banco SQLite
 
@@ -365,7 +372,7 @@ Implementado:
 - botão de exportação;
 - Code Actions;
 - workspace de teste;
-- suíte automatizada com 64 testes.
+- suíte automatizada com 79 testes.
 
 Próximas etapas:
 
@@ -378,8 +385,8 @@ Próximas etapas:
 - A análise é estática e baseada em regras.
 - A ferramenta não executa o código analisado.
 - A ferramenta não substitui auditoria jurídica ou revisão completa de segurança.
-- O MVP tem cobertura principal para Python e SQLite, com suporte Java inicial.
-- O suporte Java atual cobre somente três regras iniciais.
+- A análise Java é baseada em heurísticas léxicas e não substitui um parser ou compilador.
+- O Java possui as mesmas sete categorias do analisador de código, mas sem análise de fluxo entre métodos.
 - Algumas ocorrências podem exigir revisão manual para confirmar o contexto.
 
 ## Autor

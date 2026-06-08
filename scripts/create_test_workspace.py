@@ -76,7 +76,7 @@ Arquivos:
 - `exemplo_vulneravel.py`: deve gerar vulnerabilidades.
 - `exemplo_correto.py`: deve gerar poucos ou nenhum alerta.
 - `exemplo_parcial.py`: deve gerar achados intermediarios.
-- `exemplo_vulneravel.java`: exemplo Java com tres categorias iniciais.
+- `exemplo_vulneravel.java`: exemplo Java cobrindo as sete categorias.
 - `exemplo_correto.java`: exemplo Java sem alertas esperados.
 - `banco_vulneravel.db`: banco SQLite com schema propositalmente vulneravel.
 

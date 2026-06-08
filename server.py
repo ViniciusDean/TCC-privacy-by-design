@@ -90,7 +90,7 @@ def analyze_file():
 @app.route('/api/analyze-directory', methods=['POST'])
 def analyze_directory():
     """
-    Analisa todos os arquivos .py de um diretório (recursivamente).
+    Analisa todos os arquivos .py e .java de um diretório (recursivamente).
     Payload: {"directory": "/caminho/para/pasta"}
     """
     try:

@@ -38,7 +38,7 @@ python -m pytest
 Resultado esperado:
 
 ```text
-64 passed
+79 passed
 ```
 
 Compilar a extensão:
@@ -141,10 +141,16 @@ Privacy Scanner: Analisar arquivo atual
 O exemplo demonstra:
 
 - dado pessoal hardcoded;
-- MD5 com `MessageDigest`;
-- dado pessoal em log.
+- criptografia fraca;
+- dado pessoal em log;
+- transferência externa sem base legal documentada;
+- coleta excessiva;
+- ausência de exclusão/anonimização;
+- atribuição de dado sensível sem proteção.
 
-Depois abra `exemplo_correto.java`. Esse arquivo usa SHA-256 e log com identificador técnico, portanto não deve gerar achados nas três regras Java iniciais.
+Depois abra `exemplo_correto.java`. Esse arquivo usa SHA-256, log com
+identificador técnico, payload anonimizado e método de anonimização; portanto,
+não deve gerar achados.
 
 ## 6. Teste Manual com Banco SQLite
 
@@ -326,6 +332,6 @@ ou abra/salve um arquivo Python.
 - A análise é estática e baseada em regras.
 - A ferramenta não executa o código analisado.
 - A ferramenta não substitui auditoria jurídica ou revisão de segurança completa.
-- O MVP tem cobertura principal para Python e SQLite, com suporte Java inicial.
-- O suporte Java é inicial e cobre apenas três regras textuais.
+- O suporte Java usa análise léxica e não compila o projeto.
+- O Java cobre sete categorias, mas não acompanha fluxo de dados entre métodos.
 - Algumas regras são heurísticas e podem exigir revisão manual.

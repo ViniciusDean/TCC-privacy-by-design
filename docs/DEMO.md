@@ -7,7 +7,7 @@ Este roteiro serve para apresentar a ferramenta de forma simples e reproduzível
 Mostrar que a ferramenta consegue:
 
 - analisar código Python;
-- analisar código Java em uma versão inicial;
+- analisar código Java com as sete categorias de código;
 - analisar banco SQLite;
 - exibir vulnerabilidades no VS Code;
 - mostrar resumo por risco;
@@ -41,7 +41,7 @@ python -m pytest
 Resultado esperado:
 
 ```text
-64 passed
+79 passed
 ```
 
 ## 2. Abrir a Extensão
@@ -107,13 +107,16 @@ A análise de projeto agrega os resultados de código e banco em uma visão úni
 
 1. Abra `exemplo_vulneravel.java`.
 2. Rode `Privacy Scanner: Analisar arquivo atual`.
-3. Mostre os achados de dado hardcoded, MD5 e dado em log.
+3. Mostre os achados das sete categorias: hardcoded, criptografia fraca, log,
+   transferência externa, coleta excessiva, ausência de exclusão e dado sem proteção.
 4. Abra `exemplo_correto.java` para demonstrar o cenário sem alertas esperados.
 
 Falar durante a apresentação:
 
 ```text
-O suporte Java é uma prova inicial de extensibilidade. Ele cobre três regras simples por análise textual e ainda não tem a mesma cobertura do analisador Python.
+O suporte Java aplica sete regras por análise léxica conservadora. Ele reconhece
+estruturas comuns sem compilar ou executar o projeto e não faz análise de fluxo
+de dados entre métodos.
 ```
 
 ## 7. Demonstrar Banco SQLite
@@ -194,7 +197,7 @@ Durante a demo, vale tirar prints de:
 - painel `Problems`;
 - relatório HTML;
 - relatório PDF;
-- terminal com `64 passed`.
+- terminal com `79 passed`.
 
 ## Resultado Esperado
 
@@ -204,7 +207,7 @@ Durante a demo, vale tirar prints de:
 - `exemplo_correto.py` não gera os mesmos alertas.
 - `banco_vulneravel.db` gera alertas de schema.
 - HTML e PDF são exportados.
-- `pytest` passa com 64 testes.
+- `pytest` passa com 79 testes.
 
 ## Limitações a Declarar
 
@@ -212,5 +215,5 @@ Durante a demo, vale tirar prints de:
 - A análise é baseada em regras estáticas.
 - A ferramenta não substitui auditoria jurídica.
 - A ferramenta não mede todos os requisitos da LGPD.
-- A cobertura principal é Python e SQLite, com suporte Java inicial.
-- O suporte Java atual possui somente três regras iniciais.
+- O suporte Java é heurístico e não compila o projeto.
+- O Java cobre sete categorias, mas não resolve tipos nem fluxo entre métodos.

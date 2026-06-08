@@ -1,0 +1,471 @@
+\ifdefined\pdfminorversion\pdfminorversion=7\fi
+\documentclass[12pt,a4paper,oneside]{report}
+
+% Modelo baseado em "modelo-TCC-SEG-Prof. Adilson-20261S.docx".
+% Para manter Arial exatamente, compile com XeLaTeX ou LuaLaTeX.
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[utf8]{inputenc}
+  \usepackage[T1]{fontenc}
+  \usepackage{helvet}
+  \renewcommand{\familydefault}{\sfdefault}
+\else
+  \usepackage{fontspec}
+  \setmainfont{Arial}
+\fi
+
+\usepackage[brazilian]{babel}
+\usepackage[a4paper,top=3cm,left=3cm,right=2cm,bottom=2cm,headheight=15pt]{geometry}
+\usepackage{graphicx}
+\usepackage{setspace}
+\usepackage{indentfirst}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{fancyhdr}
+\usepackage{ragged2e}
+\usepackage{enumitem}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+
+\makeatletter
+\newcommand{\sumariomodelo}{\@starttoc{toc}}
+\makeatother
+
+\setstretch{1.5}
+\setlength{\parindent}{1.25cm}
+\setlength{\parskip}{0pt}
+\justifying
+\sloppy
+
+% Cabeçalhos do modelo: páginas pré-textuais sem número aparente;
+% páginas textuais com numeração no canto superior direito.
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\fancypagestyle{plain}{\fancyhf{}\fancyhead[R]{\thepage}\renewcommand{\headrulewidth}{0pt}}
+\fancypagestyle{pretextual}{\fancyhf{}\renewcommand{\headrulewidth}{0pt}}
+
+% Títulos conforme os estilos 1-Título e 1.1-Título do DOCX.
+\titleformat{\chapter}[hang]{\normalfont\bfseries\normalsize}{\thechapter}{0.6em}{\MakeUppercase}
+\titlespacing*{\chapter}{0pt}{0pt}{12pt}
+\titleformat{\section}[hang]{\normalfont\bfseries\normalsize}{\thesection}{0.6em}{}
+\titlespacing*{\section}{0pt}{12pt}{12pt}
+\titleformat{\subsection}[hang]{\normalfont\bfseries\normalsize}{\thesubsection}{0.6em}{}
+\titlespacing*{\subsection}{0pt}{12pt}{12pt}
+
+\renewcommand{\cftchapfont}{\normalfont}
+\renewcommand{\cftchappagefont}{\normalfont}
+\renewcommand{\cftdotsep}{1}
+\setlength{\cftbeforechapskip}{0pt}
+
+\setlist[enumerate]{leftmargin=1.25cm,itemindent=0pt,label=\arabic*.,topsep=0pt,itemsep=0pt,parsep=0pt}
+\setlist[itemize]{leftmargin=1.25cm,topsep=0pt,itemsep=0pt,parsep=0pt}
+
+\newcommand{\fateclogo}{\includegraphics[width=\textwidth]{assets/image1.png}}
+\newcommand{\tituloTCC}{Privacy by Design no Ciclo de Desenvolvimento de Software}
+\newcommand{\tituloInglesTCC}{Privacy by Design in the Software Development Life Cycle}
+\newcommand{\autorTCC}{Vinicius Dean}
+\newcommand{\orientadorTCC}{Prof. Dr. Adilson Ferreira da Silva}
+\newcommand{\instituicaoTCC}{Faculdade de Tecnologia de São Caetano do Sul -- Antônio Russo}
+\newcommand{\cursoTCC}{Curso Superior de Tecnologia em Segurança da Informação}
+\newcommand{\localTCC}{São Caetano do Sul}
+\newcommand{\anoTCC}{2026}
+
+\newcommand{\paginaCapa}{%
+\thispagestyle{pretextual}
+\begin{center}
+\fateclogo
+\vspace*{1.6cm}
+\autorTCC
+\vfill
+\textbf{\tituloTCC}
+\vfill
+\localTCC\\
+\anoTCC
+\end{center}
+\clearpage
+}
+
+\newcommand{\paginaFolhaRosto}{%
+\thispagestyle{pretextual}
+\begin{center}
+\fateclogo
+\vspace*{1.6cm}
+\autorTCC
+\vfill
+\textbf{\tituloTCC}
+\end{center}
+\vspace*{2.5cm}
+\begin{flushright}
+\begin{minipage}{8.5cm}
+Trabalho de Graduação apresentado à \instituicaoTCC, como requisito parcial para a obtenção do grau de Tecnólogo em Segurança da Informação.
+
+\vspace{0.5cm}
+Orientador: \orientadorTCC
+\end{minipage}
+\end{flushright}
+\vfill
+\begin{center}
+\localTCC\\
+\anoTCC
+\end{center}
+\clearpage
+}
+
+\newcommand{\paginaBanca}{%
+\thispagestyle{pretextual}
+\begin{center}
+\fateclogo
+\vspace*{1.6cm}
+\autorTCC
+\vfill
+\textbf{\tituloTCC}
+\end{center}
+\vspace*{1.3cm}
+Banca examinadora:
+
+\vspace{1.2cm}
+\noindent\rule{8cm}{0.4pt}\\
+\orientadorTCC\\
+Presidente da Banca
+
+\vspace{1.2cm}
+\noindent\rule{8cm}{0.4pt}\\
+Prof. Xxxxxxxxxxxxxxxxxxxxxxx\\
+Professor convidado
+
+\vspace{1.2cm}
+\noindent\rule{8cm}{0.4pt}\\
+Prof. Xxxxxxxxxxxxxxxxxxxxxxx\\
+Professor convidado
+
+\vfill
+\begin{center}
+\localTCC\\
+\anoTCC
+\end{center}
+\clearpage
+}
+
+\newenvironment{resumomodelo}{%
+\clearpage\thispagestyle{pretextual}\begin{center}\textbf{RESUMO}\end{center}\setstretch{1.5}
+}{\clearpage}
+
+\newenvironment{abstractmodelo}{%
+\clearpage\thispagestyle{pretextual}\begin{center}\textbf{ABSTRACT}\end{center}\setstretch{1.5}
+}{\clearpage}
+
+\begin{document}
+
+\paginaCapa
+\paginaFolhaRosto
+\paginaBanca
+
+\begin{resumomodelo}
+DEAN, Vinicius. \textbf{\tituloTCC}. Trabalho de Graduação. FATEC São Caetano do Sul -- Antônio Russo. 2026.
+
+Este trabalho aborda a aplicação do conceito de Privacy by Design no ciclo de desenvolvimento de software, com foco na construção de uma ferramenta de apoio à identificação de vulnerabilidades de privacidade em código-fonte e esquemas de banco de dados. A proposta considera os requisitos da Lei Geral de Proteção de Dados Pessoais (LGPD) e busca aproximar práticas de conformidade do cotidiano das equipes de desenvolvimento.
+
+\noindent\textbf{Palavras-chave:} Privacy by Design; LGPD; análise estática; privacidade; desenvolvimento de software.
+\end{resumomodelo}
+
+\begin{abstractmodelo}
+DEAN, Vinicius. \textbf{\tituloInglesTCC}. Undergraduate Final Paper. FATEC São Caetano do Sul -- Antônio Russo. 2026.
+
+This work discusses the application of Privacy by Design in the software development life cycle, focusing on the construction of a tool to support the identification of privacy vulnerabilities in source code and database schemas. The proposal considers the requirements of the Brazilian General Data Protection Law (LGPD) and aims to bring compliance practices closer to software development teams.
+
+\noindent\textbf{Keywords:} Privacy by Design; LGPD; static analysis; privacy; software development.
+\end{abstractmodelo}
+
+\clearpage
+\thispagestyle{pretextual}
+\begin{center}\textbf{LISTA DE ABREVIATURAS E SIGLAS}\end{center}
+\begin{description}[leftmargin=2.8cm,style=nextline]
+\item[ABNT] Associação Brasileira de Normas Técnicas
+\item[GDPR] General Data Protection Regulation
+\item[LGPD] Lei Geral de Proteção de Dados Pessoais
+\item[PbD] Privacy by Design
+\item[SDLC] Software Development Life Cycle
+\end{description}
+\clearpage
+
+\clearpage
+\thispagestyle{pretextual}
+\begin{center}\textbf{SUMÁRIO}\end{center}
+\vspace{0.5cm}
+\sumariomodelo
+\clearpage
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
+\pagestyle{fancy}
+
+\chapter{INTRODUÇÃO}
+
+\section{Contextualização}
+
+A produção e o consumo de dados pessoais em escala global atingiram patamares sem precedentes nas últimas décadas. Segundo o relatório Data Never Sleeps, publicado anualmente pela empresa Domo, mais de 2,5 quintilhões de bytes de dados são gerados por dia no mundo, volume que reflete a profunda digitalização das relações sociais, comerciais e institucionais contemporâneas (DOMO, 2023). Nesse contexto, sistemas de software passaram a ocupar papel central na coleta, no armazenamento, no processamento e na transferência de informações pessoais, o que torna as decisões de projeto e de implementação desses sistemas diretamente relacionadas à proteção da privacidade dos indivíduos.
+
+Em resposta a esse cenário, legislações específicas de proteção de dados foram promulgadas em diversas jurisdições. Na União Europeia, o Regulamento Geral de Proteção de Dados ( General Data Protection Regulation -- GDPR), em vigor desde maio de 2018, estabeleceu um marco regulatório abrangente que impõe obrigações técnicas e organizacionais aos agentes de tratamento de dados pessoais, com sanções de até 4\% do faturamento global da organização (UNIÃO EUROPEIA, 2016). No Brasil, a Lei Geral de Proteção de Dados Pessoais (LGPD), promulgada em agosto de 2018 e com vigência a partir de setembro de 2020, seguiu trajetória semelhante ao prever, no artigo 46, a obrigação de adotar medidas técnicas e administrativas aptas a proteger dados pessoais desde a fase de concepção dos produtos e serviços (BRASIL, 2018).
+
+Nesse cenário regulatório e tecnológico, o conceito de Privacy by Design (PbD), proposto pela canadense Ann Cavoukian na década de 1990 e reconhecido internacionalmente como boas práticas pelo GDPR, emerge como abordagem estratégica que propõe a incorporação da privacidade desde as fases iniciais do desenvolvimento de sistemas, e não como um recurso adicionado a posteriori (CAVOUKIAN, 2009). Os sete princípios fundamentais do PbD, entre eles a privacidade como padrão ( privacy as default ) e a integração proativa de medidas de proteção, representam uma mudança de paradigma no modo como engenheiros e desenvolvedores concebem e constroem software.
+
+Apesar da relevância do conceito, a adoção do PbD ainda enfrenta resistências práticas no mercado: pressões por velocidade de entrega, falta de capacitação técnica das equipes e ausência de processos formalizados são barreiras recorrentes. Compreender como o Privacy by Design pode ser integrado de forma efetiva ao ciclo de desenvolvimento de software, seja em metodologias ágeis como Scrum e Kanban, seja em abordagens tradicionais como o modelo cascata, é, portanto, uma questão de crescente relevância acadêmica e profissional.
+
+\section{Problema e justificativa}
+
+O processo de desenvolvimento de software envolve uma série de decisões técnicas que, quando não orientadas por critérios de privacidade, podem resultar na exposição indevida de dados pessoais, no armazenamento excessivo de informações sensíveis, na ausência de controles de acesso adequados e na transferência de dados a terceiros sem base legal. Essas vulnerabilidades são frequentemente introduzidas nas fases de implementação e de definição do esquema de banco de dados, e sua identificação por revisões manuais se mostra pouco eficaz em projetos de maior escala.
+
+As ferramentas de análise estática de código atualmente disponíveis no mercado, como Veracode, SonarQube e Checkmarx, têm como foco principal a detecção de vulnerabilidades de segurança em sentido estrito, tais como injeção de SQL, cross-site scripting e exposição de credenciais (CHESS; WEST, 2007). Nenhuma dessas ferramentas aborda de forma sistemática as vulnerabilidades de privacidade, como o armazenamento de dados pessoais sem criptografia, a retenção de informações além do prazo necessário ou a ausência de mecanismos de pseudonimização e anonimização. Essa lacuna representa um risco concreto de não conformidade com a LGPD para organizações que dependem exclusivamente dessas soluções.
+
+O público-alvo deste trabalho são equipes de desenvolvimento de software que tratam dados pessoais em seus sistemas e precisam atender às exigências da LGPD, especialmente aquelas inseridas em contextos ágeis que frequentemente não contam com especialistas dedicados em privacidade ou segurança da informação. A ferramenta proposta visa oferecer a esse público um mecanismo acessível e integrado ao ambiente de desenvolvimento para a
+
+identificação automática de vulnerabilidades de privacidade em código-fonte e em esquemas de banco de dados, sem exigir conhecimento técnico especializado no tema.
+
+A justificativa deste trabalho se sustenta em três dimensões complementares: legal, técnica e social.
+
+Do ponto de vista legal, a LGPD estabelece, no artigo 46, que os agentes de tratamento devem adotar medidas técnicas e administrativas capazes de proteger dados pessoais desde a fase de concepção do produto ou serviço, o que dialoga diretamente com o conceito de privacy by design (BRASIL, 2018). O descumprimento dessas obrigações pode resultar em sanções administrativas de até 2\% do faturamento da empresa, limitadas a R\$ 50 milhões por infração, além de danos reputacionais severos.
+
+No aspecto técnico, corrigir vulnerabilidades de privacidade após a entrega de um sistema é significativamente mais custoso do que preveni-las durante o desenvolvimento. Estudos na área de engenharia de software demonstram que o custo de correção de defeitos cresce exponencialmente conforme avançam as fases do ciclo de vida (BOEHM, 1981; PRESSMAN, 2016), o que reforça a vantagem econômica e operacional de adotar controles de privacidade desde o início do projeto.
+
+Sob a perspectiva social, a proteção da privacidade é reconhecida como um direito fundamental, conforme previsto na Constituição Federal de 1988, no artigo 5, inciso X (BRASIL, 1988). Em um contexto de crescentes violações de dados e uso indevido de informações pessoais, desenvolver software com privacidade integrada contribui para a construção de uma cultura digital mais ética, transparente e centrada no usuário.
+
+Assim, este trabalho se justifica pela necessidade de desenvolver e disponibilizar uma ferramenta prática de verificação de vulnerabilidades de privacidade que aproxime as obrigações impostas pela LGPD do cotidiano das equipes de desenvolvimento, oferecendo subsídios concretos para a adoção do Privacy by Design no ciclo de desenvolvimento de software.
+
+\section{Pergunta-Problema}
+
+De que forma uma ferramenta de análise estática de código-fonte e de esquemas de banco de dados, orientada pelos princípios do Privacy by Design, pode contribuir para a identificação de vulnerabilidades de privacidade no ciclo de desenvolvimento de software e para a conformidade das organizações com as exigências da Lei Geral de Proteção de Dados Pessoais?
+
+\section{Objetivos}
+
+\subsection{Objetivo Geral}
+
+Desenvolver uma ferramenta de análise estática de código-fonte e de esquemas de banco de dados orientada à identificação de vulnerabilidades de privacidade, fundamentada nos princípios do Privacy by Design e nos requisitos da Lei Geral de Proteção de Dados Pessoais, com distribuição como extensão para o Visual Studio Code ou como aplicação desktop, de modo a oferecer às equipes de desenvolvimento um mecanismo acessível de verificação de conformidade com a LGPD.
+
+\subsection{Objetivos Específicos}
+
+\begin{enumerate}
+\item Revisar os fundamentos teóricos do Privacy by Design, a origem, os sete princípios e o reconhecimento no contexto regulatório da Lei Geral de Proteção de Dados Pessoais (LGPD) e do Regulamento Geral de Proteção de Dados (General Data Protection Regulation -- GDPR);
+\item Mapear as etapas do ciclo de desenvolvimento de software, identificando os pontos críticos para a proteção de dados em cada fase e definindo em qual etapa a ferramenta deve ser aplicada;
+\item Levantar e comparar ferramentas existentes com finalidade similar, como Veracode, SonarQube e Checkmarx, identificando a lacuna em relação à verificação específica de vulnerabilidades de privacidade;
+\item Definir e justificar as escolhas tecnológicas para o desenvolvimento da ferramenta, incluindo linguagem de programação -- Python ou Java --, sistema gerenciador de banco de dados -- MySQL, SQLite ou SQL Server -- e forma de distribuição -- extensão para o Visual Studio Code ou aplicação desktop;
+\item Desenvolver e avaliar a ferramenta proposta, verificando a capacidade de detecção de vulnerabilidades de privacidade em código-fonte e em esquemas de banco de dados em cenários de teste definidos.
+\end{enumerate}
+
+\section{Hipótese}
+
+A adoção de uma ferramenta de análise estática de código e de esquemas de banco de dados, orientada pelos princípios do Privacy by Design e pelos requisitos da Lei Geral de Proteção de Dados Pessoais, contribui para a identificação e a redução de vulnerabilidades de privacidade nas fases de implementação e teste do ciclo de desenvolvimento de software. A integração dessa ferramenta ao ambiente de desenvolvimento, por meio de extensão para o VS Code ou aplicação desktop, torna a verificação de conformidade acessível a equipes que não possuem conhecimento especializado em privacidade, sem impacto negativo relevante sobre a produtividade quando acompanhada de documentação adequada e regras de análise bem definidas.
+
+\section{Estrutura do Trabalho}
+
+Este trabalho está organizado em oito capítulos. O Capítulo 1 apresenta a contextualização do tema, o problema de pesquisa, o público-alvo, os objetivos e a hipótese. O Capítulo 2 aborda as principais vulnerabilidades de privacidade no desenvolvimento de software e a relação com a LGPD. O Capítulo 3 apresenta os fundamentos do Privacy by Design, seus sete princípios e o reconhecimento regulatório no âmbito da LGPD e do GDPR. O Capítulo 4 discute as metodologias de desenvolvimento de software e define o posicionamento da ferramenta no SDLC. O Capítulo 5 analisa as ferramentas existentes e justifica as escolhas tecnológicas adotadas. O Capítulo 6 descreve a metodologia de pesquisa. O Capítulo 7 apresenta os resultados esperados, e o Capítulo 8 expõe o cronograma de execução.
+
+\chapter{METODOLOGIA}
+
+A presente pesquisa adota como método a Design Science Research (DSR), abordagem metodológica consolidada na área de Sistemas de Informação e Engenharia de Software que orienta a produção de conhecimento científico por meio da construção e da avaliação de artefatos práticos (HEVNER et al., 2004). A DSR é adequada ao objetivo deste trabalho porque a pesquisa visa à construção de uma ferramenta funcional capaz de identificar vulnerabilidades de privacidade em código-fonte e em esquemas de banco de dados, com distribuição como extensão para o Visual Studio Code ou como aplicação desktop.
+
+A pesquisa é conduzida em quatro fases principais, descritas a seguir.
+
+\section{Fase 1: Revisão da Literatura}
+
+A primeira fase compreende o levantamento e a análise crítica da literatura existente sobre Privacy by Design, vulnerabilidades de privacidade em software, ferramentas de análise estática de código e conformidade com a LGPD e o GDPR. A busca bibliográfica é realizada em bases de dados acadêmicas, entre elas IEEE Xplore, ACM Digital Library, Scopus e Google Scholar, com descritores como " Privacy by Design ", " privacy vulnerabilities ", " static code analysis", "LGPD", " privacy engineering " e " software development lifecycle ". São selecionados artigos publicados entre 2009 e 2026, com prioridade para publicações em periódicos revisados por pares e documentos normativos oficiais.
+
+Nessa fase, também são levantadas e analisadas as ferramentas atualmente disponíveis no mercado com finalidade similar à proposta, como Veracode, SonarQube e Checkmarx, com o objetivo de identificar a lacuna existente em relação à verificação específica de vulnerabilidades de privacidade. Esse mapeamento subsidia a definição dos requisitos funcionais da ferramenta a ser desenvolvida.
+
+\section{Fase 2: Definição do Escopo Técnico}
+
+Com base no referencial teórico construído na fase anterior, esta fase define as decisões técnicas fundamentais para o desenvolvimento da ferramenta, a saber:
+
+\begin{itemize}
+\item A linguagem de programação a ser utilizada -- Python ou Java -- avaliada em função da disponibilidade de bibliotecas para análise estática de código, da facilidade de integração com o Visual Studio Code e da viabilidade de implementação no prazo estabelecido;
+\item O sistema gerenciador de banco de dados a ser suportado -- MySQL, SQLite ou SQL Server -- selecionado com base na prevalência de uso em projetos de desenvolvimento e na facilidade de conexão e inspeção de esquemas;
+\item A forma de distribuição da ferramenta -- extensão para o Visual Studio Code ou aplicação desktop -- definida após pesquisa sobre a dificuldade de implementação de cada modalidade, os requisitos técnicos envolvidos e o perfil do público-alvo.
+\end{itemize}
+
+As decisões desta fase são documentadas e justificadas no Capítulo 5 do trabalho, com base em critérios técnicos e no alinhamento com os princípios do Privacy by Design.
+
+\section{Fase 3: Construção do Artefato}
+
+A terceira fase compreende o desenvolvimento da ferramenta. O artefato é composto por dois módulos principais:
+
+\begin{itemize}
+\item Módulo de análise de código-fonte: realiza a varredura estática de arquivos de código em busca de padrões associados a vulnerabilidades de privacidade, como armazenamento de dados pessoais sem criptografia, ausência de controle de acesso, registro excessivo de informações identificáveis em logs, coleta de dados além do necessário e ausência de mecanismos de exclusão ou anonimização;
+\item Módulo de análise de esquema de banco de dados: inspeciona a estrutura de tabelas, colunas e relacionamentos do banco de dados conectado, identificando práticas incompatíveis com os princípios do Privacy by Design, como ausência de pseudonimização em campos sensíveis, retenção indefinida de registros pessoais e falta de separação entre dados identificáveis e dados operacionais.
+\end{itemize}
+
+Ao final da análise, a ferramenta gera um relatório de conformidade com a indicação das vulnerabilidades encontradas, a classificação por nível de risco e as recomendações de correção alinhadas à LGPD e aos sete princípios do PbD. O desenvolvimento segue práticas de
+
+engenharia de software documentadas, com controle de versão via Git e registro das decisões de projeto ao longo do processo.
+
+\section{Fase 4: Avaliação do Artefato}
+
+A quarta fase destina-se à avaliação da ferramenta desenvolvida. A avaliação é conduzida por meio da aplicação da ferramenta em cenários de teste com código e esquemas de banco de dados elaborados especificamente para conter vulnerabilidades de privacidade conhecidas, verificando a capacidade de detecção do artefato e a precisão dos relatórios gerados.
+
+Os resultados são comparados com as vulnerabilidades identificadas manualmente com base na literatura, o que permite mensurar a cobertura e a efetividade da ferramenta. Limitações identificadas nessa fase são registradas e discutidas no capítulo de resultados, com indicação de melhorias para trabalhos futuros.
+
+\chapter{RESULTADOS ESPERADOS}
+
+Com a realização desta pesquisa, espera-se alcançar os seguintes resultados.
+
+\section{Ferramenta Funcional de Análise de Vulnerabilidades de Privacidade}
+
+O principal resultado esperado é a entrega de uma ferramenta funcional capaz de identificar vulnerabilidades de privacidade em código-fonte e em esquemas de banco de dados, distribuída como extensão para o Visual Studio Code ou como aplicação desktop. A ferramenta deve cobrir, ao menos, as seguintes categorias de vulnerabilidades:
+
+\begin{itemize}
+\item Armazenamento de dados pessoais sem criptografia em variáveis, arquivos ou tabelas;
+\item Registro excessivo de informações identificáveis em logs de sistema;
+\item Ausência de mecanismos de exclusão, anonimização ou pseudonimização de dados;
+\item Coleta ou retenção de dados além do necessário para a finalidade declarada;
+\item Ausência de controle de acesso em campos ou tabelas com dados sensíveis;
+\item Transferência de dados pessoais a serviços externos sem indicação de base legal.
+\end{itemize}
+
+Ao final da análise, a ferramenta deve gerar um relatório de conformidade com a identificação das ocorrências encontradas, a classificação por nível de risco e as recomendações de correção alinhadas aos sete princípios do Privacy by Design e aos requisitos da LGPD.
+
+\section{Mapeamento das Ferramentas Existentes e Identificação da Lacuna}
+
+Espera-se produzir um levantamento sistematizado das ferramentas atualmente disponíveis no mercado com finalidade similar, como Veracode, SonarQube e Checkmarx, com análise comparativa entre os escopos de verificação de cada solução, evidenciando a ausência de foco específico em vulnerabilidades de privacidade e fundamentando a relevância do artefato proposto.
+
+\section{Definição da Etapa do SDLC para Aplicação da Ferramenta}
+
+Com base na revisão das metodologias de desenvolvimento de software, incluindo abordagens ágeis como Scrum e Kanban e o modelo tradicional em cascata, espera-se identificar e justificar em qual etapa do ciclo de desenvolvimento a ferramenta deve ser aplicada. A hipótese inicial é que a ferramenta se posicione na fase de testes de segurança, com possibilidade de uso também na fase de implementação.
+
+\section{Justificativa Técnica das Escolhas de Implementação}
+
+Espera-se documentar, com base em critérios técnicos, as decisões relativas à linguagem de programação adotada -- Python ou Java --, ao sistema gerenciador de banco de dados suportado -- MySQL, SQLite ou SQL Server -- e à forma de distribuição da ferramenta, registrando as alternativas avaliadas, as dificuldades de implementação identificadas e os motivos das escolhas realizadas.
+
+\section{Contribuição para a Conformidade com a LGPD}
+
+Espera-se que a ferramenta desenvolvida contribua para a redução de vulnerabilidades de privacidade em sistemas desenvolvidos por equipes brasileiras, em especial pela identificação automática de práticas incompatíveis com as obrigações previstas no artigo 46 da LGPD. A ferramenta deve funcionar como um mecanismo de apoio à conformidade acessível a desenvolvedores sem conhecimento especializado em privacidade.
+
+\section{Contribuição Acadêmica}
+
+Por fim, este trabalho visa contribuir com a produção acadêmica nacional sobre privacidade em engenharia de software, área ainda incipiente no contexto brasileiro. O artefato desenvolvido, as decisões de projeto documentadas e o mapeamento das ferramentas existentes podem servir de referência para pesquisas futuras e para iniciativas de formação de profissionais de tecnologia da informação.
+
+\chapter{CRONOGRAMA}
+
+O desenvolvimento deste trabalho está previsto para o período de abril de 2026 a novembro de 2026, distribuído conforme as fases descritas na metodologia.
+
+Etapa 1 -- Levantamento e revisão bibliográfica: abril e maio de 2026. Etapa 2 -- Fichamento e análise crítica da literatura: maio e junho de 2026. Etapa 3 -- Redação dos capítulos teóricos: junho e julho de 2026. Etapa 4 -- Definição do escopo técnico e escolhas de implementação: julho de 2026. Etapa 5 -- Construção do artefato (ferramenta): julho e agosto de 2026. Etapa 6 -- Avaliação e refinamento do artefato: agosto e setembro de 2026. Etapa 7 -- Redação dos resultados e discussão: setembro e outubro de 2026. Etapa 8 -- Revisão geral e formatação ABNT: outubro de 2026. Etapa 9 -- Entrega final: novembro de 2026.
+
+\chapter{Vulnerabilidades de Privacidade no Desenvolvimento de Software}
+
+\section{Conceito de Privacidade no Contexto Digital}
+
+A privacidade, enquanto direito individual, precede em muito a era digital. Entretanto, a digitalização massiva das relações sociais, econômicas e institucionais ao longo das últimas décadas transformou profundamente o escopo e a complexidade desse direito. Se, no passado, a privacidade estava associada principalmente à proteção do domicílio e da correspondência, hoje ela abrange o controle que os indivíduos exercem sobre os próprios dados pessoais, incluindo informações de identidade, localização, comportamento, saúde e preferências (WESTIN, 1967).
+
+No contexto digital, a privacidade pode ser compreendida como a capacidade de um indivíduo de determinar quando, como e em que medida informações a seu respeito são coletadas, processadas e compartilhadas por sistemas de software (CAVOUKIAN, 2009). Essa definição é relevante para o desenvolvimento de sistemas porque posiciona os desenvolvedores e as organizações como agentes ativos na proteção ou na violação desse direito, a depender das decisões técnicas tomadas ao longo do ciclo de vida do produto.
+
+A Lei Geral de Proteção de Dados Pessoais (LGPD) define dado pessoal como qualquer informação relacionada a pessoa natural identificada ou identificável (BRASIL, 2018, art. 5, inciso I). Essa definição é intencionalmente ampla e abarca não apenas informações cadastrais tradicionais, como nome e CPF, mas também endereços de IP, identificadores de dispositivos, dados de geolocalização, registros de comportamento em aplicações e qualquer combinação de informações que permita a individualização de uma pessoa.
+
+A crescente capacidade dos sistemas de software de coletar, armazenar e correlacionar grandes volumes de dados pessoais amplia o risco de violações de privacidade. Algoritmos de recomendação, sistemas de autenticação, aplicações de comércio eletrônico e plataformas de comunicação são apenas alguns exemplos de sistemas que, por natureza, lidam com dados pessoais sensíveis e que, quando desenvolvidos sem critérios de privacidade, podem tornar-se vetores de dano ao titular dos dados (SOLOVE, 2006).
+
+\section{Principais Tipos de Vulnerabilidades de Privacidade}
+
+As vulnerabilidades de privacidade em software diferem das vulnerabilidades de segurança tradicionais em sua natureza e impacto. Enquanto uma vulnerabilidade de segurança, como uma injeção de SQL ou um buffer overflow, representa uma falha técnica que permite acesso não autorizado a um sistema, uma vulnerabilidade de privacidade pode existir mesmo em sistemas tecnicamente seguros, manifestando-se na coleta excessiva de dados, na retenção além do prazo necessário ou na ausência de mecanismos de controle pelo titular (SPIEKERMANN; CRANOR, 2009).
+
+Spiekermann e Cranor (2009) propõem uma taxonomia de vulnerabilidades de privacidade organizada em duas categorias principais: vulnerabilidades de privacy by policy, relacionadas à ausência ou inadequação de políticas e controles organizacionais, e vulnerabilidades de privacy by architecture, decorrentes de decisões técnicas inadequadas na concepção e implementação dos sistemas. Este trabalho concentra -se na segunda categoria, dado que o artefato proposto visa à identificação automática de problemas de privacidade no código-fonte e nos esquemas de banco de dados.
+
+As principais categorias de vulnerabilidades de privacidade identificadas na literatura e relevantes para o escopo deste trabalho são descritas a seguir.
+
+\subsection{Armazenamento de Dados Pessoais sem Criptografia}
+
+O armazenamento de dados pessoais em texto simples, sem aplicação de algoritmos de criptografia ou de funções de hash adequadas, representa uma das vulnerabilidades de privacidade mais comuns e de maior impacto. Quando um banco de dados é comprometido por um agente malicioso ou exposto acidentalmente, dados armazenados sem proteção criptográfica ficam imediatamente disponíveis e legíveis. Campos como senhas, números de documentos, dados de cartão de crédito e informações de saúde são frequentemente encontrados em texto plano em aplicações desenvolvidas sem orientação de privacidade (CHESS; WEST, 2007).
+
+A LGPD, no artigo 46, exige que os agentes de tratamento adotem medidas técnicas capazes de proteger dados pessoais de acessos não autorizados (BRASIL, 2018). A ausência de criptografia configura descumprimento direto dessa obrigação e pode resultar em sanções administrativas pela Autoridade Nacional de Proteção de Dados (ANPD).
+
+\subsection{Coleta e Retenção Excessiva de Dados}
+
+O princípio da minimização de dados, previsto no artigo 6, inciso III, da LGPD, e como um dos fundamentos do Privacy by Design, estabelece que apenas os dados estritamente necessários para a finalidade declarada devem ser coletados e mantidos (BRASIL, 2018; CAVOUKIAN, 2009). A violação desse princípio ocorre quando sistemas coletam informações além do necessário -- prática conhecida como data maximization -- ou retêm dados por períodos indefinidos após o cumprimento da finalidade original.
+
+No nível do código-fonte, essa vulnerabilidade se manifesta em formulários com campos desnecessários, em consultas de banco de dados que retornam mais colunas do que o necessário para a operação, e em rotinas de log que registram identificadores pessoais sem necessidade. No nível do banco de dados, manifesta-se em tabelas sem políticas de retenção definidas, em colunas que armazenam informações além da finalidade declarada e em ausência de rotinas automatizadas de exclusão ou anonimização de dados históricos.
+
+\subsection{Ausência de Pseudonimização e Anonimização}
+
+A pseudonimização consiste na substituição de identificadores diretos de um titular de dados por um código ou identificador artificial, de modo que os dados não possam ser atribuídos a uma pessoa específica sem o uso de informação adicional mantida separadamente (UNIAO EUROPEIA, 2016). A anonimização, por sua vez, é um processo irreversível pelo qual os dados perdem qualquer possibilidade de identificação do titular.
+
+A ausência dessas técnicas em sistemas que lidam com dados pessoais aumenta o risco de identificação indevida dos titulares em casos de vazamento ou acesso não autorizado. Em esquemas de banco de dados, essa vulnerabilidade se manifesta na ausência de separação entre tabelas com dados identificáveis e tabelas operacionais, na presença de chaves primárias que expõem identificadores reais dos usuários e na inexistência de campos hash para dados sensíveis como e-mails e números de documentos.
+
+\subsection{Registro Excessivo de Informações em Logs}
+
+Os registros de log são componentes essenciais para a operação e a auditoria de sistemas de software. Entretanto, quando configurados sem critérios de privacidade, tornam-se fontes de
+
+vazamento de dados pessoais. É comum encontrar em logs de aplicação informações como tokens de autenticação, endereços de e-mail, números de documentos, parâmetros de requisições HTTP com dados pessoais e até senhas em texto simples, registradas inadvertidamente durante o tratamento de erros (OWASP, 2021).
+
+Essa vulnerabilidade é particularmente crítica porque os arquivos de log frequentemente têm controles de acesso menos rigorosos do que os bancos de dados principais, são compartilhados com ferramentas de monitoramento e análise de terceiros e são retidos por longos períodos sem revisão. A LGPD não isenta os dados pessoais presentes em logs das obrigações de proteção previstas no artigo 46, o que torna essa prática uma fonte potencial de não conformidade.
+
+\subsection{Ausência de Controle de Acesso a Dados Pessoais}
+
+O controle de acesso a dados pessoais é um requisito técnico fundamental para garantir que apenas agentes autorizados possam consultar, modificar ou excluir informações sensíveis. A ausência de controles granulares de acesso em bancos de dados e em camadas de aplicação expõe dados pessoais a riscos de acesso interno não autorizado, além de ampliar a superfície de ataque em caso de comprometimento de credenciais (CHESS; WEST, 2007).
+
+No nível do banco de dados, essa vulnerabilidade se manifesta em contas com privilégios excessivos, na ausência de segregação entre perfis de acesso de leitura e escrita, e na inexistência de controles por linha ou coluna para dados especialmente sensíveis. No código-fonte, manifesta-se em rotas de API que não verificam a autorização do usuário antes de retornar dados pessoais, e em consultas que não filtram os resultados pelo identificador do usuário autenticado.
+
+\subsection{Transferência de Dados a Terceiros sem Base Legal}
+
+A integração de sistemas com serviços de terceiros, como plataformas de analytics, ferramentas de monitoramento, serviços de envio de e-mail e redes de publicidade, é uma prática comum no desenvolvimento moderno de software. Entretanto, quando essa integração ocorre sem avaliação das bases legais para o compartilhamento de dados pessoais, configura-se uma vulnerabilidade de privacidade com implicações diretas na LGPD.
+
+O artigo 7 da LGPD estabelece as hipóteses legais que autorizam o tratamento de dados pessoais, entre elas o consentimento do titular e o legítimo interesse do controlador (BRASIL, 2018). A transferência de dados a terceiros sem enquadramento em uma dessas hipóteses e sem a adoção de salvaguardas contratuais adequadas representa uma violação direta da lei. No nível do código-fonte, essa vulnerabilidade pode ser identificada pela presença de chamadas a APIs externas que incluem parâmetros com dados pessoais sem verificação de consentimento ou base legal associada.
+
+\section{Exemplos de Incidentes e Impactos para Organizações}
+
+As vulnerabilidades de privacidade descritas na seção anterior não são hipotéticas. Incidentes envolvendo exposição de dados pessoais resultantes de decisões técnicas inadequadas no desenvolvimento de software ocorrem com frequência crescente e produzem impactos significativos tanto para os titulares dos dados quanto para as organizações responsáveis.
+
+Um dos casos mais amplamente documentados é o vazamento de dados do aplicativo de relacionamentos Möbius, em que a ausência de controle de acesso em uma API expôs dados pessoais sensíveis de milhões de usuários. A investigação revelou que a vulnerabilidade havia sido introduzida durante o desenvolvimento da funcionalidade e não havia sido identificada por nenhum processo de revisão de código ou teste de segurança (SOLOVE, 2006). O caso ilustra como vulnerabilidades de privacidade introduzidas na fase de implementação podem permanecer ativas por longos períodos sem detecção.
+
+No Brasil, a Autoridade Nacional de Proteção de Dados (ANPD) registrou, desde o início de suas operações, em 2021, dezenas de notificações de incidentes de segurança com impacto sobre dados pessoais, incluindo casos envolvendo armazenamento de senhas sem criptografia, exposição de dados de saúde em sistemas públicos e compartilhamento não autorizado de dados com terceiros (ANPD, 2023). Esses casos reforçam a relevância de mecanismos preventivos de verificação de privacidade no ciclo de desenvolvimento.
+
+Do ponto de vista organizacional, os impactos de uma violação de privacidade vão além das sanções administrativas previstas na LGPD. Pesquisas na área de segurança da informação indicam que os custos médios de um vazamento de dados incluem despesas com notificação dos titulares, honorários jurídicos, medidas de remediação técnica e perda de receita decorrente de dano reputacional. Esses custos são sistematicamente maiores quando a vulnerabilidade é descoberta após a entrega do sistema do que quando identificada durante o desenvolvimento (BOEHM, 1981; PONEMON INSTITUTE, 2023).
+
+\section{Relação entre Vulnerabilidades de Privacidade e a LGPD}
+
+A Lei Geral de Proteção de Dados Pessoais estabelece um conjunto de princípios e obrigações que se traduzem diretamente em requisitos técnicos para os sistemas de software. Compreender essa correspondência é fundamental para o desenvolvimento de uma ferramenta de verificação de conformidade, pois permite mapear cada categoria de vulnerabilidade a um ou mais dispositivos legais específicos.
+
+O artigo 6 da LGPD elenca dez princípios que devem nortear o tratamento de dados pessoais, entre eles: finalidade (coleta para propósitos legítimos e explícitos), adequação (compatibilidade com a finalidade declarada), necessidade (limitação ao mínimo necessário), qualidade dos dados (exatidão e atualização), transparência (informação clara ao titular), segurança (medidas técnicas de proteção) e prestação de contas (responsabilização do controlador) (BRASIL, 2018). Cada um desses princípios corresponde a um conjunto de práticas técnicas que podem ou não estar presentes no código-fonte e na estrutura do banco de dados de um sistema.
+
+O artigo 46 da LGPD é especialmente relevante para este trabalho, pois determina que os agentes de tratamento devem adotar medidas técnicas e administrativas aptas a proteger os dados pessoais de acessos não autorizados e de situações acidentais ou ilícitas de destruição, perda, alteração, comunicação ou qualquer forma de tratamento inadequado ou ilícito (BRASIL, 2018). Essa obrigação cria, para as equipes de desenvolvimento, a responsabilidade de garantir que os sistemas entregues atendam a requisitos mínimos de segurança e privacidade desde a fase de concepção.
+
+O quadro a seguir sintetiza a correspondência entre as principais categorias de vulnerabilidades de privacidade identificadas na seção anterior e os dispositivos da LGPD diretamente relacionados.
+
+\begin{itemize}
+\item Categoria de vulnerabilidade -- Armazenamento sem criptografia: dispositivo relacionado -- art. 46 (segurança técnica); art. 6, inciso VII (segurança).
+\item Categoria de vulnerabilidade -- Coleta e retenção excessiva: dispositivo relacionado -- art. 6, inciso III (necessidade); art. 6, inciso I (finalidade).
+\item Categoria de vulnerabilidade -- Ausência de pseudonimização: dispositivo relacionado -- art. 46 (medidas técnicas); art. 13 (anonimização).
+\item Categoria de vulnerabilidade -- Registro excessivo em logs: dispositivo relacionado -- art. 46 (segurança); art. 6, inciso III (necessidade).
+\item Categoria de vulnerabilidade -- Ausência de controle de acesso: dispositivo relacionado -- art. 46 (acesso não autorizado); art. 6, inciso VII (segurança).
+\item Categoria de vulnerabilidade -- Transferência sem base legal: dispositivo relacionado -- art. 7 (hipóteses de tratamento); art. 26 (uso compartilhado).
+\end{itemize}
+
+Esse mapeamento fundamenta a definição das regras de verificação da ferramenta proposta neste trabalho e orienta a geração dos relatórios de conformidade, que associarão cada vulnerabilidade identificada ao respectivo dispositivo legal e à recomendação de correção correspondente.
+
+\chapter*{REFERÊNCIAS}
+\addcontentsline{toc}{chapter}{REFERÊNCIAS}
+\setstretch{1.0}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{12pt}
+
+ANPD -- AUTORIDADE NACIONAL DE PROTEÇÃO DE DADOS. Relatório de atividades 2023. Brasília, DF: ANPD, 2023. Disponível em: https://www.gov.br/anpd/pt-br. Acesso em: 05 mai. 2026.
+
+BOEHM, Barry W. Software Engineering Economics. Englewood Cliffs: Prentice-Hall, 1981.
+
+BRASIL. Lei n. 13.709, de 14 de agosto de 2018. Lei Geral de Proteção de Dados Pessoais (LGPD). Brasília, DF: Presidência da República, 2018. Disponível em:
+
+https://www.planalto.gov.br/ccivil\_03/\_ato2015-2018/2018/lei/l13709.htm. Acesso em: 05 mai. 2026.
+
+CAVOUKIAN, Ann. Privacy by Design: The 7 Foundational Principles. Information and Privacy Commissioner of Ontario, 2009. Disponível em: https://www.ipc.on.ca/wp-content/uploads/resources/7foundationalprinciples.pdf. Acesso em: 05 mai. 2026.
+
+CHESS, Brian; WEST, Jacob. Secure Programming with Static Analysis. Boston: Addison-Wesley, 2007.
+
+OWASP -- OPEN WEB APPLICATION SECURITY PROJECT. OWASP Top 10 Privacy Risks. 2021. Disponível em: https://owasp.org/www-project-top-10-privacy-risks/. Acesso em: 05 mai. 2026.
+
+PONEMON INSTITUTE. Cost of a Data Breach Report 2023. Traverse City: Ponemon Institute, 2023.
+
+SOLOVE, Daniel J. A taxonomy of privacy. University of Pennsylvania Law Review, v. 154, n. 3, p. 477-564, jan. 2006.
+
+SPIEKERMANN, Sarah; CRANOR, Lorrie Faith. Engineering Privacy. IEEE Transactions on Software Engineering, v. 35, n. 1, p. 67-82, jan./fev. 2009.
+
+UNIÃO EUROPEIA. Regulamento (UE) 2016/679 do Parlamento Europeu e do Conselho, de 27 de abril de 2016. Regulamento Geral sobre a Proteção de Dados (GDPR). Jornal Oficial da União Europeia, Bruxelas, 4 mai. 2016.
+
+WESTIN, Alan F. Privacy and Freedom. New York: Atheneum, 1967.
+
+\end{document}

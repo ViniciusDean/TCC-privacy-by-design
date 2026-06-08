@@ -1,58 +1,126 @@
-﻿# Roteiro de Demo - Privacy Scanner LGPD
+# Roteiro de Demonstração - Privacy Scanner LGPD
 
-Este roteiro valida o fluxo principal da ferramenta para apresentacao e testes manuais.
+Este roteiro serve para apresentar a ferramenta de forma simples e reproduzível.
 
-## 1. Preparar ambiente
+## Objetivo da Demo
+
+Mostrar que a ferramenta consegue:
+
+- analisar código Python;
+- analisar código Java em uma versão inicial;
+- analisar banco SQLite;
+- exibir vulnerabilidades no VS Code;
+- mostrar resumo por risco;
+- exportar relatório HTML e PDF.
+
+## 1. Preparar Ambiente
 
 Na raiz do projeto:
 
 ```powershell
+cd C:\Users\deanv\OneDrive\Documents\TCC
 python -m pip install -r requirements.txt
 python scripts/create_test_workspace.py
+```
+
+Compilar a extensão:
+
+```powershell
 cd vscode-extension
 npm install
 npm run compile
 cd ..
 ```
 
-## 2. Abrir extensao em modo desenvolvimento
+Validar testes:
+
+```powershell
+python -m pytest
+```
+
+Resultado esperado:
+
+```text
+64 passed
+```
+
+## 2. Abrir a Extensão
 
 1. Abra `C:\Users\deanv\OneDrive\Documents\TCC` no VS Code.
 2. Pressione `F5`.
-3. Selecione `Run Privacy Scanner Extension`.
-4. A janela `[Extension Development Host]` deve abrir o workspace:
+3. Aguarde abrir a janela `[Extension Development Host]`.
+4. Na nova janela, abra a pasta:
 
 ```text
 C:\Users\deanv\OneDrive\Documents\privacy-scanner-testes
 ```
 
-## 3. Testar analise de codigo
+## 3. Demonstrar Análise de Código Vulnerável
 
 1. Abra `exemplo_vulneravel.py`.
-2. Rode `Ctrl+Shift+P`.
-3. Execute `Privacy Scanner: Analisar arquivo atual`.
-4. Verifique:
+2. Execute `Ctrl+Shift+P`.
+3. Rode `Privacy Scanner: Analisar arquivo atual`.
+4. Mostre:
 
-- alertas no painel `Problems`;
-- marcacoes no editor;
-- sidebar `Privacy Scanner` com achados agrupados por risco.
+- marcações no editor;
+- painel `Problems`;
+- sidebar `Privacy Scanner`;
+- agrupamento por risco;
+- score LGPD.
 
-## 4. Testar analise do projeto inteiro
+Falar durante a apresentação:
 
-1. Rode `Ctrl+Shift+P`.
-2. Execute `Privacy Scanner: Analisar projeto inteiro`.
-3. Verifique:
+```text
+A ferramenta faz análise estática. Ela não executa o código; ela percorre a estrutura do arquivo Python e procura padrões associados a riscos de privacidade.
+```
 
-- achados de arquivos Python;
-- achados de `banco_vulneravel.db`;
-- resumo com score, total, arquivos Python e bancos SQLite.
+## 4. Demonstrar Arquivo Correto
 
-## 5. Testar analise de banco SQLite
+1. Abra `exemplo_correto.py`.
+2. Rode `Privacy Scanner: Analisar arquivo atual`.
+3. Mostre que o número de achados é menor ou inexistente.
 
-1. Rode `Ctrl+Shift+P`.
-2. Execute `Privacy Scanner: Analisar banco SQLite`.
-3. Selecione `banco_vulneravel.db`.
-4. Verifique se aparecem vulnerabilidades como:
+Falar durante a apresentação:
+
+```text
+Este exemplo serve para verificar falsos positivos em boas práticas simples, como uso de hash forte, método de exclusão e ausência de dados pessoais em logs.
+```
+
+## 5. Demonstrar Análise do Projeto Inteiro
+
+1. Execute `Ctrl+Shift+P`.
+2. Rode `Privacy Scanner: Analisar projeto inteiro`.
+3. Mostre:
+
+- arquivos Python analisados;
+- bancos SQLite encontrados;
+- total de vulnerabilidades;
+- contagem por risco.
+
+Falar durante a apresentação:
+
+```text
+A análise de projeto agrega os resultados de código e banco em uma visão única para apoiar revisão técnica e documentação de conformidade.
+```
+
+## 6. Demonstrar Java
+
+1. Abra `exemplo_vulneravel.java`.
+2. Rode `Privacy Scanner: Analisar arquivo atual`.
+3. Mostre os achados de dado hardcoded, MD5 e dado em log.
+4. Abra `exemplo_correto.java` para demonstrar o cenário sem alertas esperados.
+
+Falar durante a apresentação:
+
+```text
+O suporte Java é uma prova inicial de extensibilidade. Ele cobre três regras simples por análise textual e ainda não tem a mesma cobertura do analisador Python.
+```
+
+## 7. Demonstrar Banco SQLite
+
+1. Execute `Privacy Scanner: Analisar banco SQLite`.
+2. Selecione `banco_vulneravel.db` na pasta de teste.
+3. Mostre vulnerabilidades de schema, como:
 
 - `CAMPO_SEM_HASH`;
 - `AUSENCIA_SOFT_DELETE`;
@@ -60,23 +128,89 @@ C:\Users\deanv\OneDrive\Documents\privacy-scanner-testes
 - `AUSENCIA_CONSENTIMENTO`;
 - `DADO_SENSIVEL_COMO_PK`.
 
-## 6. Exportar relatorio
+Falar durante a apresentação:
 
-1. Rode `Privacy Scanner: Exportar relatorio HTML`.
-2. Abra o arquivo `privacy-scan-YYYY-MM-DD.html`.
-3. Verifique:
+```text
+No banco, a ferramenta não analisa linhas de dados pessoais. Ela analisa o schema: nomes de tabelas, nomes de colunas, tipos e presença de campos de controle.
+```
 
-- score LGPD;
-- total por risco;
-- recomendacoes;
-- achados de codigo e banco.
+## 8. Demonstrar Code Actions
 
-## Resultado esperado
+1. Clique em uma vulnerabilidade no editor.
+2. Use a lâmpada/Quick Fix.
+3. Mostre as opções:
 
-- A extensao inicia sem erro de Flask.
-- A sidebar carrega automaticamente.
-- `exemplo_vulneravel.py` gera alertas.
+- ver recomendação LGPD;
+- copiar recomendação LGPD.
+
+Falar durante a apresentação:
+
+```text
+A ideia não é corrigir automaticamente qualquer código, porque isso poderia alterar regra de negócio. A ferramenta mostra uma recomendação técnica para orientar o desenvolvedor.
+```
+
+Também demonstre `Ignorar este risco na interface`. Confirme que a ocorrência desaparece da sidebar e do painel `Problems`, mas continua no relatório exportado.
+
+## 9. Exportar Relatório HTML
+
+1. Execute `Privacy Scanner: Exportar relatorio`.
+2. Escolha `HTML`.
+3. Selecione nome e destino pela janela do Windows.
+4. Abra o arquivo gerado.
+5. Mostre:
+
+- score;
+- cards de resumo;
+- filtros por risco;
+- ordenação da tabela;
+- recomendações.
+
+Falar durante a apresentação:
+
+```text
+O HTML é o relatório interativo, útil para inspeção técnica durante a revisão do projeto.
+```
+
+## 10. Exportar Relatório PDF
+
+1. Execute `Privacy Scanner: Exportar relatorio`.
+2. Escolha `PDF`.
+3. Selecione nome e destino pela janela do Windows.
+4. Abra o PDF.
+
+Falar durante a apresentação:
+
+```text
+O PDF é uma versão formal e estática do relatório, pensada para anexar em documentação, evidência de teste ou material de compliance.
+```
+
+## 11. Evidências para o TCC
+
+Durante a demo, vale tirar prints de:
+
+- extensão carregada no VS Code;
+- `exemplo_vulneravel.py` com marcações;
+- sidebar com score e riscos;
+- painel `Problems`;
+- relatório HTML;
+- relatório PDF;
+- terminal com `64 passed`.
+
+## Resultado Esperado
+
+- A extensão inicia sem erro.
+- O servidor Flask sobe automaticamente ou reutiliza servidor já ativo.
+- `exemplo_vulneravel.py` gera vulnerabilidades.
+- `exemplo_correto.py` não gera os mesmos alertas.
 - `banco_vulneravel.db` gera alertas de schema.
-- `npm run compile` passa.
-- `pytest` passa com 56 testes.
+- HTML e PDF são exportados.
+- `pytest` passa com 64 testes.
 
+## Limitações a Declarar
+
+- A ferramenta é um MVP acadêmico.
+- A análise é baseada em regras estáticas.
+- A ferramenta não substitui auditoria jurídica.
+- A ferramenta não mede todos os requisitos da LGPD.
+- A cobertura principal é Python e SQLite, com suporte Java inicial.
+- O suporte Java atual possui somente três regras iniciais.

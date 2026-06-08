@@ -1,290 +1,331 @@
-﻿# â–¶ï¸ RUN.md â€” Como Executar Privacy Scanner
+# RUN.md - Como Executar o Privacy Scanner LGPD
 
-Guia passo a passo para rodar a ferramenta completa.
+Este guia descreve o fluxo real para rodar, testar e demonstrar o projeto.
 
----
+## 1. Preparar o Ambiente
 
-## ðŸš€ OpÃ§Ã£o 1: Testes (Quick Validation)
+Na raiz do projeto:
 
-### ValidaÃ§Ã£o completa no Windows
-```bat
+```powershell
+cd C:\Users\deanv\OneDrive\Documents\TCC
+python -m pip install -r requirements.txt
+```
+
+Na pasta da extensão:
+
+```powershell
+cd vscode-extension
+npm install
+npm run compile
+cd ..
+```
+
+Resultado esperado da compilação:
+
+```text
+privacy-scanner-lgpd@1.0.0 compile
+tsc -p ./
+```
+
+## 2. Validar o Projeto
+
+Rodar todos os testes Python:
+
+```powershell
+python -m pytest
+```
+
+Resultado esperado:
+
+```text
+64 passed
+```
+
+Compilar a extensão:
+
+```powershell
+cd vscode-extension
+npm run compile
+cd ..
+```
+
+Também é possível usar:
+
+```powershell
 validate_project.bat
 ```
 
-Esse script recria o workspace de teste, roda `pytest` e compila a extensÃ£o.
+Esse script roda a validação principal do projeto no Windows.
 
-### Rodar todos os testes
-```bash
-cd c:\Users\deanv\OneDrive\Documents\TCC
-pytest tests/ -v
-```
+## 3. Rodar a Extensão no VS Code
 
-**SaÃ­da esperada**:
-```
-===== 56 passed in 0.17s =====
-```
+1. Abra a pasta `TCC` no VS Code.
+2. Pressione `F5`.
+3. Se o VS Code perguntar a configuração de debug, selecione a opção da extensão.
+4. Uma nova janela `[Extension Development Host]` será aberta.
+5. Nessa nova janela, abra uma pasta ou arquivo Python para testar.
 
-### Gerar relatÃ³rio de cobertura
-```bash
-pytest tests/ --cov=code_analyzer --cov=db_analyzer --cov=reporter --cov-report=html
-```
+Se quiser recriar a pasta externa de testes:
 
-Abre relatÃ³rio em: `htmlcov/index.html`
-
----
-
-## ðŸŽ¨ OpÃ§Ã£o 2: VS Code Extension (Recomendado)
-
-### PrÃ©-requisitos
-```bash
-# Windows/PowerShell
-python -m pip install -r requirements.txt
-npm install -g typescript  # Se nÃ£o tiver
-```
-
-Para preparar a pasta externa usada no teste da extensÃ£o:
-
-```bash
+```powershell
 python scripts/create_test_workspace.py
 ```
 
-### Abrir extensÃ£o no VS Code
-```bash
-cd c:\Users\deanv\OneDrive\Documents\TCC
-code .
+O workspace de teste fica em:
+
+```text
+C:\Users\deanv\OneDrive\Documents\privacy-scanner-testes
 ```
 
-### Rodar no modo debug
-1. Pressione `F5` ou `Ctrl+Shift+D`
-2. Selecione **"Run Extension"**
-3. Nova janela VS Code abre com extensÃ£o ativa
+## 4. Fluxo de Uso na Extensão
 
-### Testar anÃ¡lise
-1. Abra arquivo: `exemplo_vulneravel.py`
-2. Pressione `Ctrl+S` (salvar)
-3. Vulnerabilidades aparecem em **vermelho** âœ¨
+Na janela `[Extension Development Host]`, use a sidebar `Privacy Scanner`.
 
-### Comandos disponÃ­veis
-Pressione `Ctrl+Shift+P` e escolha:
+Comandos principais na Paleta de Comandos (`Ctrl+Shift+P`):
+
+- `Privacy Scanner: Analisar agora`
 - `Privacy Scanner: Analisar arquivo atual`
 - `Privacy Scanner: Analisar projeto inteiro`
 - `Privacy Scanner: Analisar banco SQLite`
-- `Privacy Scanner: Exportar relatÃ³rio HTML`
-- `Privacy Scanner: Exportar relatÃ³rio JSON`
+- `Privacy Scanner: Limpar resultados`
+- `Privacy Scanner: Exportar relatorio`
 
----
+O comando `Analisar agora` usa este comportamento:
 
-## ðŸ–¥ï¸ OpÃ§Ã£o 3: Server Flask + CLI
+- se houver workspace aberto, analisa o projeto inteiro;
+- se não houver workspace, analisa o arquivo atual.
 
-### Iniciar servidor Flask
-```bash
-cd c:\Users\deanv\OneDrive\Documents\TCC
-python server.py
+Arquivos Python e bancos SQLite também podem ser analisados automaticamente ao abrir, trocar de aba ou salvar, conforme a configuração `privacy-scanner.autoAnalyzeOnSave`.
+
+Arquivos Java (`.java`) também podem ser abertos, salvos e analisados pelo mesmo fluxo.
+
+## 5. Teste Manual com Python
+
+### Arquivo vulnerável
+
+Abra `exemplo_vulneravel.py` e execute:
+
+```text
+Privacy Scanner: Analisar arquivo atual
 ```
 
-**SaÃ­da**:
-```
- * Running on http://127.0.0.1:5000
- * Debug mode: on
-```
+Resultado esperado:
 
-### Analisar arquivo (em outro terminal)
-```bash
-curl -X POST http://localhost:5000/api/analyze-file \
-  -H "Content-Type: application/json" \
-  -d '{"filepath": "exemplo_vulneravel.py"}'
-```
+- marcações no editor;
+- alertas no painel `Problems`;
+- vulnerabilidades agrupadas por risco na sidebar;
+- score LGPD menor que 100.
 
-### Analisar projeto
-```bash
-curl -X POST http://localhost:5000/api/analyze-directory \
-  -H "Content-Type: application/json" \
-  -d '{"dirpath": "."}'
+### Arquivo correto
+
+Abra `exemplo_correto.py` e execute:
+
+```text
+Privacy Scanner: Analisar arquivo atual
 ```
 
----
+Resultado esperado:
 
-## ðŸ“Š OpÃ§Ã£o 4: CLI Python Direto
+- nenhuma vulnerabilidade relevante;
+- score LGPD próximo de 100;
+- ausência de falsos positivos nas boas práticas demonstradas.
 
-### Analisar um arquivo
-```bash
+### Exemplos Java
+
+Abra `exemplo_vulneravel.java` e execute:
+
+```text
+Privacy Scanner: Analisar arquivo atual
+```
+
+O exemplo demonstra:
+
+- dado pessoal hardcoded;
+- MD5 com `MessageDigest`;
+- dado pessoal em log.
+
+Depois abra `exemplo_correto.java`. Esse arquivo usa SHA-256 e log com identificador técnico, portanto não deve gerar achados nas três regras Java iniciais.
+
+## 6. Teste Manual com Banco SQLite
+
+Na extensão:
+
+1. Execute `Privacy Scanner: Analisar banco SQLite`.
+2. Selecione um arquivo `.db`, `.sqlite` ou `.sqlite3`.
+3. Verifique os achados na sidebar.
+
+Categorias esperadas em banco vulnerável:
+
+- `CAMPO_SEM_HASH`;
+- `AUSENCIA_SOFT_DELETE`;
+- `AUSENCIA_RETENCAO`;
+- `AUSENCIA_CONSENTIMENTO`;
+- `DADO_SENSIVEL_COMO_PK`;
+- `MISTURA_DADOS`.
+
+Observação: vulnerabilidades de banco geralmente aparecem com linha `0`, pois vêm do schema e não de uma linha específica de código.
+
+## 7. Exportar Relatórios
+
+### Ignorar uma ocorrência na interface
+
+Na sidebar, clique com o botão direito em uma vulnerabilidade e escolha `Ignorar risco na interface`. Também é possível usar a lâmpada/Quick Fix no editor.
+
+O risco deixa de aparecer na sidebar, no score visível e no painel `Problems`, mas continua nos relatórios. Para desfazer, execute:
+
+```text
+Privacy Scanner: Restaurar riscos ignorados
+```
+
+Na extensão:
+
+1. Execute `Privacy Scanner: Exportar relatorio`.
+2. Escolha `HTML` ou `PDF`.
+3. O VS Code abrirá a janela do Windows para escolher nome e destino.
+4. Após salvar, clique em `Abrir` se quiser visualizar.
+
+### HTML
+
+O HTML é o relatório interativo. Ele contém:
+
+- score LGPD;
+- contagem por risco;
+- escopo analisado;
+- tabela de vulnerabilidades;
+- recomendações;
+- filtro por risco;
+- ordenação por coluna.
+
+### PDF
+
+O PDF é o relatório formal e estático. Ele contém:
+
+- cabeçalho do Privacy Scanner;
+- score LGPD;
+- resumo por risco;
+- vulnerabilidades agrupadas;
+- recomendações de correção;
+- paginação.
+
+## 8. Rodar pela CLI
+
+Analisar arquivo Python:
+
+```powershell
 python code_analyzer.py exemplo_vulneravel.py
 ```
 
-**SaÃ­da**:
-```
-ðŸ” Analisando: exemplo_vulneravel.py
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+Analisar banco SQLite:
 
-Vulnerabilidade: DADO_HARDCODED
-  Arquivo: exemplo_vulneravel.py, Linha: 1
-  DescriÃ§Ã£o: Dado pessoal encontrado hardcoded
-  Risco: ALTO
-  LGPD: Art. 46
-
-Vulnerabilidade: CRIPTOGRAFIA_FRACA
-  ...
+```powershell
+python db_analyzer.py banco_vulneravel.db
 ```
 
-### Analisar banco de dados
-```bash
-python db_analyzer.py seu_banco.db
+Gerar relatório HTML:
+
+```powershell
+python reporter.py --codigo . --html resultado.html
 ```
 
-### Exportar relatÃ³rio
-```bash
-python reporter.py --codigo . --json resultado.json --html resultado.html
+Gerar relatório JSON:
+
+```powershell
+python reporter.py --codigo . --json resultado.json
 ```
 
----
+Gerar relatório PDF:
 
-## ðŸ“‹ ValidaÃ§Ã£o Passo a Passo
-
-### 1ï¸âƒ£ Verificar instalaÃ§Ã£o
-```bash
-python --version  # Deve ser 3.8+
-flask --version   # Deve estar instalado
-pytest --version  # Deve estar instalado
+```powershell
+python reporter.py --codigo . --pdf resultado.pdf
 ```
 
-### 2ï¸âƒ£ Rodar testes
-```bash
-pytest tests/ -v --tb=short
-# Esperado: 56 passed
+## 9. Rodar a API Flask Manualmente
+
+Normalmente a extensão inicia o Flask automaticamente. Para testar manualmente:
+
+```powershell
+python server.py 5000
 ```
 
-### 3ï¸âƒ£ Testar anÃ¡lise manual
-```bash
-python code_analyzer.py exemplo_vulneravel.py
-# Esperado: 6 vulnerabilidades detectadas
+Health check:
+
+```powershell
+curl http://localhost:5000/health
 ```
 
-### 4ï¸âƒ£ Testar anÃ¡lise correto (falsos positivos)
-```bash
-python code_analyzer.py exemplo_correto.py
-# Esperado: 0 vulnerabilidades
+Analisar arquivo:
+
+```powershell
+curl -X POST http://localhost:5000/api/analyze-file `
+  -H "Content-Type: application/json" `
+  -d "{\"filepath\":\"C:\\Users\\deanv\\OneDrive\\Documents\\TCC\\exemplo_vulneravel.py\"}"
 ```
 
-### 5ï¸âƒ£ Rodar extensÃ£o
-```bash
-# VS Code: F5 â†’ Run Extension
-# Em nova janela, abra exemplo_vulneravel.py
-# Salve: Ctrl+S
-# Esperado: Gutter icons vermelhos aparecem
+Analisar diretório:
+
+```powershell
+curl -X POST http://localhost:5000/api/analyze-directory `
+  -H "Content-Type: application/json" `
+  -d "{\"directory\":\"C:\\Users\\deanv\\OneDrive\\Documents\\TCC\"}"
 ```
 
----
+Exportar relatório:
 
-## ðŸ” Analisando Seu CÃ³digo
-
-### Arquivo Ãºnico
-```bash
-python code_analyzer.py seu_arquivo.py
+```powershell
+curl -X POST http://localhost:5000/api/export `
+  -H "Content-Type: application/json" `
+  -d "{\"directory\":\"C:\\Users\\deanv\\OneDrive\\Documents\\TCC\",\"format\":\"html\"}"
 ```
 
-### DiretÃ³rio inteiro
-```bash
-python reporter.py --codigo ./meu_projeto --json relatorio.json
-```
+## 10. Troubleshooting
 
-### Banco SQLite
-```bash
-python db_analyzer.py ./database.db
-```
+### Flask não inicia
 
----
+Instale as dependências:
 
-## ðŸ“Š Visualizar RelatÃ³rios
-
-### HTML (recomendado)
-```bash
-# ApÃ³s gerar:
-start resultado.html  # Windows
-open resultado.html   # Mac
-xdg-open resultado.html  # Linux
-```
-
-### JSON
-```bash
-# Visualizar em editor:
-code resultado.json
-```
-
-### Terminal
-```bash
-python reporter.py --codigo . --imprimir
-```
-
----
-
-## ðŸ”§ Troubleshooting
-
-### âŒ Erro: "ModuleNotFoundError: No module named 'flask'"
-```bash
+```powershell
 python -m pip install -r requirements.txt
 ```
 
-### âŒ Porta 5000 em uso
-```bash
-# Mudar em VS Code Settings:
-"privacy-scanner.serverPort": 5001
+Se a porta 5000 estiver ocupada, altere no VS Code Settings:
+
+```json
+{
+  "privacy-scanner.serverPort": 5001
+}
 ```
 
-### âŒ TypeScript nÃ£o compila
-```bash
+### Extensão não compila
+
+```powershell
 cd vscode-extension
 npm install
 npm run compile
 ```
 
-### âŒ Testes falham
-```bash
-# Limpar cache pytest:
-pytest --cache-clear tests/ -v
+### PDF não exporta
+
+Confirme se `reportlab` está instalado:
+
+```powershell
+python -m pip install -r requirements.txt
 ```
 
----
+### Sumário da sidebar fica vazio
 
-## ðŸ“ˆ Performance
+Execute:
 
-Tempo de execuÃ§Ã£o esperado:
+```text
+Privacy Scanner: Analisar agora
+```
 
-| OperaÃ§Ã£o | Tempo |
-|----------|-------|
-| Analisar arquivo Ãºnico | ~50ms |
-| Analisar projeto (10 arquivos) | ~200ms |
-| Testes completos (56) | ~600ms |
-| Exportar HTML | ~100ms |
+ou abra/salve um arquivo Python.
 
----
+## 11. Limitações Conhecidas
 
-## ðŸŽ“ ValidaÃ§Ã£o para TCC
-
-### Checklist de ValidaÃ§Ã£o
-- [x] Testes unitÃ¡rios rodando
-- [x] Todos os testes passando (56/56)
-- [x] Cobertura 74%+
-- [x] Exemplos funcionando
-- [x] ExtensÃ£o VS Code funcional
-- [x] RelatÃ³rios gerando corretamente
-- [x] Bugs corrigidos e validados
-
-### MÃ©tricas Finais
-- Testes: **56/56 âœ…**
-- Cobertura: **74% âœ…**
-- Completude: **76% âœ…**
-- Status: **MVP ENTREGUE âœ…**
-
----
-
-## ðŸ“ž PrÃ³ximos Passos
-
-1. **Code Actions**: SugestÃµes inline de correÃ§Ã£o
-2. **PDF Export**: RelatÃ³rios em PDF
-3. **CI/CD**: GitHub Actions para testes automÃ¡ticos
-
----
-
-**Ãšltima atualizaÃ§Ã£o**: 2026-06-01  
-**Status**: âœ… Tudo funcionando
-
+- A análise é estática e baseada em regras.
+- A ferramenta não executa o código analisado.
+- A ferramenta não substitui auditoria jurídica ou revisão de segurança completa.
+- O MVP tem cobertura principal para Python e SQLite, com suporte Java inicial.
+- O suporte Java é inicial e cobre apenas três regras textuais.
+- Algumas regras são heurísticas e podem exigir revisão manual.

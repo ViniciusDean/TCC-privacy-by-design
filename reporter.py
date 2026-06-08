@@ -147,6 +147,7 @@ class Reporter:
 
         arquivos = sorted({v.arquivo for v in self.resultados if v.arquivo})
         arquivos_python = sum(1 for a in arquivos if a.lower().endswith(".py"))
+        arquivos_java = sum(1 for a in arquivos if a.lower().endswith(".java"))
         bancos_sqlite = sum(1 for a in arquivos if a.lower().endswith((".db", ".sqlite", ".sqlite3")))
 
         def esc(valor) -> str:
@@ -364,7 +365,7 @@ class Reporter:
     <div class="header-grid">
       <div>
         <h1>Privacy Scanner LGPD</h1>
-        <div class="subtitle">Relatorio de conformidade e evidencias de privacidade em codigo Python e SQLite.</div>
+        <div class="subtitle">Relatorio de conformidade e evidencias de privacidade em codigo Python, Java e SQLite.</div>
         <div class="meta">Gerado em {timestamp} | Privacy by Design no ciclo de desenvolvimento</div>
       </div>
       <div class="score-pill"><strong>{score}/100</strong><span>{status_score}</span></div>
@@ -383,7 +384,7 @@ class Reporter:
     <section class="section">
       <h2>Escopo analisado</h2>
       <div class="panel targets">
-        <div class="target-box"><span>Codigo Python</span><code>{alvo_codigo}</code></div>
+        <div class="target-box"><span>Codigo-fonte</span><code>{alvo_codigo}</code></div>
         <div class="target-box"><span>Banco SQLite</span><code>{alvo_banco}</code></div>
       </div>
     </section>
@@ -392,7 +393,7 @@ class Reporter:
       <div class="panel">
         <div class="risk-row">
           <div class="risk-label">Arquivos</div>
-          <div class="muted">{arquivos_python} arquivo(s) Python com achados e {bancos_sqlite} banco(s) SQLite com achados.</div>
+          <div class="muted">{arquivos_python} arquivo(s) Python, {arquivos_java} arquivo(s) Java e {bancos_sqlite} banco(s) SQLite com achados.</div>
           <div class="risk-count">{len(arquivos)}</div>
         </div>
         {barras}
@@ -844,7 +845,7 @@ class Reporter:
         story.append(Paragraph("Escopo analisado", styles["Section"]))
         scope_table = Table(
             [
-                ["Codigo Python", Paragraph(esc(self.alvo_codigo or "Nao informado"), styles["Small"])],
+                ["Codigo-fonte", Paragraph(esc(self.alvo_codigo or "Nao informado"), styles["Small"])],
                 ["Banco SQLite", Paragraph(esc(self.alvo_banco or "Nao informado"), styles["Small"])],
             ],
             colWidths=[3.4 * cm, 13.4 * cm],

@@ -77,7 +77,7 @@ TCC/ (c:\Users\deanv\OneDrive\Documents\TCC)
 - [x] Mapeamento LGPD (13 artigos) â€” 100%
 
 ### Testing
-- [x] Testes unitÃ¡rios completos â€” 56/56 âœ…
+- [x] Testes automatizados completos — 64/64
 - [x] Cobertura 74% â€” Acima de 60% âœ…
 - [x] Testes de bug fixes â€” 100%
 - [x] Edge cases cobertos â€” 100%
@@ -185,7 +185,7 @@ TCC/ (c:\Users\deanv\OneDrive\Documents\TCC)
 ### Testes (ValidaÃ§Ã£o RÃ¡pida)
 ```bash
 pytest tests/ -v
-# Resultado: 56/56 PASSOU âœ…
+# Resultado: 64/64 PASSOU
 ```
 
 ### ExtensÃ£o VS Code (Recomendado)
@@ -258,7 +258,7 @@ TOTAL:             74% (acima do mÃ­nimo 60%)
    - Flask server (~250 linhas)
 
 4. **ValidaÃ§Ã£o** âœ…
-   - 56 testes unitÃ¡rios
+   - 64 testes automatizados
    - 74% cobertura
    - Bug fixes validados
 
@@ -273,12 +273,13 @@ TOTAL:             74% (acima do mÃ­nimo 60%)
 
 ### Curto Prazo
 - [x] Sidebar com TreeView de vulnerabilidades
-- [ ] Code actions (reparos sugeridos)
+- [x] Code Actions com recomendações
 - [ ] HistÃ³rico de anÃ¡lises
-- [ ] PDF export
+- [x] PDF export
 
 ### MÃ©dio Prazo
 - [ ] Suporte JavaScript/TypeScript
+- [x] Suporte Java inicial (3 regras)
 - [ ] Suporte PostgreSQL/MySQL
 - [ ] Dashboard web
 - [ ] CI/CD (GitHub Actions)
@@ -310,7 +311,7 @@ TOTAL:             74% (acima do mÃ­nimo 60%)
 
 ## ðŸ† Destaques
 
-âœ¨ **56/56 testes passando** â€” 100% de confiabilidade  
+**64/64 testes passando**
 âœ¨ **74% cobertura** â€” Acima da meta 60%  
 âœ¨ **3 bugs corrigidos** â€” Com validaÃ§Ã£o completa  
 âœ¨ **DocumentaÃ§Ã£o completa** â€” 5 documentos detalhados  

@@ -1,6 +1,6 @@
 # Privacy Scanner LGPD - TCC FATEC
 
-Ferramenta de análise estática para detectar vulnerabilidades de privacidade em código Python e bancos SQLite, com mapeamento das ocorrências para artigos da Lei Geral de Proteção de Dados Pessoais (LGPD).
+Ferramenta de análise estática para detectar vulnerabilidades de privacidade em código Python, código Java e bancos SQLite, com mapeamento das ocorrências para artigos da Lei Geral de Proteção de Dados Pessoais (LGPD).
 
 Projeto desenvolvido no contexto de TCC sobre **Privacy by Design no Ciclo de Desenvolvimento de Software**.
 
@@ -11,12 +11,14 @@ O Privacy Scanner LGPD ajuda desenvolvedores a identificar riscos de privacidade
 Principais recursos:
 
 - Análise estática de código Python usando AST.
+- Análise inicial de código Java com regras textuais conservadoras.
 - Análise de schema SQLite.
 - Mapeamento automático para artigos da LGPD.
 - Score de conformidade de 0 a 100.
 - Extensão VS Code com diagnósticos no editor.
 - Sidebar com resumo e agrupamento por risco.
 - Code Actions com recomendações LGPD.
+- Possibilidade de ocultar uma ocorrência somente na interface.
 - Exportação de relatório HTML interativo.
 - Exportação de relatório PDF formal.
 - Exportação JSON estruturada.
@@ -26,6 +28,7 @@ Principais recursos:
 ```text
 TCC/
 |-- code_analyzer.py              # Análise de código Python via AST
+|-- java_analyzer.py              # Análise inicial de código Java
 |-- db_analyzer.py                # Análise de schema SQLite
 |-- reporter.py                   # Agregação e relatórios JSON/HTML
 |-- server.py                     # API Flask usada pela extensão VS Code
@@ -38,6 +41,8 @@ TCC/
 |-- exemplo_vulneravel.py         # Exemplo com vulnerabilidades propositais
 |-- exemplo_correto.py            # Exemplo sem falsos positivos esperados
 |-- exemplo_parcial.py            # Exemplo intermediário/realista
+|-- exemplo_vulneravel.java       # Exemplo Java vulnerável
+|-- exemplo_correto.java          # Exemplo Java sem alertas esperados
 |
 |-- tests/
 |   |-- test_code_analyzer.py
@@ -84,7 +89,7 @@ python -m pytest
 Resultado esperado:
 
 ```text
-57 passed
+64 passed
 ```
 
 ### 4. Testar a extensão no VS Code
@@ -146,7 +151,9 @@ Comandos disponíveis na Paleta de Comandos (`Ctrl+Shift+P`):
 - `Privacy Scanner: Exportar relatório HTML`
 - `Privacy Scanner: Exportar relatório JSON`
 
-A extensão também analisa arquivos Python automaticamente ao abrir, trocar de aba ou salvar.
+A extensão também analisa arquivos Python e Java automaticamente ao abrir, trocar de aba ou salvar.
+
+Arquivos Java (`.java`) seguem o mesmo fluxo de análise e diagnostics.
 
 ## Sidebar da Extensão
 
@@ -157,7 +164,7 @@ A sidebar mostra:
 - score LGPD;
 - total de vulnerabilidades;
 - contagem por risco;
-- quantidade de arquivos Python e bancos SQLite com achados.
+- quantidade de arquivos Python, arquivos Java e bancos SQLite com achados.
 
 Enquanto a análise está em andamento, a sidebar mostra estado de carregamento em vez de exibir `100/100` antes da hora.
 
@@ -167,6 +174,8 @@ Quando uma vulnerabilidade aparece sublinhada no editor, use a lâmpada/Quick Fi
 
 - ver a recomendação LGPD da regra;
 - copiar a recomendação para a área de transferência.
+
+Também é possível ignorar uma ocorrência na interface. O achado deixa de aparecer na sidebar e no painel `Problems`, mas continua presente nos relatórios HTML, JSON e PDF. Use `Privacy Scanner: Restaurar riscos ignorados` para exibi-lo novamente.
 
 ## Relatórios
 
@@ -228,6 +237,16 @@ A recomendação do projeto é manter:
 | AUSENCIA_EXCLUSAO | MÉDIO | Art. 18 | Classe sem método de exclusão/anonimização |
 | DADO_SEM_CRIPTOGRAFIA | MÉDIO | Art. 46 | Campo sensível sem proteção esperada |
 
+### Código Java - versão inicial
+
+| Categoria | Risco | Artigo LGPD | Descrição |
+|---|---|---|---|
+| DADO_HARDCODED | ALTO | Art. 46 | Dado pessoal literal atribuído a campo sensível |
+| CRIPTOGRAFIA_FRACA | ALTO | Art. 46 | Uso de `MessageDigest` com MD5 ou SHA-1 |
+| DADO_EM_LOG | ALTO | Art. 46 / Art. 6 | Dado pessoal em logger ou `System.out/System.err` |
+
+O suporte Java inicial usa análise textual por linhas. Ele não compila o projeto Java e ainda não possui a mesma cobertura da AST Python.
+
 ### Banco SQLite
 
 | Categoria | Risco | Artigo LGPD | Descrição |
@@ -271,7 +290,7 @@ Endpoints:
 | POST | `/api/analyze-file` | Analisa um arquivo Python |
 | POST | `/api/analyze-directory` | Analisa um diretório |
 | POST | `/api/analyze-database` | Analisa um banco SQLite |
-| POST | `/api/export` | Exporta relatório HTML/JSON |
+| POST | `/api/export` | Exporta relatório HTML/JSON/PDF |
 
 ## Configurações da Extensão
 
@@ -305,7 +324,7 @@ Suíte atual:
 
 - `test_code_analyzer.py`: regras de código, falsos positivos, word boundary e artigos LGPD.
 - `test_db_analyzer.py`: regras SQLite, schemas corretos, edge cases e erros.
-- `test_reporter.py`: score, ordenação, recomendações, JSON e HTML.
+- `test_reporter.py`: score, ordenação, recomendações, JSON, HTML e PDF.
 
 ## Scripts Úteis
 
@@ -346,13 +365,22 @@ Implementado:
 - botão de exportação;
 - Code Actions;
 - workspace de teste;
-- suíte automatizada com 57 testes.
+- suíte automatizada com 64 testes.
 
 Próximas etapas:
 
 - melhoria do relatório PDF formal;
 - CI/CD com GitHub Actions;
 - empacotamento da extensão VS Code.
+
+## Limitações Conhecidas
+
+- A análise é estática e baseada em regras.
+- A ferramenta não executa o código analisado.
+- A ferramenta não substitui auditoria jurídica ou revisão completa de segurança.
+- O MVP tem cobertura principal para Python e SQLite, com suporte Java inicial.
+- O suporte Java atual cobre somente três regras iniciais.
+- Algumas ocorrências podem exigir revisão manual para confirmar o contexto.
 
 ## Autor
 

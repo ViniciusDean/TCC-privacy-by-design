@@ -8,7 +8,7 @@
   "publisher": "fatec-tcc",
   "repository": {
     "type": "git",
-    "url": "https://github.com/seu-usuario/privacy-scanner"
+    "url": "https://github.com/ViniciusDean/TCC-privacy-by-design"
   },
   "engines": {
     "vscode": "^1.60.0"
@@ -27,6 +27,7 @@
   "activationEvents": [
     "onStartupFinished",
     "onLanguage:python",
+    "onLanguage:java",
     "onCommand:privacy-scanner.analyzeNow",
     "onCommand:privacy-scanner.analyze",
     "onCommand:privacy-scanner.analyzeAll",
@@ -34,7 +35,9 @@
     "onCommand:privacy-scanner.clearResults",
     "onCommand:privacy-scanner.exportReport",
     "onCommand:privacy-scanner.exportHTML",
-    "onCommand:privacy-scanner.exportJSON"
+    "onCommand:privacy-scanner.exportJSON",
+    "onCommand:privacy-scanner.ignoreVulnerability",
+    "onCommand:privacy-scanner.restoreIgnoredVulnerabilities"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -86,6 +89,18 @@
         "command": "privacy-scanner.showSidebar",
         "title": "Privacy Scanner: Mostrar vulnerabilidades",
         "category": "Privacy Scanner"
+      },
+      {
+        "command": "privacy-scanner.ignoreVulnerability",
+        "title": "Privacy Scanner: Ignorar risco na interface",
+        "category": "Privacy Scanner",
+        "icon": "$(eye-closed)"
+      },
+      {
+        "command": "privacy-scanner.restoreIgnoredVulnerabilities",
+        "title": "Privacy Scanner: Restaurar riscos ignorados",
+        "category": "Privacy Scanner",
+        "icon": "$(eye)"
       }
     ],
     "viewsContainers": {
@@ -127,6 +142,24 @@
           "command": "privacy-scanner.clearResults",
           "when": "view == privacy-scanner-vulnerabilities",
           "group": "navigation@3"
+        },
+        {
+          "command": "privacy-scanner.restoreIgnoredVulnerabilities",
+          "when": "view == privacy-scanner-vulnerabilities",
+          "group": "navigation@4"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "privacy-scanner.ignoreVulnerability",
+          "when": "view == privacy-scanner-vulnerabilities && viewItem == vulnerability",
+          "group": "inline"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "privacy-scanner.ignoreVulnerability",
+          "when": "false"
         }
       ]
     },

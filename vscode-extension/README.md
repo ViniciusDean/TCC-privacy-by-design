@@ -1,70 +1,172 @@
-# Privacy Scanner — Extensão VS Code
+# Privacy Scanner LGPD - Extensão VS Code
 
-Análise estática de vulnerabilidades de privacidade em Python conforme **LGPD e Privacy by Design**.
+Extensão do VS Code para executar o Privacy Scanner LGPD durante o desenvolvimento.
 
-## Recursos
+A extensão conversa com o servidor Flask do projeto e exibe os resultados dentro do VS Code, sem executar o código analisado.
 
-✅ **Análise em tempo real** — Ao salvar arquivo, vulnerabilidades aparecem imediatamente  
-✅ **Problemas integrados** — Mostra alertas no painel Problems  
-✅ **Análise de projeto** — Varre recursivamente arquivos Python  
-✅ **Relatórios** — Exporta HTML e JSON para documentação  
-✅ **Configurável** — Portas, caminhos Python, comportamentos  
+## Recursos Implementados
 
-## Instalação
+- Análise de arquivo Python.
+- Análise inicial de arquivo Java.
+- Análise de projeto inteiro.
+- Análise de banco SQLite (`.db`, `.sqlite`, `.sqlite3`).
+- Diagnósticos no editor e no painel `Problems`.
+- Sidebar com vulnerabilidades agrupadas por risco.
+- Sidebar com score LGPD e resumo.
+- Estado de carregamento durante a análise.
+- Botão/comando `Analisar agora`.
+- Code Actions com recomendações LGPD.
+- Exportação HTML.
+- Exportação PDF.
+- Exportação JSON por comando específico.
+- Janela do Windows para escolher nome e destino do relatório.
+- Inicialização automática do servidor Flask.
+- Reutilização do servidor Flask caso ele já esteja ativo na porta configurada.
+- Opção de ocultar uma ocorrência na interface sem removê-la dos relatórios.
 
-### Pré-requisitos
+## Pré-requisitos
 
-- VS Code 1.60+
-- Python 3.8+
-- Dependências Python da raiz (`python -m pip install -r requirements.txt`)
-- Dependências Node da extensão (`npm install`)
+- VS Code 1.60 ou superior.
+- Python 3.8 ou superior.
+- Node.js e npm.
+- Dependências Python instaladas na raiz do projeto.
+- Dependências Node instaladas em `vscode-extension`.
 
-### Setup da Extensão
+Na raiz do projeto:
 
-1. **Clone/coloque a extensão no VS Code**
+```powershell
+python -m pip install -r requirements.txt
+```
 
-```bash
-# No seu workspace TCC, entre na pasta vscode-extension
+Na pasta da extensão:
+
+```powershell
 cd vscode-extension
 npm install
 npm run compile
 ```
 
-2. **Instale dependências Python**
+## Rodar em Desenvolvimento
 
-```bash
-cd ..  # Volte para raiz TCC
-python -m pip install -r requirements.txt
+1. Abra a pasta `TCC` no VS Code.
+2. Pressione `F5`.
+3. Aguarde abrir a janela `[Extension Development Host]`.
+4. Na nova janela, abra uma pasta de teste ou um arquivo Python.
+5. Use a sidebar `Privacy Scanner`.
+
+Se quiser recriar o workspace externo de teste:
+
+```powershell
+python scripts/create_test_workspace.py
 ```
 
-3. **Abra como extensão em desenvolvimento**
+## Comandos
 
-No VS Code:
-- Pressione `Ctrl+Shift+D` (Debug)
-- Clique em "Run Extension"
-- Abre uma nova janela VS Code com a extensão ativa
+Na Paleta de Comandos (`Ctrl+Shift+P`):
 
-## Uso
+- `Privacy Scanner: Analisar agora`
+- `Privacy Scanner: Analisar arquivo atual`
+- `Privacy Scanner: Analisar projeto inteiro`
+- `Privacy Scanner: Analisar banco SQLite`
+- `Privacy Scanner: Limpar resultados`
+- `Privacy Scanner: Exportar relatorio`
+- `Privacy Scanner: Exportar relatório HTML`
+- `Privacy Scanner: Exportar relatório JSON`
+- `Privacy Scanner: Mostrar vulnerabilidades`
 
-### Análise automática ao salvar
-Por padrão, quando você salva um arquivo `.py`, o Privacy Scanner analisa automaticamente e mostra vulnerabilidades.
+## Comportamento de Análise
 
-### Comandos
+### Analisar agora
 
-Abra a Paleta de Comandos (`Ctrl+Shift+P`) e digite:
+O comando `Privacy Scanner: Analisar agora` funciona assim:
 
-- `Privacy Scanner: Analisar arquivo atual` — Analisa só o arquivo aberto
-- `Privacy Scanner: Analisar projeto inteiro` — Varre toda a pasta
-- `Privacy Scanner: Analisar banco SQLite` — Seleciona um ou mais bancos `.db/.sqlite`
-- `Privacy Scanner: Limpar resultados` — Limpa sidebar e diagnostics
-- `Privacy Scanner: Exportar relatório HTML` — Gera HTML na raiz do projeto
-- `Privacy Scanner: Exportar relatório JSON` — Gera JSON na raiz do projeto
+- se houver uma pasta aberta, analisa o projeto inteiro;
+- se não houver pasta aberta, analisa o arquivo atual.
 
-Arquivos Python tambem sao analisados ao abrir, trocar para a aba ou salvar.
+### Automático
 
-### Configurações
+Quando `privacy-scanner.autoAnalyzeOnSave` está ativado, arquivos Python, Java e bancos SQLite podem ser analisados ao:
 
-Em VS Code Settings (`Ctrl+,`), procure por `privacy-scanner`:
+- abrir arquivo;
+- trocar de aba;
+- salvar arquivo.
+
+## Sidebar
+
+A sidebar `Privacy Scanner` possui duas visões:
+
+### Vulnerabilidades
+
+Mostra:
+
+- riscos `ALTO`, `MEDIO` e `BAIXO`;
+- arquivos afetados;
+- vulnerabilidades por arquivo;
+- ícones diferentes para código e banco;
+- clique para abrir vulnerabilidade de código na linha correspondente.
+
+### Resumo
+
+Mostra:
+
+- score LGPD;
+- total de vulnerabilidades;
+- quantidade de arquivos Python com achados;
+- quantidade de arquivos Java com achados;
+- quantidade de bancos SQLite com achados;
+- contagem por risco.
+
+Durante a análise, a sidebar mostra estado de carregamento para evitar exibir `100/100` antes do resultado real.
+
+## Code Actions
+
+Quando uma vulnerabilidade aparece no editor:
+
+1. Clique na lâmpada/Quick Fix.
+2. Escolha `Ver recomendacao LGPD` ou `Copiar recomendacao LGPD`.
+
+A extensão não altera o código automaticamente. Ela mostra a recomendação para orientar a correção manual.
+
+## Ignorar Risco na Interface
+
+Uma ocorrência pode ser ocultada de duas formas:
+
+- clique com o botão direito na vulnerabilidade da sidebar e escolha `Ignorar risco na interface`;
+- use a lâmpada/Quick Fix no editor e escolha `Ignorar este risco na interface`.
+
+O risco deixa de aparecer na sidebar, no resumo e no painel `Problems`. A preferência fica salva no workspace.
+
+Essa opção não altera a análise do backend. O risco continua aparecendo nos relatórios HTML, JSON e PDF.
+
+Para mostrar tudo novamente, execute:
+
+```text
+Privacy Scanner: Restaurar riscos ignorados
+```
+
+## Exportação
+
+Use:
+
+```text
+Privacy Scanner: Exportar relatorio
+```
+
+Depois escolha:
+
+- `HTML`;
+- `PDF`.
+
+O VS Code abrirá a janela do Windows para escolher o destino e o nome do arquivo.
+
+Também existem comandos diretos:
+
+- `Privacy Scanner: Exportar relatório HTML`;
+- `Privacy Scanner: Exportar relatório JSON`.
+
+## Configurações
+
+Em `settings.json`:
 
 ```json
 {
@@ -78,67 +180,114 @@ Em VS Code Settings (`Ctrl+,`), procure por `privacy-scanner`:
 
 ## Arquitetura
 
-```
-vscode-extension/
-├── src/
-│   └── extension.ts         ← Código principal da extensão
-├── out/
-│   └── extension.js         ← Compilado (gerado por npm run compile)
-├── package.json             ← Metadados e dependências
-└── tsconfig.json            ← Configuração TypeScript
-
-../server.py                 ← Servidor Flask (encapsula os analisadores)
-../code_analyzer.py          ← Análise de código Python
-../db_analyzer.py            ← Análise de banco SQLite
-../reporter.py               ← Geração de relatórios
+```text
+VS Code Extension
+  |
+  | HTTP
+  v
+server.py (Flask)
+  |
+  |-- code_analyzer.py  -> análise Python
+  |-- java_analyzer.py  -> análise inicial Java
+  |-- db_analyzer.py    -> análise SQLite
+  |-- reporter.py       -> HTML/JSON/PDF
 ```
 
-## Fluxo
+Endpoints usados:
 
-1. **Salva arquivo Python** → VS Code trigger
-2. **Extension.ts** → Chama `/api/analyze-file` no servidor Flask
-3. **Server.py** → Executa `code_analyzer.analisar_arquivo()`
-4. **Retorna JSON** com vulnerabilidades
-5. **Extension.ts** → Exibe Diagnostics no editor (gutter icons)
-
-## Troubleshooting
-
-### "Servidor Flask não inicia"
-- Verifique se as dependências Python foram instaladas: `python -m pip install -r requirements.txt`
-- Verifique a porta em uso: `netstat -ano | findstr :5000`
-- Altere em Settings: `privacy-scanner.serverPort`
-
-### "Axios not found"
-- Instale dependências: `cd vscode-extension && npm install`
-
-### "Python not found"
-- Configure o caminho em Settings: `privacy-scanner.pythonPath`
-- Tente: `C:\Python310\python.exe` (caminho absoluto)
+- `GET /health`;
+- `POST /api/analyze-file`;
+- `POST /api/analyze-directory`;
+- `POST /api/analyze-database`;
+- `POST /api/export`.
 
 ## Desenvolvimento
 
-### Compilar TypeScript
+Compilar:
 
-```bash
-npm run compile      # Uma vez
-npm run watch        # Contínuo (auto-compile)
+```powershell
+npm run compile
 ```
 
-### Debug
+Compilar em modo contínuo:
 
-Pressione `F5` para iniciar debug com breakpoints.
+```powershell
+npm run watch
+```
+
+Rodar testes Python na raiz:
+
+```powershell
+python -m pytest
+```
+
+Resultado esperado:
+
+```text
+64 passed
+```
+
+## Troubleshooting
+
+### Servidor Flask não inicia
+
+Instale as dependências Python:
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+### Porta 5000 em uso
+
+A extensão tenta reutilizar o servidor se ele já estiver ativo. Se a porta estiver ocupada por outro processo, altere:
+
+```json
+{
+  "privacy-scanner.serverPort": 5001
+}
+```
+
+### Python não encontrado
+
+Configure o caminho absoluto:
+
+```json
+{
+  "privacy-scanner.pythonPath": "C:\\Python312\\python.exe"
+}
+```
+
+### Extensão não atualiza depois de editar TypeScript
+
+Compile novamente:
+
+```powershell
+npm run compile
+```
+
+Depois recarregue a janela `[Extension Development Host]`.
 
 ## Status
 
-- [x] Análise de arquivo
+- [x] Análise de arquivo Python
+- [x] Análise inicial de arquivo Java
 - [x] Análise de projeto
+- [x] Análise de banco SQLite
 - [x] Diagnostics API
 - [x] Sidebar com resumo
-- [x] Análise de banco SQLite
-- [x] Export HTML/JSON
-- [ ] Code actions (sugestões de correção)
-- [x] Testes unitários
+- [x] Estado de carregamento
+- [x] Code Actions
+- [x] Exportação HTML
+- [x] Exportação JSON
+- [x] Exportação PDF
+- [x] Save dialog para relatório
+- [x] Reutilização de servidor Flask ativo
+- [x] Ocultar riscos somente na interface
 
-## Licença
+## Limitações
 
-MIT
+- A análise é estática e baseada em regras.
+- A extensão não substitui auditoria jurídica.
+- O MVP tem cobertura principal para Python e SQLite, com suporte Java inicial.
+- O suporte Java atual cobre três regras textuais.
+- Algumas ocorrências podem exigir revisão manual.

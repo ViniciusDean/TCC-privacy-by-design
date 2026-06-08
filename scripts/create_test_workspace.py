@@ -21,6 +21,8 @@ def copy_examples(target: Path) -> None:
         "exemplo_vulneravel.py",
         "exemplo_correto.py",
         "exemplo_parcial.py",
+        "exemplo_vulneravel.java",
+        "exemplo_correto.java",
     ):
         shutil.copy2(PROJECT_ROOT / filename, target / filename)
 
@@ -74,6 +76,8 @@ Arquivos:
 - `exemplo_vulneravel.py`: deve gerar vulnerabilidades.
 - `exemplo_correto.py`: deve gerar poucos ou nenhum alerta.
 - `exemplo_parcial.py`: deve gerar achados intermediarios.
+- `exemplo_vulneravel.java`: exemplo Java com tres categorias iniciais.
+- `exemplo_correto.java`: exemplo Java sem alertas esperados.
 - `banco_vulneravel.db`: banco SQLite com schema propositalmente vulneravel.
 
 Comandos no VS Code:

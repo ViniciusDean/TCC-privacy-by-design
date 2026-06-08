@@ -17,6 +17,14 @@ def temp_py_file():
 
 
 @pytest.fixture
+def temp_java_file():
+    """Create a temporary Java file for testing."""
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.java', delete=False, encoding='utf-8') as f:
+        yield f
+    os.unlink(f.name)
+
+
+@pytest.fixture
 def temp_db_file():
     """Create a temporary SQLite database for testing."""
     import sqlite3

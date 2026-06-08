@@ -397,10 +397,17 @@ class CodeAnalyzer(ast.NodeVisitor):
 # ─────────────────────────────────────────────────────────────────────────────
 def analisar_arquivo(caminho: str) -> list[Vulnerability]:
     """
-    Recebe o caminho de um arquivo .py e retorna a lista de vulnerabilidades.
+    Recebe o caminho de um arquivo Python ou Java e retorna vulnerabilidades.
     """
     if not os.path.isfile(caminho):
         raise FileNotFoundError(f"Arquivo não encontrado: {caminho}")
+
+    if caminho.lower().endswith(".java"):
+        from java_analyzer import analisar_java
+        return analisar_java(caminho)
+
+    if not caminho.lower().endswith(".py"):
+        raise ValueError(f"Tipo de arquivo não suportado: {caminho}")
 
     with open(caminho, encoding="utf-8") as f:
         codigo = f.read()
@@ -417,12 +424,14 @@ def analisar_arquivo(caminho: str) -> list[Vulnerability]:
 
 def analisar_diretorio(diretorio: str) -> list[Vulnerability]:
     """
-    Varre recursivamente um diretório e analisa todos os arquivos .py.
+    Varre recursivamente um diretório e analisa arquivos .py e .java.
     """
     todos: list[Vulnerability] = []
-    for raiz, _, arquivos in os.walk(diretorio):
+    ignorados = {".git", "node_modules", "__pycache__", ".pytest_cache", "htmlcov", "out"}
+    for raiz, diretorios, arquivos in os.walk(diretorio):
+        diretorios[:] = [d for d in diretorios if d not in ignorados]
         for arquivo in arquivos:
-            if arquivo.endswith(".py"):
+            if arquivo.lower().endswith((".py", ".java")):
                 caminho = os.path.join(raiz, arquivo)
                 todos.extend(analisar_arquivo(caminho))
     return todos
@@ -437,14 +446,14 @@ if __name__ == "__main__":
 
     alvo = sys.argv[1] if len(sys.argv) > 1 else "."
     resultados = (
-        analisar_arquivo(alvo) if alvo.endswith(".py")
+        analisar_arquivo(alvo) if alvo.lower().endswith((".py", ".java"))
         else analisar_diretorio(alvo)
     )
 
     if not resultados:
-        print("✅  Nenhuma vulnerabilidade de privacidade encontrada.")
+        print("Nenhuma vulnerabilidade de privacidade encontrada.")
     else:
-        print(f"\n⚠️  {len(resultados)} vulnerabilidade(s) encontrada(s):\n")
+        print(f"\n{len(resultados)} vulnerabilidade(s) encontrada(s):\n")
         for v in resultados:
             print(f"  [{v.risco}] {v.categoria}")
             print(f"  Arquivo : {v.arquivo}:{v.linha}")

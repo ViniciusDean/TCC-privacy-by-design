@@ -387,7 +387,7 @@ Próximas etapas:
 cd vscode-extension
 npm install
 npm run package
-code --install-extension .\privacy-scanner-lgpd-1.0.0.vsix --force
+code --install-extension .\privacy-scanner-lgpd-1.0.1.vsix --force
 ```
 
 O VSIX inclui o backend Python e funciona sem manter o repositório do TCC

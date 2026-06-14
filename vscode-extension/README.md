@@ -240,12 +240,12 @@ O comando:
 
 1. copia o backend Python necessário para dentro do pacote;
 2. compila o TypeScript;
-3. gera `privacy-scanner-lgpd-1.0.0.vsix`.
+3. gera `privacy-scanner-lgpd-1.0.1.vsix`.
 
 Para instalar pelo terminal:
 
 ```powershell
-code --install-extension .\privacy-scanner-lgpd-1.0.0.vsix --force
+code --install-extension .\privacy-scanner-lgpd-1.0.1.vsix --force
 ```
 
 Também é possível abrir a área de extensões do VS Code, clicar em `...`,

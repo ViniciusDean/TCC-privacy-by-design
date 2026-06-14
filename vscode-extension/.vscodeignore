@@ -4,8 +4,8 @@
 **/.vscode-test/**
 **/out/test/**
 **/src/test/**
-**/src/**
-**/scripts/**
+src/**
+scripts/**
 **/.prettierrc
 **/webpack.config.js
 **/tsconfig.json

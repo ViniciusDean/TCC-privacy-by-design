@@ -236,7 +236,7 @@ FÃ³rmula: `Score = 100 - (ALTOÃ—10 + MÃ‰DIOÃ—5 + BAIXOÃ—2)`
 - [ ] Suporte JavaScript/TypeScript
 - [ ] Suporte a PostgreSQL/MySQL
 - [ ] Dashboard web
-- [ ] CI/CD integration
+- [x] CI/CD com testes e geração automática do VSIX
 
 ### Fase 4: ProduÃ§Ã£o
 - [ ] PublicaÃ§Ã£o no VS Code Marketplace

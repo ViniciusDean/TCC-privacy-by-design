@@ -706,19 +706,24 @@ function registerListeners(context: vscode.ExtensionContext) {
 async function startFlaskServer(context: vscode.ExtensionContext): Promise<void> {
     return new Promise((resolve) => {
         const pythonPath = vscode.workspace.getConfiguration('privacy-scanner').get('pythonPath', 'python');
-        
-        // Arquivo do servidor está em ../server.py (relativo à extensão)
         const extensionPath = context.extensionPath;
-        const serverScript = path.join(extensionPath, '..', 'server.py');
+        const bundledServer = path.join(extensionPath, 'python_backend', 'server.py');
+        const developmentServer = path.join(extensionPath, '..', 'server.py');
+        const serverScript = fs.existsSync(bundledServer)
+            ? bundledServer
+            : developmentServer;
 
         if (!fs.existsSync(serverScript)) {
             console.warn(`Arquivo do servidor não encontrado: ${serverScript}`);
-            vscode.window.showWarningMessage('Erro: server.py não encontrado. Certifique-se de que está na raiz do projeto TCC.');
+            vscode.window.showErrorMessage(
+                'Backend do Privacy Scanner não encontrado. Reinstale a extensão ou gere novamente o pacote VSIX.'
+            );
             resolve();
             return;
         }
 
         let spawned = false;
+        let stderrOutput = '';
 
         const spawnServer = () => {
             if (spawned) {
@@ -736,7 +741,9 @@ async function startFlaskServer(context: vscode.ExtensionContext): Promise<void>
             });
 
             flaskProcess.stderr.on('data', (data) => {
-                console.error(`[Privacy Scanner Server] ${data.toString().trim()}`);
+                const message = data.toString();
+                stderrOutput += message;
+                console.error(`[Privacy Scanner Server] ${message.trim()}`);
             });
 
             flaskProcess.on('error', (error) => {
@@ -749,6 +756,18 @@ async function startFlaskServer(context: vscode.ExtensionContext): Promise<void>
                 serverRunning = false;
                 if (code !== 0 && code !== null) {
                     console.error(`Servidor Flask encerrado com codigo ${code}`);
+                    if (
+                        stderrOutput.includes('ModuleNotFoundError')
+                        || stderrOutput.includes('No module named')
+                    ) {
+                        const requirementsPath = path.join(
+                            path.dirname(serverScript),
+                            'requirements.txt'
+                        );
+                        vscode.window.showErrorMessage(
+                            `Dependências Python ausentes. Execute: "${pythonPath}" -m pip install -r "${requirementsPath}"`
+                        );
+                    }
                 }
             });
         };
@@ -770,6 +789,11 @@ async function startFlaskServer(context: vscode.ExtensionContext): Promise<void>
                 if (attempts > 30) {
                     clearInterval(checkServer);
                     console.error('Timeout ao conectar ao servidor Flask');
+                    if (!stderrOutput.includes('ModuleNotFoundError')) {
+                        vscode.window.showErrorMessage(
+                            `Não foi possível iniciar o Privacy Scanner na porta ${serverPort}. Consulte o console "Extension Host".`
+                        );
+                    }
                     resolve();
                 }
             }

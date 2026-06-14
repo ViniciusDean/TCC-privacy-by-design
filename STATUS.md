@@ -284,7 +284,7 @@ TOTAL:             74% (acima do mÃ­nimo 60%)
 - [x] Suporte Java inicial (3 regras)
 - [ ] Suporte PostgreSQL/MySQL
 - [ ] Dashboard web
-- [ ] CI/CD (GitHub Actions)
+- [x] CI/CD (GitHub Actions para testes, compilação e pacote VSIX)
 
 ### Longo Prazo
 - [ ] Machine learning para alertas customizados

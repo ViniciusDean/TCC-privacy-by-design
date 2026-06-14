@@ -4,12 +4,16 @@
 **/.vscode-test/**
 **/out/test/**
 **/src/test/**
+**/src/**
+**/scripts/**
 **/.prettierrc
 **/webpack.config.js
-**/README.md
 **/tsconfig.json
 **/tslint.json
 **/package-lock.json
 **/*.map
 **/*.ts
 **/.github/**
+**/__pycache__/**
+**/*.pyc
+*.vsix

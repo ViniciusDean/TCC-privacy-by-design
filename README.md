@@ -1,4 +1,6 @@
-# Privacy Scanner LGPD - TCC FATEC
+# Privacy Scanner LGPD — TCC FATEC
+
+[![Validação e pacote VSIX](https://github.com/ViniciusDean/TCC-privacy-by-design/actions/workflows/ci.yml/badge.svg)](https://github.com/ViniciusDean/TCC-privacy-by-design/actions/workflows/ci.yml)
 
 Ferramenta de análise estática para detectar vulnerabilidades de privacidade em código Python, código Java e bancos SQLite, com mapeamento das ocorrências para artigos da Lei Geral de Proteção de Dados Pessoais (LGPD).
 
@@ -377,8 +379,34 @@ Implementado:
 Próximas etapas:
 
 - melhoria do relatório PDF formal;
-- CI/CD com GitHub Actions;
-- empacotamento da extensão VS Code.
+- publicação da extensão no VS Code Marketplace.
+
+### Gerar extensão instalável
+
+```powershell
+cd vscode-extension
+npm install
+npm run package
+code --install-extension .\privacy-scanner-lgpd-1.0.0.vsix --force
+```
+
+O VSIX inclui o backend Python e funciona sem manter o repositório do TCC
+aberto. Python, Flask e ReportLab precisam estar instalados no computador.
+
+### Validação automática no GitHub
+
+O workflow `.github/workflows/ci.yml` é executado em cada push para `main`,
+pull request ou acionamento manual. Ele:
+
+- instala as dependências Python;
+- executa os 79 testes;
+- instala as dependências da extensão com `npm ci`;
+- compila o TypeScript;
+- gera o VSIX;
+- disponibiliza o pacote como artefato por 30 dias.
+
+Para baixar, abra a aba `Actions` do repositório, selecione uma execução e
+baixe o artefato `privacy-scanner-lgpd-vsix`.
 
 ## Limitações Conhecidas
 

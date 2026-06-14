@@ -227,6 +227,48 @@ Resultado esperado:
 79 passed
 ```
 
+## Gerar e Instalar o VSIX
+
+Na pasta `vscode-extension`, execute:
+
+```powershell
+npm install
+npm run package
+```
+
+O comando:
+
+1. copia o backend Python necessário para dentro do pacote;
+2. compila o TypeScript;
+3. gera `privacy-scanner-lgpd-1.0.0.vsix`.
+
+Para instalar pelo terminal:
+
+```powershell
+code --install-extension .\privacy-scanner-lgpd-1.0.0.vsix --force
+```
+
+Também é possível abrir a área de extensões do VS Code, clicar em `...`,
+selecionar `Install from VSIX...` e escolher o arquivo gerado.
+
+Após instalar, use `Developer: Reload Window` ou reinicie o VS Code. A extensão
+passa a funcionar em qualquer pasta aberta, sem depender do repositório do TCC.
+
+O computador ainda precisa ter Python e as dependências de execução:
+
+```powershell
+python -m pip install flask reportlab
+```
+
+Se as dependências estiverem ausentes, a extensão mostrará o comando completo
+usando o `requirements.txt` incluído no VSIX.
+
+### Pacote gerado pelo GitHub
+
+Cada push para `main` executa o workflow do GitHub Actions. Ao final de uma
+execução bem-sucedida, o VSIX fica disponível na seção `Artifacts` com o nome
+`privacy-scanner-lgpd-vsix`.
+
 ## Troubleshooting
 
 ### Servidor Flask não inicia

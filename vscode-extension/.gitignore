@@ -4,5 +4,7 @@ out/
 .DS_Store
 *.log
 .vscode-test/
+.vsix-test/
 .vscode/
 dist/
+python_backend/

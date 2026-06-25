@@ -41,7 +41,7 @@ python -m pytest
 Resultado esperado:
 
 ```text
-79 passed
+89 passed
 ```
 
 ## 2. Abrir a Extensão
@@ -197,7 +197,7 @@ Durante a demo, vale tirar prints de:
 - painel `Problems`;
 - relatório HTML;
 - relatório PDF;
-- terminal com `79 passed`.
+- terminal com `89 passed`.
 
 ## Resultado Esperado
 
@@ -207,7 +207,7 @@ Durante a demo, vale tirar prints de:
 - `exemplo_correto.py` não gera os mesmos alertas.
 - `banco_vulneravel.db` gera alertas de schema.
 - HTML e PDF são exportados.
-- `pytest` passa com 79 testes.
+- `pytest` passa com 89 testes.
 
 ## Limitações a Declarar
 

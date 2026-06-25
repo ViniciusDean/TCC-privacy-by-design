@@ -38,7 +38,7 @@ python -m pytest
 Resultado esperado:
 
 ```text
-79 passed
+93 passed
 ```
 
 Compilar a extensão:

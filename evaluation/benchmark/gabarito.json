@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "methodology": "Presenca de categoria por caso",
+  "cases": [
+    {
+      "id": "py_hardcoded_log",
+      "type": "python",
+      "path": "cases/python/py_hardcoded_log.py",
+      "expected": ["DADO_HARDCODED", "DADO_EM_LOG"]
+    },
+    {
+      "id": "py_crypto_transfer",
+      "type": "python",
+      "path": "cases/python/py_crypto_transfer.py",
+      "expected": ["CRIPTOGRAFIA_FRACA", "TRANSFERENCIA_SEM_BASE_LEGAL"]
+    },
+    {
+      "id": "py_model_without_controls",
+      "type": "python",
+      "path": "cases/python/py_model_without_controls.py",
+      "expected": ["AUSENCIA_EXCLUSAO", "DADO_SEM_CRIPTOGRAFIA"]
+    },
+    {
+      "id": "py_excessive_collection",
+      "type": "python",
+      "path": "cases/python/py_excessive_collection.py",
+      "expected": ["COLETA_EXCESSIVA"]
+    },
+    {
+      "id": "py_safe_hashing",
+      "type": "python",
+      "path": "cases/python/py_safe_hashing.py",
+      "expected": []
+    },
+    {
+      "id": "py_safe_technical_metadata",
+      "type": "python",
+      "path": "cases/python/py_safe_technical_metadata.py",
+      "expected": []
+    },
+    {
+      "id": "java_hardcoded_log",
+      "type": "java",
+      "path": "cases/java/JavaHardcodedLog.java",
+      "expected": ["DADO_HARDCODED", "DADO_EM_LOG"]
+    },
+    {
+      "id": "java_crypto_transfer",
+      "type": "java",
+      "path": "cases/java/JavaCryptoTransfer.java",
+      "expected": ["CRIPTOGRAFIA_FRACA", "TRANSFERENCIA_SEM_BASE_LEGAL"]
+    },
+    {
+      "id": "java_model_without_controls",
+      "type": "java",
+      "path": "cases/java/JavaModelWithoutControls.java",
+      "expected": ["AUSENCIA_EXCLUSAO", "DADO_SEM_CRIPTOGRAFIA"]
+    },
+    {
+      "id": "java_excessive_collection",
+      "type": "java",
+      "path": "cases/java/JavaExcessiveCollection.java",
+      "expected": ["COLETA_EXCESSIVA"]
+    },
+    {
+      "id": "java_safe_hashing",
+      "type": "java",
+      "path": "cases/java/JavaSafeHashing.java",
+      "expected": []
+    },
+    {
+      "id": "java_safe_technical_metadata",
+      "type": "java",
+      "path": "cases/java/JavaSafeTechnicalMetadata.java",
+      "expected": []
+    },
+    {
+      "id": "db_plaintext_missing_controls",
+      "type": "sqlite",
+      "path": "cases/sqlite/db_plaintext_missing_controls.sql",
+      "expected": ["CAMPO_SEM_HASH", "AUSENCIA_SOFT_DELETE", "AUSENCIA_RETENCAO", "AUSENCIA_CONSENTIMENTO"]
+    },
+    {
+      "id": "db_sensitive_primary_key",
+      "type": "sqlite",
+      "path": "cases/sqlite/db_sensitive_primary_key.sql",
+      "expected": ["CAMPO_SEM_HASH", "DADO_SENSIVEL_COMO_PK", "AUSENCIA_RETENCAO"]
+    },
+    {
+      "id": "db_mixed_data",
+      "type": "sqlite",
+      "path": "cases/sqlite/db_mixed_data.sql",
+      "expected": ["CAMPO_SEM_HASH", "MISTURA_DADOS"]
+    },
+    {
+      "id": "db_missing_retention",
+      "type": "sqlite",
+      "path": "cases/sqlite/db_missing_retention.sql",
+      "expected": ["AUSENCIA_RETENCAO"]
+    },
+    {
+      "id": "db_safe_protected_schema",
+      "type": "sqlite",
+      "path": "cases/sqlite/db_safe_protected_schema.sql",
+      "expected": []
+    },
+    {
+      "id": "db_safe_operational_schema",
+      "type": "sqlite",
+      "path": "cases/sqlite/db_safe_operational_schema.sql",
+      "expected": []
+    }
+  ]
+}

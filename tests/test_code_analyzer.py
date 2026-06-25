@@ -239,6 +239,65 @@ email_cliente = input("Email: ")
 
         assert any(v.categoria == "DADO_SEM_CRIPTOGRAFIA" for v in results)
 
+    def test_ignores_ambiguous_internal_metadata_assignments(self, temp_py_file):
+        """Should not treat variables that manipulate identifiers as personal data."""
+        code = '''
+def normalizar(nome):
+    nome_lower = nome.lower()
+    nome = None
+    nome = target.id
+    nome_chamada = obter_nome_chamada()
+'''
+        temp_py_file.write(code)
+        temp_py_file.flush()
+
+        results = analisar_arquivo(temp_py_file.name)
+
+        assert not any(v.categoria == "DADO_SEM_CRIPTOGRAFIA" for v in results)
+
+    def test_ignores_generic_name_literal_and_log(self, temp_py_file):
+        """Generic metadata called name is not necessarily personal data."""
+        code = '''
+name = "bash"
+print("NAMEMATCH", name)
+'''
+        temp_py_file.write(code)
+        temp_py_file.flush()
+
+        results = analisar_arquivo(temp_py_file.name)
+
+        assert results == []
+
+    def test_ignores_generic_class_with_name_field(self, temp_py_file):
+        """Technical classes should not require personal-data deletion methods."""
+        code = '''
+class Lexer:
+    name = "Python"
+
+    def compile(self):
+        self.name = obter_nome()
+'''
+        temp_py_file.write(code)
+        temp_py_file.flush()
+
+        results = analisar_arquivo(temp_py_file.name)
+
+        assert results == []
+
+    def test_detects_ambiguous_model_attribute_assignment(self, temp_py_file):
+        """Should keep detecting ambiguous fields stored on model attributes."""
+        code = '''
+class Usuario:
+    def carregar(self):
+        self.nome = buscar_valor()
+'''
+        temp_py_file.write(code)
+        temp_py_file.flush()
+
+        results = analisar_arquivo(temp_py_file.name)
+
+        assert any(v.categoria == "DADO_SEM_CRIPTOGRAFIA" for v in results)
+
 
 class TestNoFalsePositives:
     """Test that correct code doesn't trigger false positives."""
@@ -349,9 +408,74 @@ class TestDirectory:
         assert len(results) > 0
         assert any("vulnerable.py" in v.arquivo for v in results)
 
+    def test_ignores_dependencies_builds_and_packaged_backend(self, tmp_path):
+        """Project analysis must not scan generated or third-party source."""
+        (tmp_path / "app.py").write_text(
+            'cpf = "123.456.789-00"\n',
+            encoding="utf-8",
+        )
+        ignored_files = [
+            tmp_path / ".venv" / "Lib" / "site-packages" / "dependency.py",
+            tmp_path / "venv" / "dependency.py",
+            tmp_path / "node_modules" / "package.py",
+            tmp_path / "build" / "generated.py",
+            tmp_path / "dist" / "generated.py",
+            tmp_path / "vscode-extension" / "python_backend" / "code_analyzer.py",
+        ]
+        for path in ignored_files:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('password = "secret123"\n', encoding="utf-8")
+
+        results = analisar_diretorio(str(tmp_path))
+
+        assert len(results) == 1
+        assert results[0].arquivo.endswith("app.py")
+
+    def test_respects_privacyignore_file_and_directory_patterns(self, tmp_path):
+        """Projects can exclude intentional fixtures from full scans."""
+        (tmp_path / ".privacyignore").write_text(
+            "fixtures/\nexemplo_vulneravel.py\n",
+            encoding="utf-8",
+        )
+        (tmp_path / "app.py").write_text(
+            'cpf = "123.456.789-00"\n',
+            encoding="utf-8",
+        )
+        (tmp_path / "exemplo_vulneravel.py").write_text(
+            'password = "secret123"\n',
+            encoding="utf-8",
+        )
+        fixture = tmp_path / "fixtures" / "dados.py"
+        fixture.parent.mkdir()
+        fixture.write_text('email = "teste@exemplo.com"\n', encoding="utf-8")
+
+        results = analisar_diretorio(str(tmp_path))
+
+        assert len(results) == 1
+        assert results[0].arquivo.endswith("app.py")
+
+    def test_privacyignore_does_not_block_individual_analysis(self, tmp_path):
+        """Ignored files remain available for deliberate single-file demos."""
+        arquivo = tmp_path / "exemplo_vulneravel.py"
+        arquivo.write_text('password = "secret123"\n', encoding="utf-8")
+        (tmp_path / ".privacyignore").write_text(
+            "exemplo_vulneravel.py\n",
+            encoding="utf-8",
+        )
+
+        results = analisar_arquivo(str(arquivo))
+
+        assert any(v.categoria == "DADO_HARDCODED" for v in results)
+
 
 class TestIntegration:
     """Integration tests."""
+
+    def test_analyzer_does_not_flag_its_own_internal_assignments(self):
+        """The analyzer implementation should not trigger its assignment rule."""
+        results = analisar_arquivo("code_analyzer.py")
+
+        assert not any(v.categoria == "DADO_SEM_CRIPTOGRAFIA" for v in results)
     
     def test_full_analysis_flow(self, sample_vulnerable_code, temp_py_file):
         """Test full analysis from code to results."""

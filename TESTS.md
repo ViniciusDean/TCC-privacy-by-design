@@ -1,6 +1,6 @@
 # Testes do Privacy Scanner LGPD
 
-A suíte automatizada possui atualmente **79 testes**, todos passando.
+A suíte automatizada possui atualmente **93 testes**, todos passando.
 
 ## Executar
 
@@ -13,7 +13,7 @@ python -m pytest
 Resultado esperado:
 
 ```text
-79 passed
+93 passed
 ```
 
 Para saída detalhada:
@@ -123,3 +123,16 @@ Essa compilação verifica erros de tipo e gera `out/extension.js`.
 - Eles não comprovam cobertura completa da LGPD.
 - Eles não substituem avaliação jurídica.
 - O suporte Java não realiza análise de fluxo entre métodos ou resolução de tipos.
+
+## Benchmark experimental
+
+O diretório `evaluation/` contém 18 casos com gabarito para Python, Java e
+SQLite. Para gerar as métricas:
+
+```powershell
+python evaluation/run_benchmark.py
+```
+
+O relatório inicial é salvo em `evaluation/results/latest.md`. O resultado
+nesse conjunto controlado não deve ser generalizado para projetos reais sem uma
+segunda etapa de validação externa.

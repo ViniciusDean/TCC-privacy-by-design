@@ -173,6 +173,29 @@ class TestCorrectSchema:
         # Dados separados não devem gerar MISTURA_DADOS
         assert not any(v.categoria == "MISTURA_DADOS" for v in results)
 
+    def test_hashed_personal_data_still_requires_retention_control(
+        self,
+        temp_db_file,
+    ):
+        """Hash protects storage but does not remove governance obligations."""
+        conn = sqlite3.connect(temp_db_file)
+        cur = conn.cursor()
+        cur.execute('''
+            CREATE TABLE contatos (
+                id INTEGER PRIMARY KEY,
+                email_hash TEXT,
+                deleted_at TIMESTAMP,
+                consentimento BOOLEAN
+            )
+        ''')
+        conn.commit()
+        conn.close()
+
+        results = analisar_banco(temp_db_file)
+
+        assert not any(v.categoria == "CAMPO_SEM_HASH" for v in results)
+        assert any(v.categoria == "AUSENCIA_RETENCAO" for v in results)
+
 
 class TestEdgeCases:
     """Test edge cases and special scenarios."""

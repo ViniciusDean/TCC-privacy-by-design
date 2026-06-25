@@ -6,6 +6,7 @@ e os requisitos da Lei Geral de Proteção de Dados Pessoais (LGPD).
 """
 
 import ast
+import fnmatch
 import re
 import os
 from dataclasses import dataclass, field
@@ -55,6 +56,49 @@ METODOS_EXCLUSAO_ANONIMIZACAO = (
     "delete", "delet", "remov", "exclu", "anonimiz", "anonymiz", "purge",
 )
 
+DIRETORIOS_IGNORADOS = {
+    ".git", ".github", ".idea", ".mypy_cache", ".nox", ".pytest_cache",
+    ".ruff_cache", ".tox", ".venv", ".vscode", "__pycache__", "build",
+    "coverage", "dist", "env", "htmlcov", "node_modules", "out",
+    "python_backend", "site-packages", "third_party", "vendor", "venv",
+}
+ARQUIVO_IGNORADOS = ".privacyignore"
+
+
+def carregar_padroes_ignorados(diretorio: str) -> list[str]:
+    caminho = os.path.join(diretorio, ARQUIVO_IGNORADOS)
+    if not os.path.isfile(caminho):
+        return []
+    with open(caminho, encoding="utf-8") as arquivo:
+        return [
+            linha.strip().replace("\\", "/")
+            for linha in arquivo
+            if linha.strip() and not linha.lstrip().startswith("#")
+        ]
+
+
+def caminho_deve_ser_ignorado(
+    caminho_relativo: str,
+    padroes: list[str],
+    diretorio: bool = False,
+) -> bool:
+    relativo = caminho_relativo.replace("\\", "/").strip("/")
+    for padrao_original in padroes:
+        padrao = padrao_original.strip().lstrip("./").strip("/")
+        if not padrao:
+            continue
+        if padrao_original.rstrip().endswith("/"):
+            if relativo == padrao or relativo.startswith(f"{padrao}/"):
+                return True
+            continue
+        if fnmatch.fnmatch(relativo, padrao):
+            return True
+        if "/" not in padrao and fnmatch.fnmatch(os.path.basename(relativo), padrao):
+            return True
+        if diretorio and relativo == padrao:
+            return True
+    return False
+
 # Funções de log mais comuns em Python
 FUNCOES_LOG = [
     "print", "logging.debug", "logging.info",
@@ -100,6 +144,7 @@ class CodeAnalyzer(ast.NodeVisitor):
         self.linhas     = codigo_fonte.splitlines()
         self.resultados: list[Vulnerability] = []
         self._pilha_funcoes: list[ast.FunctionDef] = []
+        self._pilha_classes: list[ast.ClassDef] = []
 
     def visit(self, node):
         if isinstance(node, ast.FunctionDef):
@@ -108,6 +153,12 @@ class CodeAnalyzer(ast.NodeVisitor):
                 return super().visit(node)
             finally:
                 self._pilha_funcoes.pop()
+        if isinstance(node, ast.ClassDef):
+            self._pilha_classes.append(node)
+            try:
+                return super().visit(node)
+            finally:
+                self._pilha_classes.pop()
         return super().visit(node)
 
     # ── Utilitários ──────────────────────────────────────────────────────────
@@ -172,6 +223,39 @@ class CodeAnalyzer(ast.NodeVisitor):
         parametros = {arg.arg for arg in funcao.args.args}
         return node.value.id == nome and node.value.id in parametros
 
+    def _atribuicao_ambigua_tem_contexto_pessoal(
+        self,
+        nome: str,
+        target: ast.expr,
+        valor: ast.expr,
+    ) -> bool:
+        """Exige contexto adicional para campos ambiguos como nome/name/idade."""
+        tokens = [t for t in re.split(r"[^a-z0-9]+|_", nome.lower()) if t]
+        if any(token in CONTEXTO_PESSOAL for token in tokens):
+            return True
+
+        if self._contexto_atual_pessoal():
+            return True
+
+        # Entrada explicita do usuario e um sinal forte de coleta de dado pessoal.
+        return isinstance(valor, ast.Call) and self._nome_call(valor) == "input"
+
+    def _contexto_atual_pessoal(self) -> bool:
+        nomes = [node.name for node in self._pilha_classes + self._pilha_funcoes]
+        return any(
+            token in CONTEXTO_PESSOAL
+            for nome in nomes
+            for token in re.split(r"[^a-z0-9]+|_", nome.lower())
+            if token
+        )
+
+    def _campo_ambiguo_tem_contexto(self, nome: str) -> bool:
+        tokens = [t for t in re.split(r"[^a-z0-9]+|_", nome.lower()) if t]
+        return (
+            any(token in CONTEXTO_PESSOAL for token in tokens)
+            or self._contexto_atual_pessoal()
+        )
+
     # ── Regra 1: variável com dado sensível atribuída como string simples ────
 
     def visit_Assign(self, node: ast.Assign):
@@ -193,6 +277,13 @@ class CodeAnalyzer(ast.NodeVisitor):
                 if campo:
                     if self._em_funcao_exclusao_anonimizacao():
                         continue
+                    if (
+                        campo in CAMPOS_AMBIGUOS
+                        and not self._atribuicao_ambigua_tem_contexto_pessoal(
+                            nome, target, node.value
+                        )
+                    ):
+                        continue
                     # Verifica se o valor é string literal (dado hardcoded)
                     if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
                         # Ignora atribuições vazias (inicializações) — não é dado real
@@ -208,6 +299,8 @@ class CodeAnalyzer(ast.NodeVisitor):
                                 "Art. 46 — Segurança e prevenção"
                             )
                     else:
+                        if isinstance(node.value, ast.Constant) and node.value.value is None:
+                            continue
                         if self._valor_e_parametro(nome, node):
                             continue
                         # Atribuição normal — verifica se há criptografia na mesma linha
@@ -260,7 +353,10 @@ class CodeAnalyzer(ast.NodeVisitor):
                 variaveis = self._extrair_nomes(arg)
                 for var in variaveis:
                     campo = self._nome_contem_campo_sensivel(var)
-                    if campo:
+                    if campo and (
+                        campo not in CAMPOS_AMBIGUOS
+                        or self._campo_ambiguo_tem_contexto(var)
+                    ):
                         self._adicionar(
                             node.lineno,
                             "DADO_EM_LOG",
@@ -303,12 +399,18 @@ class CodeAnalyzer(ast.NodeVisitor):
         indicando possível coleta excessiva.
         """
         campos_encontrados = []
+        campos_fortes = []
         for arg in node.args.args:
             campo = self._nome_contem_campo_sensivel(arg.arg)
             if campo:
                 campos_encontrados.append(campo)
+                if campo not in CAMPOS_AMBIGUOS:
+                    campos_fortes.append(campo)
 
-        if len(campos_encontrados) >= 4:
+        if (
+            len(campos_encontrados) >= 4
+            and (campos_fortes or self._contexto_atual_pessoal())
+        ):
             self._adicionar(
                 node.lineno,
                 "COLETA_EXCESSIVA",
@@ -342,6 +444,13 @@ class CodeAnalyzer(ast.NodeVisitor):
                 metodos.append(item.name.lower())
 
         if campos_na_classe:
+            campos_fortes = [
+                nome for nome in campos_na_classe
+                if self._nome_contem_campo_sensivel(nome) not in CAMPOS_AMBIGUOS
+            ]
+            if not campos_fortes and not self._contexto_atual_pessoal():
+                self.generic_visit(node)
+                return
             tem_exclusao = any(
                 p in m for m in metodos
                 for p in ["delete", "remov", "exclu", "anonimiz", "anonymiz", "purge"]
@@ -427,12 +536,26 @@ def analisar_diretorio(diretorio: str) -> list[Vulnerability]:
     Varre recursivamente um diretório e analisa arquivos .py e .java.
     """
     todos: list[Vulnerability] = []
-    ignorados = {".git", "node_modules", "__pycache__", ".pytest_cache", "htmlcov", "out"}
+    diretorio_raiz = os.path.abspath(diretorio)
+    padroes_ignorados = carregar_padroes_ignorados(diretorio_raiz)
     for raiz, diretorios, arquivos in os.walk(diretorio):
-        diretorios[:] = [d for d in diretorios if d not in ignorados]
+        diretorios[:] = [
+            nome for nome in diretorios
+            if (
+                nome.lower() not in DIRETORIOS_IGNORADOS
+                and not caminho_deve_ser_ignorado(
+                    os.path.relpath(os.path.join(raiz, nome), diretorio_raiz),
+                    padroes_ignorados,
+                    diretorio=True,
+                )
+            )
+        ]
         for arquivo in arquivos:
             if arquivo.lower().endswith((".py", ".java")):
                 caminho = os.path.join(raiz, arquivo)
+                relativo = os.path.relpath(caminho, diretorio_raiz)
+                if caminho_deve_ser_ignorado(relativo, padroes_ignorados):
+                    continue
                 todos.extend(analisar_arquivo(caminho))
     return todos
 

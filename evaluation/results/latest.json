@@ -1,0 +1,595 @@
+{
+  "benchmark_version": 1,
+  "generated_at": "2026-06-15T03:13:27.715364+00:00",
+  "case_count": 18,
+  "overall": {
+    "tp": 24,
+    "fp": 0,
+    "fn": 0,
+    "tn": 96,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "specificity": 1.0
+  },
+  "by_type": {
+    "java": {
+      "tp": 7,
+      "fp": 0,
+      "fn": 0,
+      "tn": 35,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "specificity": 1.0
+    },
+    "python": {
+      "tp": 7,
+      "fp": 0,
+      "fn": 0,
+      "tn": 35,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "specificity": 1.0
+    },
+    "sqlite": {
+      "tp": 10,
+      "fp": 0,
+      "fn": 0,
+      "tn": 26,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "specificity": 1.0
+    }
+  },
+  "by_category": {
+    "AUSENCIA_CONSENTIMENTO": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "tn": 5,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "specificity": 1.0
+    },
+    "AUSENCIA_EXCLUSAO": {
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "tn": 10,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "specificity": 1.0
+    },
+    "AUSENCIA_RETENCAO": {
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "tn": 3,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "specificity": 1.0
+    },
+    "AUSENCIA_SOFT_DELETE": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "tn": 5,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "specificity": 1.0
+    },
+    "CAMPO_SEM_HASH": {
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "tn": 3,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "specificity": 1.0
+    },
+    "COLETA_EXCESSIVA": {
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "tn": 10,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "specificity": 1.0
+    },
+    "CRIPTOGRAFIA_FRACA": {
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "tn": 10,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "specificity": 1.0
+    },
+    "DADO_EM_LOG": {
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "tn": 10,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "specificity": 1.0
+    },
+    "DADO_HARDCODED": {
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "tn": 10,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "specificity": 1.0
+    },
+    "DADO_SEM_CRIPTOGRAFIA": {
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "tn": 10,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "specificity": 1.0
+    },
+    "DADO_SENSIVEL_COMO_PK": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "tn": 5,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "specificity": 1.0
+    },
+    "MISTURA_DADOS": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "tn": 5,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "specificity": 1.0
+    },
+    "TRANSFERENCIA_SEM_BASE_LEGAL": {
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "tn": 10,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "specificity": 1.0
+    }
+  },
+  "cases": [
+    {
+      "id": "py_hardcoded_log",
+      "type": "python",
+      "path": "cases/python/py_hardcoded_log.py",
+      "expected": [
+        "DADO_EM_LOG",
+        "DADO_HARDCODED"
+      ],
+      "predicted": [
+        "DADO_EM_LOG",
+        "DADO_HARDCODED"
+      ],
+      "missing": [],
+      "unexpected": [],
+      "metrics": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "tn": 5,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0
+      }
+    },
+    {
+      "id": "py_crypto_transfer",
+      "type": "python",
+      "path": "cases/python/py_crypto_transfer.py",
+      "expected": [
+        "CRIPTOGRAFIA_FRACA",
+        "TRANSFERENCIA_SEM_BASE_LEGAL"
+      ],
+      "predicted": [
+        "CRIPTOGRAFIA_FRACA",
+        "TRANSFERENCIA_SEM_BASE_LEGAL"
+      ],
+      "missing": [],
+      "unexpected": [],
+      "metrics": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "tn": 5,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0
+      }
+    },
+    {
+      "id": "py_model_without_controls",
+      "type": "python",
+      "path": "cases/python/py_model_without_controls.py",
+      "expected": [
+        "AUSENCIA_EXCLUSAO",
+        "DADO_SEM_CRIPTOGRAFIA"
+      ],
+      "predicted": [
+        "AUSENCIA_EXCLUSAO",
+        "DADO_SEM_CRIPTOGRAFIA"
+      ],
+      "missing": [],
+      "unexpected": [],
+      "metrics": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "tn": 5,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0
+      }
+    },
+    {
+      "id": "py_excessive_collection",
+      "type": "python",
+      "path": "cases/python/py_excessive_collection.py",
+      "expected": [
+        "COLETA_EXCESSIVA"
+      ],
+      "predicted": [
+        "COLETA_EXCESSIVA"
+      ],
+      "missing": [],
+      "unexpected": [],
+      "metrics": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "tn": 6,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0
+      }
+    },
+    {
+      "id": "py_safe_hashing",
+      "type": "python",
+      "path": "cases/python/py_safe_hashing.py",
+      "expected": [],
+      "predicted": [],
+      "missing": [],
+      "unexpected": [],
+      "metrics": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 7,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "specificity": 1.0
+      }
+    },
+    {
+      "id": "py_safe_technical_metadata",
+      "type": "python",
+      "path": "cases/python/py_safe_technical_metadata.py",
+      "expected": [],
+      "predicted": [],
+      "missing": [],
+      "unexpected": [],
+      "metrics": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 7,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "specificity": 1.0
+      }
+    },
+    {
+      "id": "java_hardcoded_log",
+      "type": "java",
+      "path": "cases/java/JavaHardcodedLog.java",
+      "expected": [
+        "DADO_EM_LOG",
+        "DADO_HARDCODED"
+      ],
+      "predicted": [
+        "DADO_EM_LOG",
+        "DADO_HARDCODED"
+      ],
+      "missing": [],
+      "unexpected": [],
+      "metrics": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "tn": 5,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0
+      }
+    },
+    {
+      "id": "java_crypto_transfer",
+      "type": "java",
+      "path": "cases/java/JavaCryptoTransfer.java",
+      "expected": [
+        "CRIPTOGRAFIA_FRACA",
+        "TRANSFERENCIA_SEM_BASE_LEGAL"
+      ],
+      "predicted": [
+        "CRIPTOGRAFIA_FRACA",
+        "TRANSFERENCIA_SEM_BASE_LEGAL"
+      ],
+      "missing": [],
+      "unexpected": [],
+      "metrics": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "tn": 5,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0
+      }
+    },
+    {
+      "id": "java_model_without_controls",
+      "type": "java",
+      "path": "cases/java/JavaModelWithoutControls.java",
+      "expected": [
+        "AUSENCIA_EXCLUSAO",
+        "DADO_SEM_CRIPTOGRAFIA"
+      ],
+      "predicted": [
+        "AUSENCIA_EXCLUSAO",
+        "DADO_SEM_CRIPTOGRAFIA"
+      ],
+      "missing": [],
+      "unexpected": [],
+      "metrics": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "tn": 5,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0
+      }
+    },
+    {
+      "id": "java_excessive_collection",
+      "type": "java",
+      "path": "cases/java/JavaExcessiveCollection.java",
+      "expected": [
+        "COLETA_EXCESSIVA"
+      ],
+      "predicted": [
+        "COLETA_EXCESSIVA"
+      ],
+      "missing": [],
+      "unexpected": [],
+      "metrics": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "tn": 6,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0
+      }
+    },
+    {
+      "id": "java_safe_hashing",
+      "type": "java",
+      "path": "cases/java/JavaSafeHashing.java",
+      "expected": [],
+      "predicted": [],
+      "missing": [],
+      "unexpected": [],
+      "metrics": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 7,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "specificity": 1.0
+      }
+    },
+    {
+      "id": "java_safe_technical_metadata",
+      "type": "java",
+      "path": "cases/java/JavaSafeTechnicalMetadata.java",
+      "expected": [],
+      "predicted": [],
+      "missing": [],
+      "unexpected": [],
+      "metrics": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 7,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "specificity": 1.0
+      }
+    },
+    {
+      "id": "db_plaintext_missing_controls",
+      "type": "sqlite",
+      "path": "cases/sqlite/db_plaintext_missing_controls.sql",
+      "expected": [
+        "AUSENCIA_CONSENTIMENTO",
+        "AUSENCIA_RETENCAO",
+        "AUSENCIA_SOFT_DELETE",
+        "CAMPO_SEM_HASH"
+      ],
+      "predicted": [
+        "AUSENCIA_CONSENTIMENTO",
+        "AUSENCIA_RETENCAO",
+        "AUSENCIA_SOFT_DELETE",
+        "CAMPO_SEM_HASH"
+      ],
+      "missing": [],
+      "unexpected": [],
+      "metrics": {
+        "tp": 4,
+        "fp": 0,
+        "fn": 0,
+        "tn": 2,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0
+      }
+    },
+    {
+      "id": "db_sensitive_primary_key",
+      "type": "sqlite",
+      "path": "cases/sqlite/db_sensitive_primary_key.sql",
+      "expected": [
+        "AUSENCIA_RETENCAO",
+        "CAMPO_SEM_HASH",
+        "DADO_SENSIVEL_COMO_PK"
+      ],
+      "predicted": [
+        "AUSENCIA_RETENCAO",
+        "CAMPO_SEM_HASH",
+        "DADO_SENSIVEL_COMO_PK"
+      ],
+      "missing": [],
+      "unexpected": [],
+      "metrics": {
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "tn": 3,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0
+      }
+    },
+    {
+      "id": "db_mixed_data",
+      "type": "sqlite",
+      "path": "cases/sqlite/db_mixed_data.sql",
+      "expected": [
+        "CAMPO_SEM_HASH",
+        "MISTURA_DADOS"
+      ],
+      "predicted": [
+        "CAMPO_SEM_HASH",
+        "MISTURA_DADOS"
+      ],
+      "missing": [],
+      "unexpected": [],
+      "metrics": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "tn": 4,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0
+      }
+    },
+    {
+      "id": "db_missing_retention",
+      "type": "sqlite",
+      "path": "cases/sqlite/db_missing_retention.sql",
+      "expected": [
+        "AUSENCIA_RETENCAO"
+      ],
+      "predicted": [
+        "AUSENCIA_RETENCAO"
+      ],
+      "missing": [],
+      "unexpected": [],
+      "metrics": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "tn": 5,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0
+      }
+    },
+    {
+      "id": "db_safe_protected_schema",
+      "type": "sqlite",
+      "path": "cases/sqlite/db_safe_protected_schema.sql",
+      "expected": [],
+      "predicted": [],
+      "missing": [],
+      "unexpected": [],
+      "metrics": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 6,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "specificity": 1.0
+      }
+    },
+    {
+      "id": "db_safe_operational_schema",
+      "type": "sqlite",
+      "path": "cases/sqlite/db_safe_operational_schema.sql",
+      "expected": [],
+      "predicted": [],
+      "missing": [],
+      "unexpected": [],
+      "metrics": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 6,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "specificity": 1.0
+      }
+    }
+  ]
+}

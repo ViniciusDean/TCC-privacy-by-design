@@ -224,7 +224,7 @@ python -m pytest
 Resultado esperado:
 
 ```text
-79 passed
+89 passed
 ```
 
 ## Gerar e Instalar o VSIX
@@ -240,12 +240,12 @@ O comando:
 
 1. copia o backend Python necessário para dentro do pacote;
 2. compila o TypeScript;
-3. gera `privacy-scanner-lgpd-1.0.1.vsix`.
+3. gera `privacy-scanner-lgpd-1.0.2.vsix`.
 
 Para instalar pelo terminal:
 
 ```powershell
-code --install-extension .\privacy-scanner-lgpd-1.0.1.vsix --force
+code --install-extension .\privacy-scanner-lgpd-1.0.2.vsix --force
 ```
 
 Também é possível abrir a área de extensões do VS Code, clicar em `...`,
@@ -268,6 +268,20 @@ usando o `requirements.txt` incluído no VSIX.
 Cada push para `main` executa o workflow do GitHub Actions. Ao final de uma
 execução bem-sucedida, o VSIX fica disponível na seção `Artifacts` com o nome
 `privacy-scanner-lgpd-vsix`.
+
+## Exclusões e falsos positivos
+
+Na análise do projeto inteiro, a extensão ignora automaticamente ambientes
+virtuais, dependências, caches, builds e o backend empacotado.
+
+Use `.privacyignore` na raiz do projeto para excluir fixtures próprias:
+
+```text
+tests/fixtures/
+exemplo_vulneravel.py
+```
+
+A exclusão não impede o comando `Analisar arquivo atual`.
 
 ## Troubleshooting
 

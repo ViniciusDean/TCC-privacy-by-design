@@ -91,7 +91,7 @@ python -m pytest
 Resultado esperado:
 
 ```text
-79 passed
+93 passed
 ```
 
 ### 4. Testar a extensão no VS Code
@@ -374,7 +374,8 @@ Implementado:
 - botão de exportação;
 - Code Actions;
 - workspace de teste;
-- suíte automatizada com 79 testes.
+- suíte automatizada com 93 testes;
+- benchmark experimental inicial com 18 casos versionados.
 
 Próximas etapas:
 
@@ -387,7 +388,7 @@ Próximas etapas:
 cd vscode-extension
 npm install
 npm run package
-code --install-extension .\privacy-scanner-lgpd-1.0.1.vsix --force
+code --install-extension .\privacy-scanner-lgpd-1.0.2.vsix --force
 ```
 
 O VSIX inclui o backend Python e funciona sem manter o repositório do TCC
@@ -399,7 +400,7 @@ O workflow `.github/workflows/ci.yml` é executado em cada push para `main`,
 pull request ou acionamento manual. Ele:
 
 - instala as dependências Python;
-- executa os 79 testes;
+- executa os 93 testes;
 - instala as dependências da extensão com `npm ci`;
 - compila o TypeScript;
 - gera o VSIX;
@@ -407,6 +408,25 @@ pull request ou acionamento manual. Ele:
 
 Para baixar, abra a aba `Actions` do repositório, selecione uma execução e
 baixe o artefato `privacy-scanner-lgpd-vsix`.
+
+### Exclusões da análise
+
+A análise de projeto ignora automaticamente dependências e arquivos gerados,
+incluindo `.venv`, `venv`, `site-packages`, `node_modules`, `build`, `dist`,
+caches e o backend empacotado da extensão.
+
+Para excluir fixtures ou exemplos específicos, crie `.privacyignore` na raiz:
+
+```text
+# Diretório completo
+fixtures/
+
+# Arquivo específico
+exemplo_vulneravel.py
+```
+
+O `.privacyignore` afeta apenas a análise do projeto inteiro. Um arquivo
+ignorado ainda pode ser analisado individualmente.
 
 ## Limitações Conhecidas
 

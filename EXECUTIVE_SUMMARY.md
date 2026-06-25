@@ -33,7 +33,7 @@ Privacy Scanner LGPD Ã© uma **ferramenta de anÃ¡lise estÃ¡tica** que detec
 - RecomendaÃ§Ãµes por categoria
 
 âœ… **Testes Completos**
-- **79 testes automatizados** — 100% passando
+- **93 testes automatizados** — 100% passando
 - **74% cobertura de cÃ³digo**
 - ValidaÃ§Ã£o de todos os bug fixes
 
@@ -45,7 +45,7 @@ Privacy Scanner LGPD Ã© uma **ferramenta de anÃ¡lise estÃ¡tica** que detec
 â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
 â”‚ Testes UnitÃ¡rios                        â”‚
 â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-79/79 PASSOU (0 falhas)
+93/93 PASSOU (0 falhas)
 â”‚ âœ… 74% cobertura mÃ©dia                  â”‚
 â”‚ âœ… 0 erros, 0 warnings                  â”‚
 â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
@@ -197,7 +197,7 @@ validate_project.bat
 ### 2. Rodar Testes (validar)
 ```bash
 pytest tests/ -v
-# Resultado: 79 passed
+# Resultado: 93 passed
 ```
 
 ### 3. Usar no VS Code

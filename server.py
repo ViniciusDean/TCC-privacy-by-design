@@ -13,27 +13,45 @@ import json
 import base64
 import tempfile
 from flask import Flask, request, jsonify
-from code_analyzer import analisar_arquivo, analisar_diretorio
+from code_analyzer import (
+    DIRETORIOS_IGNORADOS,
+    analisar_arquivo,
+    analisar_diretorio,
+    caminho_deve_ser_ignorado,
+    carregar_padroes_ignorados,
+)
 from db_analyzer import analisar_banco
 from reporter import Reporter, RECOMENDACOES
 from dataclasses import asdict
 
 
 app = Flask(__name__)
-port = int(sys.argv[1]) if len(sys.argv) > 1 else 5000
+port = int(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1].isdigit() else 5000
 DB_EXTENSIONS = ('.db', '.sqlite', '.sqlite3')
 
 
 def analisar_bancos_diretorio(directory):
     resultados = []
+    directory_root = os.path.abspath(directory)
+    padroes_ignorados = carregar_padroes_ignorados(directory_root)
     for root, dirs, files in os.walk(directory):
         dirs[:] = [
             d for d in dirs
-            if d not in {'node_modules', '.git', '__pycache__', 'htmlcov', '.pytest_cache'}
+            if (
+                d.lower() not in DIRETORIOS_IGNORADOS
+                and not caminho_deve_ser_ignorado(
+                    os.path.relpath(os.path.join(root, d), directory_root),
+                    padroes_ignorados,
+                    diretorio=True,
+                )
+            )
         ]
         for filename in files:
             if filename.lower().endswith(DB_EXTENSIONS):
-                resultados.extend(analisar_banco(os.path.join(root, filename)))
+                caminho = os.path.join(root, filename)
+                relativo = os.path.relpath(caminho, directory_root)
+                if not caminho_deve_ser_ignorado(relativo, padroes_ignorados):
+                    resultados.extend(analisar_banco(caminho))
     return resultados
 
 
@@ -103,7 +121,10 @@ def analyze_directory():
         if not os.path.isdir(directory):
             return jsonify({'success': False, 'error': f'Diretório não encontrado: {directory}'}), 404
 
-        vulnerabilities = analisar_diretorio(directory)
+        vulnerabilities = (
+            analisar_diretorio(directory)
+            + analisar_bancos_diretorio(directory)
+        )
 
         # Adicionar recomendações
         vulns_dict = []

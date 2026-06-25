@@ -58,8 +58,6 @@ let allVulnerabilities: Map<string, Vulnerability[]> = new Map();
 let vulnerabilitiesProvider: VulnerabilitiesProvider;
 let summaryProvider: SummaryProvider;
 
-const DB_FILE_PATTERN = '**/*.{db,sqlite,sqlite3}';
-const EXCLUDE_PATTERN = '**/{node_modules,.git,__pycache__,htmlcov,.pytest_cache}/**';
 const IGNORED_VULNERABILITIES_KEY = 'privacy-scanner.ignoredVulnerabilities';
 
 const riskToSeverity = (risk: string): vscode.DiagnosticSeverity => {
@@ -600,11 +598,6 @@ async function analyzeWorkspace() {
                     const uri = vscode.Uri.file(arquivo);
                     displayDiagnostics(uri, vulns);
                 }
-            }
-
-            const databaseUris = await vscode.workspace.findFiles(DB_FILE_PATTERN, EXCLUDE_PATTERN);
-            for (const dbUri of databaseUris) {
-                await analyzeDatabaseUri(dbUri);
             }
 
             // Refresh TreeViews

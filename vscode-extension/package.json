@@ -2,7 +2,7 @@
   "name": "privacy-scanner-lgpd",
   "displayName": "Privacy Scanner LGPD",
   "description": "Análise estática de vulnerabilidades de privacidade conforme LGPD e Privacy by Design",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": "TCC FATEC",
   "license": "MIT",
   "publisher": "fatec-tcc",

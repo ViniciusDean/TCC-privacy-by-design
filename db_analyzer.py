@@ -93,15 +93,18 @@ class DBAnalyzer:
             trecho=trecho,
         ))
 
-    def _campo_sensivel(self, nome: str) -> Optional[str]:
+    def _campo_pessoal(self, nome: str) -> Optional[str]:
         nome_lower = nome.lower()
         # Ignora se já tem sufixo de hash/criptografia
-        if any(nome_lower.endswith(s) for s in SUFIXOS_HASH):
-            return None
         for campo in CAMPOS_SENSIVEIS:
             if campo in nome_lower:
                 return campo
         return None
+
+    def _campo_sensivel(self, nome: str) -> Optional[str]:
+        if any(nome.lower().endswith(s) for s in SUFIXOS_HASH):
+            return None
+        return self._campo_pessoal(nome)
 
     def _tabelas(self) -> list[str]:
         self.cur.execute(
@@ -156,7 +159,7 @@ class DBAnalyzer:
     # ── Regra 2: tabela com dados pessoais sem coluna de exclusão ────────────
     def _verificar_exclusao(self, tabela: str, colunas: list[dict]):
         nomes_colunas = [c["name"].lower() for c in colunas]
-        tem_sensivel  = any(self._campo_sensivel(n) for n in nomes_colunas)
+        tem_sensivel  = any(self._campo_pessoal(n) for n in nomes_colunas)
         tem_exclusao  = any(ex in nomes_colunas for ex in COLUNAS_EXCLUSAO)
 
         if tem_sensivel and not tem_exclusao:
@@ -174,7 +177,7 @@ class DBAnalyzer:
     # ── Regra 3: tabela com dados pessoais sem controle de retenção ──────────
     def _verificar_retencao(self, tabela: str, colunas: list[dict]):
         nomes_colunas = [c["name"].lower() for c in colunas]
-        tem_sensivel  = any(self._campo_sensivel(n) for n in nomes_colunas)
+        tem_sensivel  = any(self._campo_pessoal(n) for n in nomes_colunas)
         tem_retencao  = any(r in nomes_colunas for r in COLUNAS_RETENCAO)
 
         if tem_sensivel and not tem_retencao:
@@ -195,7 +198,7 @@ class DBAnalyzer:
         operacionais (status, created_at, updated_at etc.), indicando
         ausência de separação de dados.
         """
-        campos_sensiveis  = [c for c in colunas if self._campo_sensivel(c["name"])]
+        campos_sensiveis  = [c for c in colunas if self._campo_pessoal(c["name"])]
         campos_operacionais = [
             c for c in colunas
             if any(op in c["name"].lower()
@@ -249,7 +252,7 @@ class DBAnalyzer:
         podem facilitar correlação entre sistemas (linkability).
         """
         for col in colunas:
-            campo = self._campo_sensivel(col["name"])
+            campo = self._campo_pessoal(col["name"])
             if not campo:
                 continue
             if col["pk"] == 1:

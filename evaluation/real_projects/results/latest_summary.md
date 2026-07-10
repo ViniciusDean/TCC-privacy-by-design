@@ -1,16 +1,16 @@
 # Validação externa - achados técnicos
 
-Gerado em: `2026-07-10T02:07:16.459842+00:00`
-Execução: `20260710T020716Z-e3b1571f`
-Commit: `12eceb859b705347c42f8149fc64009ad8607b48` (dirty)
+Gerado em: `2026-07-10T02:44:46.749181+00:00`
+Execução: `20260710T024446Z-d034f8fc`
+Commit: `1ef3bdc61fb3e7533f86d340f6415160e9f47346` (clean)
 
 ## Projetos analisados
 
 | Projeto | Papel | Tipo | Arquivos Python | Arquivos Java | SQLite | Achados | Tempo (s) | Hash do escopo |
 |---|---|---|---:|---:|---:|---:|---:|---|
-| peak_back_end | tuning | source | 0 | 130 | 0 | 8 | 0.1469 | badc5dd118d8 |
-| flasky | validation | source | 39 | 0 | 0 | 16 | 0.0412 | 67962b6e8c35 |
-| chinook_sqlite | validation | sqlite | 0 | 0 | 1 | 32 | 0.0491 | 264a04693434 |
+| peak_back_end | tuning | source | 0 | 130 | 0 | 8 | 0.2042 | badc5dd118d8 |
+| flasky | validation | source | 39 | 0 | 0 | 16 | 0.0536 | 67962b6e8c35 |
+| chinook_sqlite | validation | sqlite | 0 | 0 | 1 | 32 | 0.0880 | 264a04693434 |
 
 ## Revisão manual por projeto
 
@@ -25,4 +25,4 @@ Commit: `12eceb859b705347c42f8149fc64009ad8607b48` (dirty)
 - `tuning`: precisão **100.00%**, recall **88.89%**, F1 **94.12%**.
 - `validation`: precisão **39.58%**, recall **48.72%**, F1 **43.68%**.
 
-A execução externa é exploratória até que a revisão manual esteja completa; ela não deve ser usada como estimativa de precisão em projetos reais antes disso.
+A revisão manual foi concluída para os escopos registrados. As métricas descrevem somente estes projetos e commits; não devem ser generalizadas para outros sistemas.

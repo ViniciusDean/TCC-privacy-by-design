@@ -1,10 +1,10 @@
 {
-  "run_id": "20260710T020716Z-e3b1571f",
-  "generated_at": "2026-07-10T02:07:16.459842+00:00",
+  "run_id": "20260710T024446Z-d034f8fc",
+  "generated_at": "2026-07-10T02:44:46.749181+00:00",
   "provenance": {
     "scanner_version": "1.0.4",
-    "git_commit": "12eceb859b705347c42f8149fc64009ad8607b48",
-    "working_tree": "dirty",
+    "git_commit": "1ef3bdc61fb3e7533f86d340f6415160e9f47346",
+    "working_tree": "clean",
     "python": "3.14.5",
     "platform": "Windows-11-10.0.26200-SP0"
   },
@@ -19,7 +19,7 @@
       "metadata": {
         "python_files": 0,
         "java_files": 130,
-        "elapsed_seconds": 0.1469,
+        "elapsed_seconds": 0.2042,
         "finding_count": 8,
         "input_sha256": "badc5dd118d85fda3063387d1045b6cb8de439a438ce576a1cec0d4a31c94bcf"
       }
@@ -34,7 +34,7 @@
       "metadata": {
         "python_files": 39,
         "java_files": 0,
-        "elapsed_seconds": 0.0412,
+        "elapsed_seconds": 0.0536,
         "finding_count": 16,
         "input_sha256": "67962b6e8c35d49b12138c2919f1051f332ac8a2bf2462bb8d8a3ce44556fda6"
       }
@@ -48,7 +48,7 @@
       "fn_review_complete": true,
       "metadata": {
         "sqlite_files": 1,
-        "elapsed_seconds": 0.0491,
+        "elapsed_seconds": 0.088,
         "finding_count": 32,
         "input_sha256": "264a046934349837f580b3f816a073e58a55928b2125389b59f0a6920add2690"
       }

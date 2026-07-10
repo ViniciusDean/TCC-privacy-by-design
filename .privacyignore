@@ -6,3 +6,7 @@ teste_word_boundary.py
 
 # A suíte contém trechos vulneráveis usados como fixtures de teste.
 tests/
+
+# Corpora usados para benchmark/validacao externa; nao entram na auditoria do scanner.
+evaluation/benchmark/cases/
+evaluation/real_projects/workspaces/

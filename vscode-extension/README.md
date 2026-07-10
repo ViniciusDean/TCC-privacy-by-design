@@ -11,9 +11,10 @@ A extensão conversa com o servidor Flask do projeto e exibe os resultados dentr
 - Análise de projeto inteiro.
 - Análise de banco SQLite (`.db`, `.sqlite`, `.sqlite3`).
 - Diagnósticos no editor e no painel `Problems`.
-- Sidebar com vulnerabilidades agrupadas por risco.
-- Sidebar com score LGPD e resumo.
+- Sidebar com achados técnicos agrupados por risco.
+- Sidebar com indicador técnico e resumo canônico fornecido pelo backend.
 - Estado de carregamento durante a análise.
+- Cancelamento de requisições antigas, timeout e proteção contra respostas fora de ordem.
 - Botão/comando `Analisar agora`.
 - Code Actions com recomendações LGPD.
 - Exportação HTML.
@@ -72,7 +73,7 @@ Na Paleta de Comandos (`Ctrl+Shift+P`):
 - `Privacy Scanner: Exportar relatorio`
 - `Privacy Scanner: Exportar relatório HTML`
 - `Privacy Scanner: Exportar relatório JSON`
-- `Privacy Scanner: Mostrar vulnerabilidades`
+- `Privacy Scanner: Mostrar achados`
 
 ## Comportamento de Análise
 
@@ -95,53 +96,59 @@ Quando `privacy-scanner.autoAnalyzeOnSave` está ativado, arquivos Python, Java 
 
 A sidebar `Privacy Scanner` possui duas visões:
 
-### Vulnerabilidades
+### Achados técnicos
 
 Mostra:
 
 - riscos `ALTO`, `MEDIO` e `BAIXO`;
 - arquivos afetados;
-- vulnerabilidades por arquivo;
+- achados por arquivo;
 - ícones diferentes para código e banco;
-- clique para abrir vulnerabilidade de código na linha correspondente.
+- clique para abrir o achado de código na linha correspondente.
+
+Cada achado mostra somente categoria, arquivo, linha e evidência segura. A extensão
+não exibe nem persiste a linha bruta do código-fonte.
 
 ### Resumo
 
-Mostra:
+Mostra o indicador técnico, o total e as contagens por risco **recebidos no
+`resumo` do backend**. A extensão não recalcula o indicador a partir dos itens
+visíveis. Quando o backend não puder calcular o indicador para aquele escopo,
+ela mostra “não disponível”.
 
-- score LGPD;
-- total de vulnerabilidades;
-- quantidade de arquivos Python com achados;
-- quantidade de arquivos Java com achados;
-- quantidade de bancos SQLite com achados;
-- contagem por risco.
+O total de achados visíveis é apenas um estado da interface e fica separado do
+resumo bruto. Assim, ocultar um achado não muda o indicador técnico, as métricas
+brutas nem a exportação.
 
 Durante a análise, a sidebar mostra estado de carregamento para evitar exibir `100/100` antes do resultado real.
 
 ## Code Actions
 
-Quando uma vulnerabilidade aparece no editor:
+Quando um achado técnico aparece no editor:
 
 1. Clique na lâmpada/Quick Fix.
 2. Escolha `Ver recomendacao LGPD` ou `Copiar recomendacao LGPD`.
 
 A extensão não altera o código automaticamente. Ela mostra a recomendação para orientar a correção manual.
 
-## Ignorar Risco na Interface
+## Ocultar Achado na Interface
 
 Uma ocorrência pode ser ocultada de duas formas:
 
-- clique com o botão direito na vulnerabilidade da sidebar e escolha `Ignorar risco na interface`;
+- clique com o botão direito no achado da sidebar e escolha `Ocultar achado na interface`;
 - use a lâmpada/Quick Fix no editor e escolha `Ignorar este risco na interface`.
 
-O risco deixa de aparecer na sidebar, no resumo e no painel `Problems`. A preferência fica salva no workspace.
+O achado deixa de aparecer na sidebar e no painel `Problems`. A preferência fica salva no workspace.
 
-Essa opção não altera a análise do backend. O risco continua aparecendo nos relatórios HTML, JSON e PDF.
+Essa opção não altera a análise do backend. O indicador técnico e o resumo bruto
+permanecem iguais, e o achado continua aparecendo nos relatórios HTML, JSON e PDF.
+Na atualização para 1.0.3, ocultações antigas são redefinidas para remover chaves
+locais que podiam conter trechos de código.
 
 Para mostrar tudo novamente, execute:
 
 ```text
-Privacy Scanner: Restaurar riscos ignorados
+Privacy Scanner: Restaurar achados ocultados
 ```
 
 ## Exportação
@@ -178,6 +185,9 @@ Em `settings.json`:
 }
 ```
 
+- `enableSidebar`: mostra ou oculta as duas visões da sidebar imediatamente.
+- `showDiagnostics`: mostra ou remove os diagnósticos do painel `Problems` imediatamente.
+
 ## Arquitetura
 
 ```text
@@ -201,6 +211,16 @@ Endpoints usados:
 - `POST /api/analyze-database`;
 - `POST /api/export`.
 
+O `GET /health` precisa declarar `status: "ok"`, a identidade
+`service: "privacy-scanner"` (ou `privacy-scanner-lgpd`) e uma versão semver
+compatível com a série 1.x. A extensão recusa reutilizar uma porta ocupada por
+outro serviço.
+
+Para análises, o contrato canônico é `achados`, `resumo`,
+`criterio_indicador` e metadados de escopo. Os aliases legados
+`vulnerabilities`, `vulnerabilidades`, `summary` e `score_conformidade` são
+aceitos somente para compatibilidade.
+
 ## Desenvolvimento
 
 Compilar:
@@ -208,6 +228,16 @@ Compilar:
 ```powershell
 npm run compile
 ```
+
+Executar a validação TypeScript, lint e testes unitários do contrato:
+
+```powershell
+npm test
+```
+
+Esse comando também confirma que `VERSION` e `reporter.VERSAO_FERRAMENTA` na
+raiz correspondem à versão declarada pela extensão. Durante o empacotamento, a
+mesma verificação é repetida sobre o backend copiado para o VSIX.
 
 Compilar em modo contínuo:
 
@@ -218,13 +248,7 @@ npm run watch
 Rodar testes Python na raiz:
 
 ```powershell
-python -m pytest
-```
-
-Resultado esperado:
-
-```text
-89 passed
+python -m pytest -q
 ```
 
 ## Gerar e Instalar o VSIX
@@ -240,12 +264,12 @@ O comando:
 
 1. copia o backend Python necessário para dentro do pacote;
 2. compila o TypeScript;
-3. gera `privacy-scanner-lgpd-1.0.2.vsix`.
+3. gera `privacy-scanner-lgpd-1.0.4.vsix`.
 
 Para instalar pelo terminal:
 
 ```powershell
-code --install-extension .\privacy-scanner-lgpd-1.0.2.vsix --force
+code --install-extension .\privacy-scanner-lgpd-1.0.4.vsix --force
 ```
 
 Também é possível abrir a área de extensões do VS Code, clicar em `...`,
@@ -295,7 +319,8 @@ python -m pip install -r requirements.txt
 
 ### Porta 5000 em uso
 
-A extensão tenta reutilizar o servidor se ele já estiver ativo. Se a porta estiver ocupada por outro processo, altere:
+A extensão tenta reutilizar somente um backend que passe na validação de
+identidade e versão. Se a porta estiver ocupada por outro processo, altere:
 
 ```json
 {
@@ -338,7 +363,9 @@ Depois recarregue a janela `[Extension Development Host]`.
 - [x] Exportação PDF
 - [x] Save dialog para relatório
 - [x] Reutilização de servidor Flask ativo
-- [x] Ocultar riscos somente na interface
+- [x] Resumo canônico do backend sem recálculo no cliente
+- [x] Timeout, cancelamento e proteção contra respostas fora de ordem
+- [x] Ocultar achados somente na interface
 
 ## Limitações
 

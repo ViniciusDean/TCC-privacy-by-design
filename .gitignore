@@ -12,3 +12,24 @@ vscode-extension/src/*.d.ts
 ~$*.xlsx
 ~$*.pptx
 *.tmp
+evaluation/real_projects/workspaces/
+
+# Exportacoes historicas preservadas apenas como recuperacao local.
+TCC_Vinicius_Dean_modelo_Adilson_REGERADO_*.docx
+TCC_Vinicius_Dean_modelo_Adilson_RESTAURADO_*.docx
+TCC_Vinicius_Dean_modelo_Adilson_capitulo_7_*.docx
+TCC_Vinicius_Dean_modelo_Adilson_capitulo_7_*.pdf
+TCC_Vinicius_Dean_modelo_Adilson_capitulo_8_*.docx
+TCC_Vinicius_Dean_modelo_Adilson_capitulo_8_*.pdf
+TCC_Vinicius_Dean_modelo_Adilson_capitulos_6_7*.docx
+TCC_Vinicius_Dean_modelo_Adilson_capitulos_6_7*.pdf
+render_tcc_*/
+tmp/pdfs/
+.playwright-cli/
+
+# Arquivos intermediários do XeLaTeX; os PDFs nomeados permanecem versionáveis.
+output/pdf/main.aux
+output/pdf/main.log
+output/pdf/main.out
+output/pdf/main.pdf
+output/pdf/main.toc

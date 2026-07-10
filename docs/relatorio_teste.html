@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Privacy Scanner LGPD - Relatorio de Conformidade</title>
+  <title>Privacy Scanner LGPD - Relatorio Tecnico de Privacidade</title>
   <style>
     :root {
       --bg: #f5f7fb;
@@ -62,6 +62,16 @@
     .card.score { border-top: 4px solid #b91c1c; }
     .card.score .num { color: #b91c1c; }
     .panel { padding: 18px; }
+    .notice {
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      border-left: 4px solid #d97706;
+      border-radius: 8px;
+      padding: 12px 14px;
+      color: #78350f;
+      font-size: 13px;
+    }
+    .notice strong { display: block; margin-bottom: 4px; color: #78350f; }
     .targets { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .target-box { border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: #fbfdff; }
     .target-box span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 4px; }
@@ -155,26 +165,29 @@
     <div class="header-grid">
       <div>
         <h1>Privacy Scanner LGPD</h1>
-        <div class="subtitle">Relatorio de conformidade e evidencias de privacidade em codigo Python e SQLite.</div>
-        <div class="meta">Gerado em 2026-06-03 21:18:03 | Privacy by Design no ciclo de desenvolvimento</div>
+        <div class="subtitle">Relatorio tecnico de indicios de risco a privacidade em codigo Python, Java e SQLite.</div>
+        <div class="meta">Gerado em 2026-07-09 23:40:40 | Privacy by Design no ciclo de desenvolvimento</div>
       </div>
-      <div class="score-pill"><strong>40/100</strong><span>Critico</span></div>
+      <div class="score-pill"><strong>40/100</strong><span>Risco técnico crítico</span></div>
     </div>
   </header>
   <main>
     <section class="section">
+      <div class="notice"><strong>Limite da analise</strong>Os resultados representam indícios técnicos identificados por análise estática. Eles apoiam revisão de privacidade, mas não comprovam, sozinhos, conformidade ou desconformidade jurídica com a LGPD.</div>
+    </section>
+    <section class="section">
       <div class="cards">
-        <div class="card"><div class="num">7</div><div class="lbl">Total de vulnerabilidades</div></div>
+        <div class="card"><div class="num">7</div><div class="lbl">Total de achados tecnicos</div></div>
         <div class="card"><div class="num" style="color:#dc2626">5</div><div class="lbl">Risco alto</div></div>
         <div class="card"><div class="num" style="color:#d97706">2</div><div class="lbl">Risco medio</div></div>
         <div class="card"><div class="num" style="color:#2563eb">0</div><div class="lbl">Risco baixo</div></div>
-        <div class="card score"><div class="num">40</div><div class="lbl">Score LGPD (Critico)</div></div>
+        <div class="card score"><div class="num">40</div><div class="lbl">Indicador tecnico (Risco técnico crítico)</div></div>
       </div>
     </section>
     <section class="section">
       <h2>Escopo analisado</h2>
       <div class="panel targets">
-        <div class="target-box"><span>Codigo Python</span><code>exemplo_vulneravel.py</code></div>
+        <div class="target-box"><span>Codigo-fonte</span><code>exemplo_vulneravel.py</code></div>
         <div class="target-box"><span>Banco SQLite</span><code>Nao informado</code></div>
       </div>
     </section>
@@ -183,11 +196,10 @@
       <div class="panel">
         <div class="risk-row">
           <div class="risk-label">Arquivos</div>
-          <div class="muted">1 arquivo(s) Python com achados e 0 banco(s) SQLite com achados.</div>
+          <div class="muted">1 arquivo(s) Python, 0 arquivo(s) Java e 0 banco(s) SQLite com achados.</div>
           <div class="risk-count">1</div>
         </div>
-        
-            <div class="risk-row">
+          <div class="risk-row">
               <div class="risk-label">ALTO</div>
               <div class="risk-track">
                 <div class="risk-fill" style="width:71%;background:#dc2626"></div>
@@ -211,7 +223,7 @@
       </div>
     </section>
     <section class="section">
-      <h2>Vulnerabilidades e recomendacoes</h2>
+      <h2>Achados tecnicos e recomendacoes</h2>
       <div class="table-wrap">
         <div class="table-toolbar">
           <div class="filter-group" aria-label="Filtrar por risco">
@@ -233,7 +245,7 @@
                 <th class="sortable" data-sort="text">LGPD</th>
                 <th class="sortable" data-sort="text">Descricao</th>
                 <th>Recomendacao</th>
-                <th>Trecho</th>
+                <th>Evidencia segura</th>
               </tr>
             </thead>
             <tbody>
@@ -243,9 +255,9 @@
               <td><strong>DADO_HARDCODED</strong></td>
               <td>exemplo_vulneravel.py:11</td>
               <td>Art. 46 — Segurança e prevenção</td>
-              <td>Campo sensível &#x27;senha&#x27; recebe valor literal (dado pessoal fixo no código).</td>
+              <td>Possível dado pessoal literal identificado por análise estática.</td>
               <td>Remova valores literais de dados pessoais do código-fonte. Use variáveis de ambiente ou cofres de segredos (ex: .env, AWS Secrets Manager).</td>
-              <td><code>senha = &quot;minhasenha123&quot;         # ALTO — dado pessoal fixo no código</code></td>
+              <td><span>A regra identificou uma atribuição literal a um identificador classificado; o conteúdo foi ocultado.</span></td>
             </tr>
             <tr data-risk="ALTO" data-risk-order="3">
               <td class="index">2</td>
@@ -253,9 +265,9 @@
               <td><strong>DADO_HARDCODED</strong></td>
               <td>exemplo_vulneravel.py:12</td>
               <td>Art. 46 — Segurança e prevenção</td>
-              <td>Campo sensível &#x27;cpf&#x27; recebe valor literal (dado pessoal fixo no código).</td>
+              <td>Possível dado pessoal literal identificado por análise estática.</td>
               <td>Remova valores literais de dados pessoais do código-fonte. Use variáveis de ambiente ou cofres de segredos (ex: .env, AWS Secrets Manager).</td>
-              <td><code>cpf   = &quot;123.456.789-00&quot;        # ALTO — CPF hardcoded</code></td>
+              <td><span>A regra identificou uma atribuição literal a um identificador classificado; o conteúdo foi ocultado.</span></td>
             </tr>
             <tr data-risk="ALTO" data-risk-order="3">
               <td class="index">3</td>
@@ -263,9 +275,9 @@
               <td><strong>CRIPTOGRAFIA_FRACA</strong></td>
               <td>exemplo_vulneravel.py:15</td>
               <td>Art. 46 — Segurança e prevenção</td>
-              <td>Uso de algoritmo fraco: hashlib.md5(). Para senhas use bcrypt ou argon2; para integridade use sha256+.</td>
-              <td>Substitua MD5/SHA1 por algoritmos modernos. Para senhas: bcrypt, argon2 ou pbkdf2. Para integridade: SHA-256 ou SHA-512.</td>
-              <td><code>hash_senha = hashlib.md5(senha.encode()).hexdigest()   # ALTO — md5 é fraco</code></td>
+              <td>Algoritmo criptográfico potencialmente fraco identificado.</td>
+              <td>Substitua MD5/SHA1 por algoritmos modernos. Para senhas: bcrypt, argon2 ou PBKDF2. Para integridade: SHA-256 ou SHA-512.</td>
+              <td><span>A regra identificou uso de algoritmo criptográfico classificado como fraco.</span></td>
             </tr>
             <tr data-risk="ALTO" data-risk-order="3">
               <td class="index">4</td>
@@ -273,9 +285,9 @@
               <td><strong>DADO_EM_LOG</strong></td>
               <td>exemplo_vulneravel.py:18</td>
               <td>Art. 46 — Segurança | Art. 6º, III — Necessidade</td>
-              <td>Dado pessoal &#x27;cpf&#x27; registrado em log/print. Logs com dados identificáveis violam o princípio da minimização.</td>
+              <td>Possível exposição de dado pessoal em log identificada.</td>
               <td>Remova dados pessoais de logs. Use IDs técnicos (UUID) no lugar de CPF/email. Se necessário logar, aplique mascaramento: &#x27;***.***.789-**&#x27;.</td>
-              <td><code>logging.info(f&quot;Usuário autenticado: {cpf}&quot;)            # ALTO — CPF no log</code></td>
+              <td><span>A regra identificou possível registro de dado pessoal em mecanismo de log; o conteúdo foi ocultado.</span></td>
             </tr>
             <tr data-risk="ALTO" data-risk-order="3">
               <td class="index">5</td>
@@ -283,19 +295,19 @@
               <td><strong>TRANSFERENCIA_SEM_BASE_LEGAL</strong></td>
               <td>exemplo_vulneravel.py:21</td>
               <td>Art. 7º — Hipóteses de tratamento | Art. 33 — Transferência internacional</td>
-              <td>Campo &#x27;cpf&#x27; enviado para serviço externo (requests.post). Verifique se há base legal documentada para esta transferência.</td>
+              <td>Possível transferência para terceiro sem marcador técnico de base legal.</td>
               <td>Documente a base legal para cada transferência de dados a terceiros (Art. 7º LGPD). Considere anonimizar ou pseudonimizar antes de enviar.</td>
-              <td><code>requests.post(</code></td>
+              <td><span>A regra identificou possível envio a serviço externo sem marcador técnico de base legal.</span></td>
             </tr>
             <tr data-risk="MEDIO" data-risk-order="2">
               <td class="index">6</td>
               <td><span class="badge medio">MEDIO</span></td>
               <td><strong>COLETA_EXCESSIVA</strong></td>
               <td>exemplo_vulneravel.py:28</td>
-              <td>Art. 6º, III — Necessidade | Art. 6º, I — Finalidade</td>
-              <td>Função &#x27;cadastrar_usuario&#x27; recebe 7 campos sensíveis (nome, email, cpf, telefone, nascimento, endereco, renda). Verifique se todos são estritamente necessários para a finalidade.</td>
+              <td>Art. 6º, I e III — Finalidade e necessidade</td>
+              <td>Possível coleta acima do mínimo necessário identificada.</td>
               <td>Revise os parâmetros da função e colete apenas o mínimo necessário para a finalidade declarada (princípio da minimização — Art. 6º, III).</td>
-              <td><code>def cadastrar_usuario(nome, email, cpf, telefone, nascimento, endereco, renda):</code></td>
+              <td><span>A regra identificou concentração de campos classificados em uma mesma entrada.</span></td>
             </tr>
             <tr data-risk="MEDIO" data-risk-order="2">
               <td class="index">7</td>
@@ -303,9 +315,9 @@
               <td><strong>AUSENCIA_EXCLUSAO</strong></td>
               <td>exemplo_vulneravel.py:33</td>
               <td>Art. 18, IV — Direito à eliminação dos dados</td>
-              <td>Classe &#x27;Usuario&#x27; contém campos sensíveis (nome, email, cpf) mas não define método de exclusão ou anonimização.</td>
+              <td>Mecanismo de exclusão ou anonimização não evidenciado na estrutura analisada.</td>
               <td>Implemente método de exclusão ou anonimização na classe. O titular tem direito à eliminação dos dados (Art. 18, IV LGPD).</td>
-              <td><code>class Usuario:</code></td>
+              <td><span>A regra não encontrou método de exclusão ou anonimização no modelo analisado.</span></td>
             </tr></tbody>
           </table>
         </div>
@@ -402,6 +414,6 @@
       applyFilter();
     })();
   </script>
-  <footer>Privacy Scanner LGPD v1.0.0 | TCC FATEC | Relatorio gerado automaticamente.</footer>
+  <footer>Privacy Scanner LGPD v1.0.4 | TCC FATEC | Relatorio gerado automaticamente.</footer>
 </body>
 </html>

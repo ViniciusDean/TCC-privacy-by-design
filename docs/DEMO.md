@@ -9,7 +9,7 @@ Mostrar que a ferramenta consegue:
 - analisar código Python;
 - analisar código Java com as sete categorias de código;
 - analisar banco SQLite;
-- exibir vulnerabilidades no VS Code;
+- exibir achados tecnicos no VS Code;
 - mostrar resumo por risco;
 - exportar relatório HTML e PDF.
 
@@ -41,7 +41,7 @@ python -m pytest
 Resultado esperado:
 
 ```text
-89 passed
+suíte concluída sem falhas
 ```
 
 ## 2. Abrir a Extensão
@@ -66,7 +66,7 @@ C:\Users\deanv\OneDrive\Documents\privacy-scanner-testes
 - painel `Problems`;
 - sidebar `Privacy Scanner`;
 - agrupamento por risco;
-- score LGPD.
+- indicador técnico de risco.
 
 Falar durante a apresentação:
 
@@ -94,13 +94,13 @@ Este exemplo serve para verificar falsos positivos em boas práticas simples, co
 
 - arquivos Python analisados;
 - bancos SQLite encontrados;
-- total de vulnerabilidades;
+- total de achados técnicos;
 - contagem por risco.
 
 Falar durante a apresentação:
 
 ```text
-A análise de projeto agrega os resultados de código e banco em uma visão única para apoiar revisão técnica e documentação de conformidade.
+A análise de projeto agrega os resultados de código e banco em uma visão única para apoiar revisão técnica de privacidade. Ela não substitui uma análise jurídica de conformidade.
 ```
 
 ## 6. Demonstrar Java
@@ -123,7 +123,7 @@ de dados entre métodos.
 
 1. Execute `Privacy Scanner: Analisar banco SQLite`.
 2. Selecione `banco_vulneravel.db` na pasta de teste.
-3. Mostre vulnerabilidades de schema, como:
+3. Mostre achados tecnicos de schema, como:
 
 - `CAMPO_SEM_HASH`;
 - `AUSENCIA_SOFT_DELETE`;
@@ -139,7 +139,7 @@ No banco, a ferramenta não analisa linhas de dados pessoais. Ela analisa o sche
 
 ## 8. Demonstrar Code Actions
 
-1. Clique em uma vulnerabilidade no editor.
+1. Clique em um achado técnico no editor.
 2. Use a lâmpada/Quick Fix.
 3. Mostre as opções:
 
@@ -152,7 +152,7 @@ Falar durante a apresentação:
 A ideia não é corrigir automaticamente qualquer código, porque isso poderia alterar regra de negócio. A ferramenta mostra uma recomendação técnica para orientar o desenvolvedor.
 ```
 
-Também demonstre `Ignorar este risco na interface`. Confirme que a ocorrência desaparece da sidebar e do painel `Problems`, mas continua no relatório exportado.
+Também demonstre `Ignorar este risco na interface`. Confirme que a ocorrência desaparece da sidebar e do painel `Problems`, mas continua no relatório exportado e não altera o indicador técnico bruto.
 
 ## 9. Exportar Relatório HTML
 
@@ -162,7 +162,7 @@ Também demonstre `Ignorar este risco na interface`. Confirme que a ocorrência 
 4. Abra o arquivo gerado.
 5. Mostre:
 
-- score;
+- indicador técnico;
 - cards de resumo;
 - filtros por risco;
 - ordenação da tabela;
@@ -184,7 +184,7 @@ O HTML é o relatório interativo, útil para inspeção técnica durante a revi
 Falar durante a apresentação:
 
 ```text
-O PDF é uma versão formal e estática do relatório, pensada para anexar em documentação, evidência de teste ou material de compliance.
+O PDF é uma versão formal e estática do relatório, pensada para anexar como evidência técnica de teste ou material de apoio à revisão de privacidade.
 ```
 
 ## 11. Evidências para o TCC
@@ -193,17 +193,17 @@ Durante a demo, vale tirar prints de:
 
 - extensão carregada no VS Code;
 - `exemplo_vulneravel.py` com marcações;
-- sidebar com score e riscos;
+- sidebar com indicador técnico e riscos;
 - painel `Problems`;
 - relatório HTML;
 - relatório PDF;
-- terminal com `89 passed`.
+- terminal com a suíte concluída sem falhas.
 
 ## Resultado Esperado
 
 - A extensão inicia sem erro.
 - O servidor Flask sobe automaticamente ou reutiliza servidor já ativo.
-- `exemplo_vulneravel.py` gera vulnerabilidades.
+- `exemplo_vulneravel.py` gera achados tecnicos.
 - `exemplo_correto.py` não gera os mesmos alertas.
 - `banco_vulneravel.db` gera alertas de schema.
 - HTML e PDF são exportados.

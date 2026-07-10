@@ -1,8 +1,8 @@
 {
   "name": "privacy-scanner-lgpd",
   "displayName": "Privacy Scanner LGPD",
-  "description": "Análise estática de vulnerabilidades de privacidade conforme LGPD e Privacy by Design",
-  "version": "1.0.2",
+  "description": "Análise estática de indícios técnicos de risco à privacidade conforme LGPD e Privacy by Design",
+  "version": "1.0.4",
   "author": "TCC FATEC",
   "license": "MIT",
   "publisher": "fatec-tcc",
@@ -21,7 +21,7 @@
     "privacy",
     "lgpd",
     "security",
-    "compliance",
+    "technical-indicators",
     "pyd"
   ],
   "activationEvents": [
@@ -36,6 +36,7 @@
     "onCommand:privacy-scanner.exportReport",
     "onCommand:privacy-scanner.exportHTML",
     "onCommand:privacy-scanner.exportJSON",
+    "onCommand:privacy-scanner.showSidebar",
     "onCommand:privacy-scanner.ignoreVulnerability",
     "onCommand:privacy-scanner.restoreIgnoredVulnerabilities"
   ],
@@ -87,18 +88,18 @@
       },
       {
         "command": "privacy-scanner.showSidebar",
-        "title": "Privacy Scanner: Mostrar vulnerabilidades",
+        "title": "Privacy Scanner: Mostrar achados",
         "category": "Privacy Scanner"
       },
       {
         "command": "privacy-scanner.ignoreVulnerability",
-        "title": "Privacy Scanner: Ignorar risco na interface",
+        "title": "Privacy Scanner: Ocultar achado na interface",
         "category": "Privacy Scanner",
         "icon": "$(eye-closed)"
       },
       {
         "command": "privacy-scanner.restoreIgnoredVulnerabilities",
-        "title": "Privacy Scanner: Restaurar riscos ignorados",
+        "title": "Privacy Scanner: Restaurar achados ocultados",
         "category": "Privacy Scanner",
         "icon": "$(eye)"
       }
@@ -116,7 +117,7 @@
       "privacy-scanner-sidebar": [
         {
           "id": "privacy-scanner-vulnerabilities",
-          "name": "Vulnerabilidades",
+          "name": "Achados",
           "when": "privacy-scanner:showVulnerabilities"
         },
         {
@@ -184,25 +185,26 @@
         "privacy-scanner.enableSidebar": {
           "type": "boolean",
           "default": true,
-          "description": "Mostrar sidebar com vulnerabilidades"
+          "description": "Mostrar sidebar com achados técnicos"
         },
         "privacy-scanner.showDiagnostics": {
           "type": "boolean",
           "default": true,
-          "description": "Mostrar vulnerabilidades no painel Problems"
+          "description": "Mostrar achados técnicos no painel Problems"
         }
       }
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run prepare-backend && npm run compile",
+    "vscode:prepublish": "npm run prepare-backend && npm run check-backend-version -- --bundled-only && npm run compile",
     "prepare-backend": "node ./scripts/prepare-backend.js",
+    "check-backend-version": "node ./scripts/check-backend-version.js",
     "package": "vsce package",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
+    "pretest": "npm run check-backend-version && npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
+    "test": "node ./out/test/contract.test.js"
   },
   "devDependencies": {
     "@types/vscode": "^1.60.0",

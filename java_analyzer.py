@@ -24,6 +24,15 @@ CAMPOS_SENSIVEIS = {
     "salario", "salary", "renda", "income",
     "religiao", "religion", "etnia", "ethnicity",
 }
+CAMPOS_PROTECAO_ELEVADA = {
+    "senha", "password", "passwd", "pwd",
+    "cpf", "rg", "cnpj", "passaporte", "passport",
+    "cartao", "card", "credit", "credito",
+    "token", "secret", "apikey", "api_key",
+    "saude", "health", "diagnostico", "diagnosis",
+    "salario", "salary", "renda", "income",
+    "religiao", "religion", "etnia", "ethnicity",
+}
 CAMPOS_AMBIGUOS = {"nome", "name", "idade", "age"}
 CONTEXTO_PESSOAL = {
     "usuario", "user", "cliente", "customer", "pessoa", "person", "titular",
@@ -32,6 +41,19 @@ CONTEXTO_PESSOAL = {
 CAMPOS_TECNICOS = {
     "user_agent", "user_id", "session_id", "request_id", "trace_id",
     "ip_address", "ip_addr",
+}
+CAMPOS_PROTEGIDOS = {
+    "hash", "hashed", "sha256", "sha512", "encrypt", "encrypted",
+    "cipher", "cifrado", "criptografado", "anonimizado", "anon",
+}
+SUFIXOS_COLABORADORES = {
+    "service", "repository", "repo", "controller", "client", "filter",
+    "config", "configuration", "encoder", "decoder", "mapper", "validator",
+    "handler", "factory", "provider", "template",
+}
+SUFIXOS_CONTEXTO_SINTETICO = {"seeder", "fixture", "fixtures", "mock", "testdata"}
+MARCADORES_REGISTRO_ENTRADA = {
+    "request", "input", "command", "form", "payload", "cadastro", "register",
 }
 METODOS_EXCLUSAO = (
     "delete", "delet", "remove", "remov", "exclu", "anonimiz", "anonymiz",
@@ -46,7 +68,7 @@ MARCADORES_TRANSFERENCIA = (
     "resttemplate.", "webclient.", "httpclient.", "client.send(",
     "client.sendasync(", "okhttpclient", ".newcall(", "httpurlconnection",
     "urlconnection", "retrofit", "feign", "postforentity(", "postforobject(",
-    ".exchange(", ".retrieve(", ".bodyvalue(", ".body(",
+    ".exchange(", ".retrieve(", ".bodyvalue(",
 )
 MARCADORES_BASE_LEGAL = (
     "consentimento", "consent", "baselegal", "base_legal", "legitimateinterest",
@@ -76,7 +98,8 @@ PADRAO_LOG = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 PADRAO_CLASSE = re.compile(
-    r"\b(?:class|record)\s+(?P<nome>[A-Za-z_$][A-Za-z0-9_$]*)[^{]*\{",
+    r"\b(?P<tipo>class|record)\s+(?P<nome>[A-Za-z_$][A-Za-z0-9_$]*)"
+    r"(?P<cabecalho>[^{]*)\{",
     re.MULTILINE,
 )
 PADRAO_METODO = re.compile(
@@ -122,6 +145,8 @@ def _campo_sensivel(nome: str):
 
     tokens = _tokens(nome)
     if tokens and tokens[0] == "ip":
+        return None
+    if any(token in CAMPOS_PROTEGIDOS for token in tokens):
         return None
 
     for campo in CAMPOS_SENSIVEIS:
@@ -252,11 +277,21 @@ def _encontrar_classes(estrutura: str) -> list[Bloco]:
     classes = []
     for match in PADRAO_CLASSE.finditer(estrutura):
         abertura = estrutura.find("{", match.start(), match.end())
+        parametros = ()
+        if match.group("tipo") == "record":
+            cabecalho = match.group("cabecalho")
+            abertura_parametros = cabecalho.find("(")
+            fechamento_parametros = cabecalho.rfind(")")
+            if abertura_parametros >= 0 and fechamento_parametros > abertura_parametros:
+                parametros = _parametros_java(
+                    cabecalho[abertura_parametros + 1:fechamento_parametros]
+                )
         classes.append(Bloco(
             nome=match.group("nome"),
             inicio=match.start(),
             abertura=abertura,
             fim=_fim_bloco(estrutura, abertura),
+            parametros=parametros,
         ))
     return classes
 
@@ -330,9 +365,57 @@ def _metodo_em(posicao: int, metodos: list[Bloco]):
     )
 
 
+def _classe_em(posicao: int, classes: list[Bloco]):
+    return next(
+        (classe for classe in classes if classe.abertura < posicao < classe.fim),
+        None,
+    )
+
+
 def _tem_protecao(texto: str) -> bool:
     texto_lower = texto.lower()
     return any(marcador in texto_lower for marcador in MARCADORES_CRIPTOGRAFIA)
+
+
+def _atribuicao_em_anotacao(instrucao: str, posicao_nome: int) -> bool:
+    prefixo = instrucao[:posicao_nome]
+    for match in re.finditer(r"@[A-Za-z0-9_$.]+\s*\(", prefixo):
+        trecho = prefixo[match.start():]
+        if trecho.count("(") > trecho.count(")"):
+            return True
+    return False
+
+
+def _declaracao_variavel(instrucao: str, posicao_nome: int) -> bool:
+    prefixo = instrucao[:posicao_nome].strip()
+    if not prefixo or prefixo.endswith((".", "this", "this.", "super", "super.")):
+        return False
+
+    return bool(re.search(
+        r"(?:^|\s)(?:final\s+)?[A-Za-z_$][A-Za-z0-9_$.<>\[\],?]*$",
+        prefixo,
+    ))
+
+
+def _valor_constante_inofensivo(valor: str) -> bool:
+    return valor.strip().lower() in {"null", "optional.empty()", "true", "false"}
+
+
+def _nome_colaborador(nome: str) -> bool:
+    tokens = _tokens(nome)
+    if not tokens:
+        return False
+    return tokens[-1] in SUFIXOS_COLABORADORES
+
+
+def _registro_de_entrada(nome: str) -> bool:
+    return any(token in MARCADORES_REGISTRO_ENTRADA for token in _tokens(nome))
+
+
+def _campo_modelo_pessoal(nome: str):
+    if _nome_colaborador(nome):
+        return None
+    return _campo_sensivel(nome)
 
 
 def analisar_java(caminho: str):
@@ -425,6 +508,9 @@ def analisar_java(caminho: str):
 
         nome = atribuicao.group("nome")
         valor = atribuicao.group("valor").strip()
+        if _atribuicao_em_anotacao(instrucao, atribuicao.start("nome")):
+            continue
+
         campo = _campo_sensivel(nome)
         if not campo:
             continue
@@ -457,8 +543,10 @@ def analisar_java(caminho: str):
             for marcador in ("hash", "hashed", "encrypt", "encrypted", "cipher")
         )
         if (
-            valor.lower() not in {"null", "optional.empty()"}
+            campo in CAMPOS_PROTECAO_ELEVADA
+            and not _valor_constante_inofensivo(valor)
             and not atribuicao_direta_parametro
+            and not _declaracao_variavel(instrucao, atribuicao.start("nome"))
             and not nome_protegido
             and not _tem_protecao(valor)
         ):
@@ -473,6 +561,12 @@ def analisar_java(caminho: str):
 
     # Coleta excessiva em métodos e construtores.
     for metodo in metodos:
+        classe = _classe_em(metodo.inicio, classes)
+        if classe and any(
+            classe.nome.lower().endswith(sufixo)
+            for sufixo in SUFIXOS_CONTEXTO_SINTETICO
+        ):
+            continue
         campos = [
             campo for parametro in metodo.parametros
             if (campo := _campo_sensivel(parametro))
@@ -487,8 +581,29 @@ def analisar_java(caminho: str):
                 "Art. 6º, III — Necessidade; Art. 6º, I — Finalidade",
             )
 
+    # Records funcionam como fronteira de entrada e possuem construtor implícito.
+    for classe in classes:
+        if not _registro_de_entrada(classe.nome):
+            continue
+        campos = [
+            campo for parametro in classe.parametros
+            if (campo := _campo_sensivel(parametro))
+        ]
+        if len(campos) >= 4:
+            adicionar(
+                classe.inicio,
+                "COLETA_EXCESSIVA",
+                f"Registro '{classe.nome}' recebe {len(campos)} campos sensíveis "
+                f"({', '.join(campos)}). Verifique se todos são necessários.",
+                "MEDIO",
+                "Art. 6º, III — Necessidade; Art. 6º, I — Finalidade",
+            )
+
     # Classes-modelo com dados pessoais devem oferecer exclusão ou anonimização.
     for classe in classes:
+        if _nome_colaborador(classe.nome):
+            continue
+
         campos = []
         metodos_classe = [
             metodo for metodo in metodos
@@ -501,7 +616,7 @@ def analisar_java(caminho: str):
             if _profundidade(estrutura, classe.abertura, posicao_absoluta) != 1:
                 continue
             campo_match = PADRAO_CAMPO.search(instrucao)
-            if campo_match and (campo := _campo_sensivel(campo_match.group("nome"))):
+            if campo_match and (campo := _campo_modelo_pessoal(campo_match.group("nome"))):
                 campos.append(campo_match.group("nome"))
 
         tem_exclusao = any(

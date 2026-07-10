@@ -153,7 +153,13 @@ def evaluate(gabarito: dict) -> dict:
     return {
         "benchmark_version": gabarito["version"],
         "generated_at": datetime.now(timezone.utc).isoformat(),
+        "evaluation_unit": "caso-categoria",
         "case_count": len(case_results),
+        "decision_count": sum(totals.values()),
+        "scope_note": (
+            "Benchmark controlado de regressão: as métricas descrevem aderência "
+            "ao gabarito das fixtures e não desempenho generalizável em projetos reais."
+        ),
         "overall": metrics_from_counts(**totals),
         "by_type": {
             key: metrics_from_counts(**counts)
@@ -174,13 +180,15 @@ def percentage(value: float) -> str:
 def render_markdown(results: dict) -> str:
     overall = results["overall"]
     lines = [
-        "# Resultado do benchmark",
+        "# Benchmark controlado de regressão",
         "",
         f"Gerado em: `{results['generated_at']}`",
         "",
-        f"Casos avaliados: **{results['case_count']}**",
+        f"Casos avaliados: **{results['case_count']}**; decisões `{results['evaluation_unit']}`: **{results['decision_count']}**.",
         "",
-        "## Resultado global",
+        "> As métricas abaixo medem aderência ao gabarito das fixtures sintéticas. Elas não devem ser apresentadas como estimativa de precisão, recall ou eficácia em projetos reais.",
+        "",
+        "## Resultado no corpus controlado",
         "",
         "| TP | FP | FN | TN | Precisao | Recall | F1 | Especificidade |",
         "|---:|---:|---:|---:|---:|---:|---:|---:|",

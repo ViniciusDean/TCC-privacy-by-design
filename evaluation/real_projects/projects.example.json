@@ -1,0 +1,31 @@
+{
+  "projects": [
+    {
+      "id": "python_api_01",
+      "name": "Projeto Python API",
+      "type": "source",
+      "evaluation_role": "validation",
+      "fn_review_complete": false,
+      "path": "C:/caminho/para/projeto-python",
+      "description": "Projeto Python real ou didatico com arquivos .py."
+    },
+    {
+      "id": "java_app_01",
+      "name": "Projeto Java",
+      "type": "source",
+      "evaluation_role": "tuning",
+      "fn_review_complete": false,
+      "path": "C:/caminho/para/projeto-java",
+      "description": "Projeto Java real ou didatico com arquivos .java."
+    },
+    {
+      "id": "sqlite_db_01",
+      "name": "Banco SQLite",
+      "type": "sqlite",
+      "evaluation_role": "validation",
+      "fn_review_complete": false,
+      "path": "C:/caminho/para/banco.db",
+      "description": "Arquivo SQLite usado por uma aplicacao real."
+    }
+  ]
+}

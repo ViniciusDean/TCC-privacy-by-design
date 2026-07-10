@@ -3,205 +3,417 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Privacy Scanner — Relatório de Conformidade LGPD</title>
+  <title>Privacy Scanner LGPD - Relatorio Tecnico de Privacidade</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body      { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f6f9;
-                color: #2c3e50; font-size: 14px; }
-    header    { background: #1a2744; color: #fff; padding: 24px 40px;
-                display: flex; justify-content: space-between; align-items: center; }
-    header h1 { font-size: 20px; font-weight: 600; }
-    header p  { font-size: 12px; opacity: .7; margin-top: 4px; }
-    .main     { padding: 32px 40px; }
-
-    /* Cartões do sumário */
-    .cards    { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px;
-                margin-bottom: 32px; }
-    .card     { background: #fff; border-radius: 10px; padding: 20px 24px;
-                box-shadow: 0 1px 4px rgba(0,0,0,.08); }
-    .card .num  { font-size: 36px; font-weight: 700; }
-    .card .lbl  { font-size: 12px; color: #888; margin-top: 4px; }
-    .card.score .num { color: #e74c3c; }
-
-    /* Barras */
-    .barras   { background:#fff; border-radius:10px; padding:20px 24px;
-                box-shadow:0 1px 4px rgba(0,0,0,.08); margin-bottom:32px; }
-    .barras h2 { font-size:14px; font-weight:600; margin-bottom:16px; }
-    .barra-item { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
-    .barra-label { width:50px; font-size:12px; font-weight:600; }
-    .barra-fundo { flex:1; background:#eee; border-radius:4px; height:12px; }
-    .barra-fill  { height:12px; border-radius:4px; transition:width .4s; }
-    .barra-num   { width:30px; text-align:right; font-size:12px; font-weight:700; }
-
-    /* Tabela */
-    .tabela-wrap { background:#fff; border-radius:10px;
-                   box-shadow:0 1px 4px rgba(0,0,0,.08); overflow:hidden; }
-    .tabela-wrap h2 { font-size:14px; font-weight:600; padding:16px 24px;
-                      border-bottom:1px solid #f0f0f0; }
-    table      { width:100%; border-collapse:collapse; font-size:13px; }
-    th         { background:#f8f9fb; padding:10px 12px; text-align:left;
-                font-weight:600; font-size:12px; color:#555;
-                border-bottom:1px solid #e8e8e8; }
-    td         { padding:10px 12px; border-bottom:1px solid #f0f0f0;
-                vertical-align:top; }
-    tr:last-child td { border-bottom:none; }
-    tr:hover td { background:#fafbfc; }
-    code       { background:#f0f0f0; padding:2px 6px; border-radius:4px;
-                font-size:11px; font-family:monospace; word-break:break-all; }
-
-    /* Badges de risco */
-    .badge     { display:inline-block; padding:2px 8px; border-radius:12px;
-                font-size:11px; font-weight:700; }
-    .badge.alto  { background:#fde8e8; color:#c0392b; }
-    .badge.medio { background:#fef3cd; color:#856404; }
-    .badge.baixo { background:#d1ecf1; color:#0c5460; }
-
-    footer { text-align:center; padding:24px; color:#aaa; font-size:12px; }
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --ink: #172033;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --navy: #18233f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Segoe UI", Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    header {
+      background: var(--navy);
+      color: #fff;
+      padding: 28px 40px;
+    }
+    .header-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 24px;
+      align-items: end;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+    h1 { margin: 0 0 6px; font-size: 24px; font-weight: 700; letter-spacing: 0; }
+    .subtitle, .meta, .muted { color: var(--muted); }
+    header .subtitle, header .meta { color: rgba(255,255,255,.76); }
+    .score-pill {
+      min-width: 150px;
+      text-align: center;
+      background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 8px;
+      padding: 12px 16px;
+    }
+    .score-pill strong { display: block; font-size: 30px; line-height: 1; color: #fff; }
+    main { max-width: 1280px; margin: 0 auto; padding: 28px 40px 40px; }
+    .section { margin-bottom: 24px; }
+    .section h2 { margin: 0 0 12px; font-size: 16px; font-weight: 700; }
+    .cards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+    .card, .panel, .table-wrap {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .card { padding: 16px; min-height: 94px; }
+    .card .num { font-size: 30px; font-weight: 800; line-height: 1; color: var(--ink); }
+    .card .lbl { margin-top: 8px; font-size: 12px; color: var(--muted); }
+    .card.score { border-top: 4px solid #b91c1c; }
+    .card.score .num { color: #b91c1c; }
+    .panel { padding: 18px; }
+    .notice {
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      border-left: 4px solid #d97706;
+      border-radius: 8px;
+      padding: 12px 14px;
+      color: #78350f;
+      font-size: 13px;
+    }
+    .notice strong { display: block; margin-bottom: 4px; color: #78350f; }
+    .targets { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .target-box { border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: #fbfdff; }
+    .target-box span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+    .target-box code { word-break: break-all; }
+    .risk-row { display: grid; grid-template-columns: 72px minmax(0, 1fr) 36px; gap: 12px; align-items: center; margin: 10px 0; }
+    .risk-label, .risk-count { font-size: 12px; font-weight: 700; }
+    .risk-count { text-align: right; }
+    .risk-track { height: 12px; background: #edf2f7; border-radius: 999px; overflow: hidden; }
+    .risk-fill { height: 100%; min-width: 3px; border-radius: 999px; }
+    .table-wrap { overflow: hidden; }
+    .table-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfdff;
+    }
+    .filter-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .filter-btn {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-btn.active {
+      background: #18233f;
+      border-color: #18233f;
+      color: #fff;
+    }
+    .table-count {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .table-scroll { overflow-x: auto; }
+    table { width: 100%; min-width: 1080px; border-collapse: collapse; }
+    th, td { padding: 11px 12px; border-bottom: 1px solid var(--line); vertical-align: top; text-align: left; }
+    th { background: #f8fafc; color: #334155; font-size: 12px; font-weight: 700; white-space: nowrap; }
+    th.sortable { cursor: pointer; user-select: none; }
+    th.sortable::after { content: "  sort"; color: #94a3b8; font-weight: 400; }
+    th.sortable.sort-asc::after { content: "  asc"; color: #18233f; }
+    th.sortable.sort-desc::after { content: "  desc"; color: #18233f; }
+    td { font-size: 12px; }
+    tr:last-child td { border-bottom: 0; }
+    .index { width: 44px; color: var(--muted); text-align: right; }
+    .badge { display: inline-block; border-radius: 999px; padding: 3px 9px; font-size: 11px; font-weight: 800; white-space: nowrap; }
+    .badge.alto { color: #991b1b; background: #fee2e2; }
+    .badge.medio { color: #92400e; background: #fef3c7; }
+    .badge.baixo { color: #1e40af; background: #dbeafe; }
+    code {
+      display: inline-block;
+      max-width: 360px;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 2px 6px;
+      color: #0f172a;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 11px;
+      word-break: break-word;
+    }
+    .empty-state { padding: 28px; text-align: center; color: #15803d; font-weight: 700; }
+    footer { max-width: 1280px; margin: 0 auto; padding: 0 40px 28px; color: var(--muted); font-size: 12px; }
+    @media print {
+      body { background: #fff; }
+      header { padding: 22px 28px; }
+      main { padding: 22px 28px; }
+      .table-scroll { overflow: visible; }
+      table { min-width: 0; }
+    }
+    @media (max-width: 900px) {
+      header, main, footer { padding-left: 18px; padding-right: 18px; }
+      .header-grid, .targets { grid-template-columns: 1fr; }
+      .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
   </style>
 </head>
 <body>
   <header>
-    <div>
-      <h1>🔒 Privacy Scanner — Relatório de Conformidade LGPD</h1>
-      <p>Gerado em 2026-06-01 20:16:18 &nbsp;|&nbsp; TCC FATEC &nbsp;|&nbsp;
-         Privacy by Design no Ciclo de Desenvolvimento de Software</p>
+    <div class="header-grid">
+      <div>
+        <h1>Privacy Scanner LGPD</h1>
+        <div class="subtitle">Relatorio tecnico de indicios de risco a privacidade em codigo Python, Java e SQLite.</div>
+        <div class="meta">Gerado em 2026-07-09 23:40:40 | Privacy by Design no ciclo de desenvolvimento</div>
+      </div>
+      <div class="score-pill"><strong>40/100</strong><span>Risco técnico crítico</span></div>
     </div>
   </header>
-
-  <div class="main">
-
-    <!-- Cartões -->
-    <div class="cards">
-      <div class="card">
-        <div class="num">7</div>
-        <div class="lbl">Total de vulnerabilidades</div>
+  <main>
+    <section class="section">
+      <div class="notice"><strong>Limite da analise</strong>Os resultados representam indícios técnicos identificados por análise estática. Eles apoiam revisão de privacidade, mas não comprovam, sozinhos, conformidade ou desconformidade jurídica com a LGPD.</div>
+    </section>
+    <section class="section">
+      <div class="cards">
+        <div class="card"><div class="num">7</div><div class="lbl">Total de achados tecnicos</div></div>
+        <div class="card"><div class="num" style="color:#dc2626">5</div><div class="lbl">Risco alto</div></div>
+        <div class="card"><div class="num" style="color:#d97706">2</div><div class="lbl">Risco medio</div></div>
+        <div class="card"><div class="num" style="color:#2563eb">0</div><div class="lbl">Risco baixo</div></div>
+        <div class="card score"><div class="num">40</div><div class="lbl">Indicador tecnico (Risco técnico crítico)</div></div>
       </div>
-      <div class="card" style="border-top:3px solid #e74c3c">
-        <div class="num" style="color:#e74c3c">5</div>
-        <div class="lbl">Risco ALTO</div>
+    </section>
+    <section class="section">
+      <h2>Escopo analisado</h2>
+      <div class="panel targets">
+        <div class="target-box"><span>Codigo-fonte</span><code>exemplo_vulneravel.py</code></div>
+        <div class="target-box"><span>Banco SQLite</span><code>Nao informado</code></div>
       </div>
-      <div class="card" style="border-top:3px solid #f39c12">
-        <div class="num" style="color:#f39c12">2</div>
-        <div class="lbl">Risco MÉDIO</div>
-      </div>
-      <div class="card score" style="border-top:3px solid #e74c3c">
-        <div class="num">40/100</div>
-        <div class="lbl">Score de conformidade LGPD</div>
-      </div>
-    </div>
-
-    <!-- Barras -->
-    <div class="barras">
-      <h2>Distribuição por nível de risco</h2>
-      
-            <div class="barra-item">
-              <span class="barra-label">ALTO</span>
-              <div class="barra-fundo">
-                <div class="barra-fill" style="width:40%;background:#e74c3c"></div>
+    </section>
+    <section class="section">
+      <h2>Resumo tecnico</h2>
+      <div class="panel">
+        <div class="risk-row">
+          <div class="risk-label">Arquivos</div>
+          <div class="muted">1 arquivo(s) Python, 0 arquivo(s) Java e 0 banco(s) SQLite com achados.</div>
+          <div class="risk-count">1</div>
+        </div>
+          <div class="risk-row">
+              <div class="risk-label">ALTO</div>
+              <div class="risk-track">
+                <div class="risk-fill" style="width:71%;background:#dc2626"></div>
               </div>
-              <span class="barra-num">5</span>
+              <div class="risk-count">5</div>
             </div>
-            <div class="barra-item">
-              <span class="barra-label">MÉDIO</span>
-              <div class="barra-fundo">
-                <div class="barra-fill" style="width:16%;background:#f39c12"></div>
+            <div class="risk-row">
+              <div class="risk-label">MEDIO</div>
+              <div class="risk-track">
+                <div class="risk-fill" style="width:28%;background:#d97706"></div>
               </div>
-              <span class="barra-num">2</span>
+              <div class="risk-count">2</div>
             </div>
-            <div class="barra-item">
-              <span class="barra-label">BAIXO</span>
-              <div class="barra-fundo">
-                <div class="barra-fill" style="width:0%;background:#3498db"></div>
+            <div class="risk-row">
+              <div class="risk-label">BAIXO</div>
+              <div class="risk-track">
+                <div class="risk-fill" style="width:0%;background:#2563eb"></div>
               </div>
-              <span class="barra-num">0</span>
+              <div class="risk-count">0</div>
             </div>
-    </div>
-
-    <!-- Tabela -->
-    <div class="tabela-wrap">
-      <h2>Vulnerabilidades encontradas</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Risco</th>
-            <th>Categoria</th>
-            <th>Local</th>
-            <th>Artigo LGPD</th>
-            <th>Descrição</th>
-            <th>Recomendação</th>
-            <th>Trecho</th>
-          </tr>
-        </thead>
-        <tbody>
-          
-            <tr>
+      </div>
+    </section>
+    <section class="section">
+      <h2>Achados tecnicos e recomendacoes</h2>
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <div class="filter-group" aria-label="Filtrar por risco">
+            <button class="filter-btn active" type="button" data-filter-risk="TODOS">Todos</button>
+            <button class="filter-btn" type="button" data-filter-risk="ALTO">Alto</button>
+            <button class="filter-btn" type="button" data-filter-risk="MEDIO">Medio</button>
+            <button class="filter-btn" type="button" data-filter-risk="BAIXO">Baixo</button>
+          </div>
+          <div class="table-count" id="table-count">7 item(ns)</div>
+        </div>
+        <div class="table-scroll">
+          <table id="vulnerabilities-table">
+            <thead>
+              <tr>
+                <th class="sortable" data-sort="number">#</th>
+                <th class="sortable" data-sort="risk">Risco</th>
+                <th class="sortable" data-sort="text">Categoria</th>
+                <th class="sortable" data-sort="text">Local</th>
+                <th class="sortable" data-sort="text">LGPD</th>
+                <th class="sortable" data-sort="text">Descricao</th>
+                <th>Recomendacao</th>
+                <th>Evidencia segura</th>
+              </tr>
+            </thead>
+            <tbody>
+            <tr data-risk="ALTO" data-risk-order="3">
+              <td class="index">1</td>
               <td><span class="badge alto">ALTO</span></td>
               <td><strong>DADO_HARDCODED</strong></td>
               <td>exemplo_vulneravel.py:11</td>
               <td>Art. 46 — Segurança e prevenção</td>
-              <td>Campo sensível 'senha' recebe valor literal (dado pessoal fixo no código).</td>
+              <td>Possível dado pessoal literal identificado por análise estática.</td>
               <td>Remova valores literais de dados pessoais do código-fonte. Use variáveis de ambiente ou cofres de segredos (ex: .env, AWS Secrets Manager).</td>
-              <td><code>senha = "minhasenha123"         # ALTO — dado pessoal fixo no código</code></td>
+              <td><span>A regra identificou uma atribuição literal a um identificador classificado; o conteúdo foi ocultado.</span></td>
             </tr>
-            <tr>
+            <tr data-risk="ALTO" data-risk-order="3">
+              <td class="index">2</td>
               <td><span class="badge alto">ALTO</span></td>
               <td><strong>DADO_HARDCODED</strong></td>
               <td>exemplo_vulneravel.py:12</td>
               <td>Art. 46 — Segurança e prevenção</td>
-              <td>Campo sensível 'cpf' recebe valor literal (dado pessoal fixo no código).</td>
+              <td>Possível dado pessoal literal identificado por análise estática.</td>
               <td>Remova valores literais de dados pessoais do código-fonte. Use variáveis de ambiente ou cofres de segredos (ex: .env, AWS Secrets Manager).</td>
-              <td><code>cpf   = "123.456.789-00"        # ALTO — CPF hardcoded</code></td>
+              <td><span>A regra identificou uma atribuição literal a um identificador classificado; o conteúdo foi ocultado.</span></td>
             </tr>
-            <tr>
+            <tr data-risk="ALTO" data-risk-order="3">
+              <td class="index">3</td>
               <td><span class="badge alto">ALTO</span></td>
               <td><strong>CRIPTOGRAFIA_FRACA</strong></td>
               <td>exemplo_vulneravel.py:15</td>
               <td>Art. 46 — Segurança e prevenção</td>
-              <td>Uso de algoritmo fraco: hashlib.md5(). Para senhas use bcrypt ou argon2; para integridade use sha256+.</td>
-              <td>Substitua MD5/SHA1 por algoritmos modernos. Para senhas: bcrypt, argon2 ou pbkdf2. Para integridade: SHA-256 ou SHA-512.</td>
-              <td><code>hash_senha = hashlib.md5(senha.encode()).hexdigest()   # ALTO — md5 é fraco</code></td>
+              <td>Algoritmo criptográfico potencialmente fraco identificado.</td>
+              <td>Substitua MD5/SHA1 por algoritmos modernos. Para senhas: bcrypt, argon2 ou PBKDF2. Para integridade: SHA-256 ou SHA-512.</td>
+              <td><span>A regra identificou uso de algoritmo criptográfico classificado como fraco.</span></td>
             </tr>
-            <tr>
+            <tr data-risk="ALTO" data-risk-order="3">
+              <td class="index">4</td>
               <td><span class="badge alto">ALTO</span></td>
               <td><strong>DADO_EM_LOG</strong></td>
               <td>exemplo_vulneravel.py:18</td>
               <td>Art. 46 — Segurança | Art. 6º, III — Necessidade</td>
-              <td>Dado pessoal 'cpf' registrado em log/print. Logs com dados identificáveis violam o princípio da minimização.</td>
-              <td>Remova dados pessoais de logs. Use IDs técnicos (UUID) no lugar de CPF/email. Se necessário logar, aplique mascaramento: '***.***.789-**'.</td>
-              <td><code>logging.info(f"Usuário autenticado: {cpf}")            # ALTO — CPF no log</code></td>
+              <td>Possível exposição de dado pessoal em log identificada.</td>
+              <td>Remova dados pessoais de logs. Use IDs técnicos (UUID) no lugar de CPF/email. Se necessário logar, aplique mascaramento: &#x27;***.***.789-**&#x27;.</td>
+              <td><span>A regra identificou possível registro de dado pessoal em mecanismo de log; o conteúdo foi ocultado.</span></td>
             </tr>
-            <tr>
+            <tr data-risk="ALTO" data-risk-order="3">
+              <td class="index">5</td>
               <td><span class="badge alto">ALTO</span></td>
               <td><strong>TRANSFERENCIA_SEM_BASE_LEGAL</strong></td>
               <td>exemplo_vulneravel.py:21</td>
               <td>Art. 7º — Hipóteses de tratamento | Art. 33 — Transferência internacional</td>
-              <td>Campo 'cpf' enviado para serviço externo (requests.post). Verifique se há base legal documentada para esta transferência.</td>
+              <td>Possível transferência para terceiro sem marcador técnico de base legal.</td>
               <td>Documente a base legal para cada transferência de dados a terceiros (Art. 7º LGPD). Considere anonimizar ou pseudonimizar antes de enviar.</td>
-              <td><code>requests.post(</code></td>
+              <td><span>A regra identificou possível envio a serviço externo sem marcador técnico de base legal.</span></td>
             </tr>
-            <tr>
-              <td><span class="badge medio">MÉDIO</span></td>
+            <tr data-risk="MEDIO" data-risk-order="2">
+              <td class="index">6</td>
+              <td><span class="badge medio">MEDIO</span></td>
               <td><strong>COLETA_EXCESSIVA</strong></td>
               <td>exemplo_vulneravel.py:28</td>
-              <td>Art. 6º, III — Necessidade | Art. 6º, I — Finalidade</td>
-              <td>Função 'cadastrar_usuario' recebe 7 campos sensíveis (nome, email, cpf, telefone, nascimento, endereco, renda). Verifique se todos são estritamente necessários para a finalidade.</td>
+              <td>Art. 6º, I e III — Finalidade e necessidade</td>
+              <td>Possível coleta acima do mínimo necessário identificada.</td>
               <td>Revise os parâmetros da função e colete apenas o mínimo necessário para a finalidade declarada (princípio da minimização — Art. 6º, III).</td>
-              <td><code>def cadastrar_usuario(nome, email, cpf, telefone, nascimento, endereco, renda):</code></td>
+              <td><span>A regra identificou concentração de campos classificados em uma mesma entrada.</span></td>
             </tr>
-            <tr>
-              <td><span class="badge medio">MÉDIO</span></td>
+            <tr data-risk="MEDIO" data-risk-order="2">
+              <td class="index">7</td>
+              <td><span class="badge medio">MEDIO</span></td>
               <td><strong>AUSENCIA_EXCLUSAO</strong></td>
               <td>exemplo_vulneravel.py:33</td>
               <td>Art. 18, IV — Direito à eliminação dos dados</td>
-              <td>Classe 'Usuario' contém campos sensíveis (nome, email, cpf) mas não define método de exclusão ou anonimização.</td>
+              <td>Mecanismo de exclusão ou anonimização não evidenciado na estrutura analisada.</td>
               <td>Implemente método de exclusão ou anonimização na classe. O titular tem direito à eliminação dos dados (Art. 18, IV LGPD).</td>
-              <td><code>class Usuario:</code></td>
-            </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
+              <td><span>A regra não encontrou método de exclusão ou anonimização no modelo analisado.</span></td>
+            </tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script>
+    (function () {
+      const table = document.getElementById('vulnerabilities-table');
+      if (!table) return;
 
-  <footer>Privacy Scanner v1.0.0 — TCC FATEC — Privacy by Design no SDLC</footer>
+      const tbody = table.querySelector('tbody');
+      const headers = table.querySelectorAll('th.sortable');
+      const filterButtons = document.querySelectorAll('[data-filter-risk]');
+      const countEl = document.getElementById('table-count');
+      let currentRisk = 'TODOS';
+      let sortState = { index: 1, direction: 'desc', type: 'risk' };
+
+      function getRows() {
+        return Array.from(tbody.querySelectorAll('tr')).filter(row => row.dataset.risk);
+      }
+
+      function cellText(row, index) {
+        return (row.children[index]?.textContent || '').trim().toLowerCase();
+      }
+
+      function sortRows() {
+        const rows = getRows();
+        rows.sort((a, b) => {
+          let av;
+          let bv;
+
+          if (sortState.type === 'risk') {
+            av = Number(a.dataset.riskOrder || 0);
+            bv = Number(b.dataset.riskOrder || 0);
+          } else if (sortState.type === 'number') {
+            av = Number(cellText(a, sortState.index)) || 0;
+            bv = Number(cellText(b, sortState.index)) || 0;
+          } else {
+            av = cellText(a, sortState.index);
+            bv = cellText(b, sortState.index);
+          }
+
+          if (av < bv) return sortState.direction === 'asc' ? -1 : 1;
+          if (av > bv) return sortState.direction === 'asc' ? 1 : -1;
+          return 0;
+        });
+
+        rows.forEach(row => tbody.appendChild(row));
+      }
+
+      function applyFilter() {
+        let visible = 0;
+        getRows().forEach(row => {
+          const show = currentRisk === 'TODOS' || row.dataset.risk === currentRisk;
+          row.style.display = show ? '' : 'none';
+          if (show) visible += 1;
+        });
+        if (countEl) {
+          countEl.textContent = visible + ' item(ns)';
+        }
+      }
+
+      headers.forEach((header, index) => {
+        header.addEventListener('click', () => {
+          const type = header.dataset.sort || 'text';
+          if (sortState.index === index) {
+            sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+          } else {
+            sortState = {
+              index,
+              type,
+              direction: type === 'risk' ? 'desc' : 'asc'
+            };
+          }
+
+          headers.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+          header.classList.add(sortState.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+          sortRows();
+          applyFilter();
+        });
+      });
+
+      filterButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          currentRisk = button.dataset.filterRisk || 'TODOS';
+          filterButtons.forEach(btn => btn.classList.remove('active'));
+          button.classList.add('active');
+          applyFilter();
+        });
+      });
+
+      sortRows();
+      applyFilter();
+    })();
+  </script>
+  <footer>Privacy Scanner LGPD v1.0.4 | TCC FATEC | Relatorio gerado automaticamente.</footer>
 </body>
 </html>

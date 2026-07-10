@@ -182,6 +182,22 @@ def test_ignora_transferencia_de_dados_anonimizados(tmp_path):
     assert "TRANSFERENCIA_SEM_BASE_LEGAL" not in categorias(resultados)
 
 
+def test_ignora_response_entity_body_como_transferencia_externa(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        """
+        class EnderecoController {
+            Object cadastrar(EnderecoDTO dto) {
+                return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(enderecoService.cadastrarEndereco(dto));
+            }
+        }
+        """,
+    )
+
+    assert "TRANSFERENCIA_SEM_BASE_LEGAL" not in categorias(resultados)
+
+
 def test_detecta_coleta_excessiva_em_metodo(tmp_path):
     resultados = analisar(
         tmp_path,
@@ -206,6 +222,53 @@ def test_detecta_coleta_excessiva_em_construtor(tmp_path):
     )
 
     assert "COLETA_EXCESSIVA" in categorias(resultados)
+
+
+def test_detecta_coleta_excessiva_em_record_de_entrada(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        """
+        public record UsuarioRequest(
+            String nome,
+            String email,
+            String cpf,
+            String celular,
+            String senha
+        ) {}
+        """,
+    )
+
+    assert "COLETA_EXCESSIVA" in categorias(resultados)
+
+
+def test_ignora_record_de_resposta_na_regra_de_coleta(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        """
+        public record UsuarioResponseDTO(
+            String nome,
+            String email,
+            String cpf,
+            String celular,
+            String senha
+        ) {}
+        """,
+    )
+
+    assert "COLETA_EXCESSIVA" not in categorias(resultados)
+
+
+def test_ignora_coleta_em_seeder_com_dados_sinteticos(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        """
+        class DataSeeder {
+            void criarCliente(String nome, String email, String cpf, String celular) {}
+        }
+        """,
+    )
+
+    assert "COLETA_EXCESSIVA" not in categorias(resultados)
 
 
 def test_detecta_classe_sem_exclusao(tmp_path):
@@ -242,6 +305,60 @@ def test_aceita_metodo_de_exclusao_ou_anonimizacao(tmp_path):
     assert "DADO_HARDCODED" not in categorias(resultados)
 
 
+def test_ignora_name_em_anotacoes_jpa(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        """
+        class Avaliacao {
+            @Column(name = "nota_cliente")
+            private int notaCliente;
+
+            @JoinColumn(name = "id_usuario")
+            private Usuario usuario;
+
+            @JoinTable(
+                name = "profissao_profissional",
+                joinColumns = @JoinColumn(name = "id_profissional")
+            )
+            private List<Profissao> profissoes;
+
+            void anonimizar() {}
+        }
+        """,
+    )
+
+    assert "DADO_SEM_CRIPTOGRAFIA" not in categorias(resultados)
+
+
+def test_ignora_dependencias_injetadas_para_ausencia_exclusao(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        """
+        class SecurityFilter {
+            private final TokenGeneratorService tokenGeneratorService;
+            private final PasswordEncoder passwordEncoder;
+            private final EnderecoRepository enderecoRepository;
+        }
+        """,
+    )
+
+    assert "AUSENCIA_EXCLUSAO" not in categorias(resultados)
+
+
+def test_ignora_classes_operacionais_para_ausencia_exclusao(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        """
+        class UsuarioService {
+            private String apiKey;
+            private Map<String, String[]> tokensSenha;
+        }
+        """,
+    )
+
+    assert "AUSENCIA_EXCLUSAO" not in categorias(resultados)
+
+
 def test_detecta_atribuicao_sem_protecao(tmp_path):
     resultados = analisar(
         tmp_path,
@@ -256,6 +373,49 @@ def test_detecta_atribuicao_sem_protecao(tmp_path):
     )
 
     assert categorias(resultados).count("DADO_SEM_CRIPTOGRAFIA") == 1
+
+
+def test_limita_protecao_nao_evidenciada_a_campos_de_risco_elevado(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        """
+        class Usuario {
+            private String nome;
+            private String email;
+            private String celular;
+            private String cpf;
+            void atualizar(Request request) {
+                this.nome = request.getNome();
+                this.email = request.getEmail();
+                this.celular = request.getCelular();
+                this.cpf = request.getCpf();
+            }
+            void anonimizar() {}
+        }
+        """,
+    )
+
+    achados = [item for item in resultados if item.categoria == "DADO_SEM_CRIPTOGRAFIA"]
+    assert len(achados) == 1
+    assert "cpf" in achados[0].descricao
+
+
+def test_ignora_variaveis_locais_sensiveis_de_fluxo(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        """
+        class SecurityFilter {
+            void filtrar(Request request, TokenGeneratorService tokenGeneratorService) {
+                String token = request.getHeader("Authorization").replace("Bearer ", "");
+                String email = tokenGeneratorService.validarToken(token);
+                boolean emailVerificado = false;
+                int anoNascimento = LocalDate.now().getYear();
+            }
+        }
+        """,
+    )
+
+    assert "DADO_SEM_CRIPTOGRAFIA" not in categorias(resultados)
 
 
 def test_ignora_atribuicao_direta_de_parametro_do_construtor(tmp_path):

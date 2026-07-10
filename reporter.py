@@ -7,10 +7,14 @@ classifica por risco e gera relatório em JSON e HTML.
 import json
 import os
 import html as html_lib
+import hashlib
 from datetime import datetime
-from dataclasses import asdict
-from code_analyzer import analisar_arquivo, analisar_diretorio
-from db_analyzer   import analisar_banco
+from code_analyzer import (
+    analisar_arquivo_com_escopo,
+    analisar_diretorio_com_escopo,
+    finalizar_escopo_varredura,
+)
+from db_analyzer import analisar_banco_com_escopo
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -48,24 +52,29 @@ RECOMENDACOES = {
         "O titular tem direito à eliminação dos dados (Art. 18, IV LGPD)."
     ),
     "CAMPO_SEM_HASH": (
-        "Aplique hash/criptografia antes de persistir. Renomeie a coluna com "
-        "sufixo '_hash' após aplicar (ex: senha → senha_hash com bcrypt)."
+        "Verifique se o dado é realmente armazenado em texto puro. Quando "
+        "necessário, aplique hash, criptografia ou pseudonimização conforme a "
+        "finalidade; se a proteção já existir em outra camada, documente-a ou "
+        "use nomenclatura que evidencie o controle."
     ),
     "AUSENCIA_SOFT_DELETE": (
-        "Adicione coluna 'deleted_at TIMESTAMP' ou 'is_deleted BOOLEAN' "
-        "para suportar exclusão lógica sem perda de integridade referencial."
+        "Verifique onde o sistema atende pedidos de eliminação ou anonimização. "
+        "Se o controle depender do banco, adicione coluna 'deleted_at TIMESTAMP', "
+        "'is_deleted BOOLEAN' ou mecanismo equivalente."
     ),
     "AUSENCIA_RETENCAO": (
-        "Adicione coluna 'expires_at TIMESTAMP' e implemente rotina de purga "
-        "automática. Defina o prazo de retenção conforme a finalidade do dado."
+        "Documente a política de retenção e verifique se há rotina externa de "
+        "expurgo. Se o controle ficar no schema, adicione coluna 'expires_at' "
+        "ou campo equivalente e implemente a purga conforme a finalidade."
     ),
     "MISTURA_DADOS": (
         "Separe dados pessoais em tabela dedicada (ex: usuarios_dados_pessoais) "
         "vinculada por ID técnico. Facilita controle de acesso e exclusão seletiva."
     ),
     "AUSENCIA_CONSENTIMENTO": (
-        "Adicione coluna 'lgpd_aceito BOOLEAN' e 'lgpd_aceito_em TIMESTAMP'. "
-        "Registre data e versão da política aceita pelo titular."
+        "Verifique qual base legal do Art. 7º justifica o tratamento. Se for "
+        "consentimento, registre aceite, data e versão da política; se for "
+        "outra base legal, documente essa base no fluxo ou no modelo de dados."
     ),
     "DADO_SENSIVEL_COMO_PK": (
         "Substitua a PK por ID técnico (INTEGER AUTOINCREMENT ou UUID). "
@@ -74,6 +83,199 @@ RECOMENDACOES = {
 }
 
 ORDEM_RISCO = {"ALTO": 0, "MEDIO": 1, "BAIXO": 2}
+VERSAO_FERRAMENTA = "1.0.4"
+
+AVISO_ESCOPO_ANALISE = (
+    "Os resultados representam indícios técnicos identificados por análise "
+    "estática. Eles apoiam revisão de privacidade, mas não comprovam, sozinhos, "
+    "conformidade ou desconformidade jurídica com a LGPD."
+)
+
+CRITERIO_INDICADOR_TECNICO = (
+    "Indicador operacional: 100 - (ALTO * 10 + MEDIO * 5 + BAIXO * 2). "
+    "Os pesos priorizam revisão por severidade e não representam métrica "
+    "jurídica, estatística ou regulatória de conformidade."
+)
+
+EVIDENCIAS_SEGURAS = {
+    "DADO_HARDCODED": "A regra identificou uma atribuição literal a um identificador classificado; o conteúdo foi ocultado.",
+    "DADO_SEM_CRIPTOGRAFIA": "A regra não encontrou indício local de proteção no fluxo de armazenamento; o conteúdo foi ocultado.",
+    "CRIPTOGRAFIA_FRACA": "A regra identificou uso de algoritmo criptográfico classificado como fraco.",
+    "DADO_EM_LOG": "A regra identificou possível registro de dado pessoal em mecanismo de log; o conteúdo foi ocultado.",
+    "TRANSFERENCIA_SEM_BASE_LEGAL": "A regra identificou possível envio a serviço externo sem marcador técnico de base legal.",
+    "COLETA_EXCESSIVA": "A regra identificou concentração de campos classificados em uma mesma entrada.",
+    "AUSENCIA_EXCLUSAO": "A regra não encontrou método de exclusão ou anonimização no modelo analisado.",
+    "CAMPO_SEM_HASH": "O schema não evidenciou proteção no nome ou tipo do campo classificado; detalhes foram ocultados.",
+    "AUSENCIA_SOFT_DELETE": "O schema não evidenciou mecanismo de exclusão lógica ou anonimização.",
+    "AUSENCIA_RETENCAO": "O schema não evidenciou controle de retenção ou expurgo.",
+    "MISTURA_DADOS": "O schema concentrou campos classificados e operacionais na mesma estrutura.",
+    "AUSENCIA_CONSENTIMENTO": "O schema não evidenciou consentimento nem outro registro técnico de base legal.",
+    "DADO_SENSIVEL_COMO_PK": "O schema usa um campo classificado como identificador primário.",
+}
+
+DESCRICOES_SEGURAS = {
+    "DADO_HARDCODED": "Possível dado pessoal literal identificado por análise estática.",
+    "DADO_SEM_CRIPTOGRAFIA": "Possível armazenamento sem proteção evidenciada localmente.",
+    "CRIPTOGRAFIA_FRACA": "Algoritmo criptográfico potencialmente fraco identificado.",
+    "DADO_EM_LOG": "Possível exposição de dado pessoal em log identificada.",
+    "TRANSFERENCIA_SEM_BASE_LEGAL": "Possível transferência para terceiro sem marcador técnico de base legal.",
+    "COLETA_EXCESSIVA": "Possível coleta acima do mínimo necessário identificada.",
+    "AUSENCIA_EXCLUSAO": "Mecanismo de exclusão ou anonimização não evidenciado na estrutura analisada.",
+    "CAMPO_SEM_HASH": "Proteção do campo não evidenciada pelo schema analisado.",
+    "AUSENCIA_SOFT_DELETE": "Controle de exclusão lógica ou anonimização não evidenciado pelo schema.",
+    "AUSENCIA_RETENCAO": "Controle de retenção ou expurgo não evidenciado pelo schema.",
+    "MISTURA_DADOS": "Separação entre dados classificados e operacionais deve ser revisada.",
+    "AUSENCIA_CONSENTIMENTO": "Proteção/base legal não evidenciada pelo schema; requer revisão humana.",
+    "DADO_SENSIVEL_COMO_PK": "Uso de identificador pessoal como chave primária deve ser revisado.",
+}
+
+REFERENCIAS_POTENCIAIS = {
+    "DADO_HARDCODED": "Art. 46 — Segurança e prevenção",
+    "DADO_SEM_CRIPTOGRAFIA": "Art. 46 — Segurança e prevenção",
+    "CRIPTOGRAFIA_FRACA": "Art. 46 — Segurança e prevenção",
+    "DADO_EM_LOG": "Art. 46 — Segurança | Art. 6º, III — Necessidade",
+    "TRANSFERENCIA_SEM_BASE_LEGAL": "Art. 7º — Hipóteses de tratamento | Art. 33 — Transferência internacional",
+    "COLETA_EXCESSIVA": "Art. 6º, I e III — Finalidade e necessidade",
+    "AUSENCIA_EXCLUSAO": "Art. 18, IV — Direito à eliminação dos dados",
+    "CAMPO_SEM_HASH": "Art. 46 — Segurança e prevenção",
+    "AUSENCIA_SOFT_DELETE": "Art. 18, IV — Direito à eliminação dos dados",
+    "AUSENCIA_RETENCAO": "Art. 15 — Término do tratamento | Art. 6º, I — Finalidade",
+    "MISTURA_DADOS": "Art. 46 — Segurança | Privacy by Design — Separação",
+    "AUSENCIA_CONSENTIMENTO": "Art. 7º — Bases legais para tratamento de dados pessoais",
+    "DADO_SENSIVEL_COMO_PK": "Art. 46 — Segurança | Privacy by Design — Linkability",
+}
+
+CATEGORIAS_PUBLICAS = {
+    "AUSENCIA_CONSENTIMENTO": "PROTEÇÃO/BASE LEGAL NÃO EVIDENCIADA",
+}
+
+
+def status_score_tecnico(score: int) -> str:
+    if score >= 80:
+        return "Baixo risco técnico"
+    if score >= 50:
+        return "Revisar controles"
+    return "Risco técnico crítico"
+
+
+def _indicador_disponivel(escopo: dict | None) -> bool:
+    if escopo is None:
+        # Mantém compatibilidade para relatórios criados programaticamente com
+        # resultados já validados pelo chamador.
+        return True
+    return (
+        escopo.get("status") in {"complete", "partial"}
+        and escopo.get("arquivos_analisados", 0) > 0
+    )
+
+
+def construir_resumo(resultados, indicador_disponivel: bool = True) -> dict:
+    """Calcula o resumo bruto sem depender de filtros de interface."""
+    por_risco = {"ALTO": 0, "MEDIO": 0, "BAIXO": 0}
+    por_categoria = {}
+    for achado in resultados:
+        por_risco[achado.risco] = por_risco.get(achado.risco, 0) + 1
+        por_categoria[achado.categoria] = por_categoria.get(achado.categoria, 0) + 1
+
+    indicador = None
+    if indicador_disponivel:
+        indicador = max(0, 100 - (
+            por_risco["ALTO"] * 10 +
+            por_risco["MEDIO"] * 5 +
+            por_risco["BAIXO"] * 2
+        ))
+
+    return {
+        "total": len(resultados),
+        "por_risco": por_risco,
+        "por_categoria": por_categoria,
+        "indicador_tecnico": indicador,
+        "score_conformidade": indicador,
+        "criterio_indicador": CRITERIO_INDICADOR_TECNICO,
+        "aviso_escopo": AVISO_ESCOPO_ANALISE,
+    }
+
+
+def combinar_escopos(escopos: list[dict], alvo: str | None = None) -> dict:
+    """Combina escopos de código e banco em um único registro auditável."""
+    if not escopos:
+        return {
+            "tipo": "misto",
+            "alvo": os.path.abspath(alvo) if alvo else None,
+            "status": "empty",
+            "arquivos_elegiveis": 0,
+            "arquivos_analisados": 0,
+            "arquivos_ignorados": 0,
+            "arquivos_falhos": 0,
+            "erros": [],
+        }
+
+    combinado = {
+        "tipo": escopos[0]["tipo"] if len(escopos) == 1 else "misto",
+        "alvo": os.path.abspath(alvo) if alvo else None,
+        "status": "pending",
+        "arquivos_elegiveis": 0,
+        "arquivos_analisados": 0,
+        "arquivos_ignorados": 0,
+        "arquivos_falhos": 0,
+        "erros": [],
+    }
+    for escopo in escopos:
+        for chave in (
+            "arquivos_elegiveis",
+            "arquivos_analisados",
+            "arquivos_ignorados",
+            "arquivos_falhos",
+        ):
+            combinado[chave] += escopo.get(chave, 0)
+        combinado["erros"].extend(escopo.get("erros", []))
+
+    return finalizar_escopo_varredura(combinado)
+
+
+def serializar_achado(achado) -> dict:
+    """Converte um achado interno em contrato público sem trecho bruto.
+
+    O campo legado ``trecho`` é mantido somente como alias da evidência segura;
+    nenhum serializador deve usar o atributo interno de mesmo nome.
+    """
+    categoria = str(achado.categoria)
+    risco = str(achado.risco) if achado.risco in ORDEM_RISCO else "NAO_CLASSIFICADO"
+    evidencia = EVIDENCIAS_SEGURAS.get(
+        categoria,
+        "Regra estática acionada; detalhes originais foram ocultados para revisão local.",
+    )
+    arquivo = os.fspath(achado.arquivo)
+    linha = int(achado.linha or 0)
+    finding_id = hashlib.sha256(
+        f"{arquivo}\0{linha}\0{categoria}\0{risco}".encode("utf-8")
+    ).hexdigest()[:20]
+    return {
+        "finding_id": finding_id,
+        "arquivo": arquivo,
+        "linha": linha,
+        "categoria": categoria,
+        "categoria_publica": CATEGORIAS_PUBLICAS.get(categoria, categoria),
+        "risco": risco,
+        "descricao": DESCRICOES_SEGURAS.get(
+            categoria,
+            "Indício técnico identificado por análise estática; requer revisão humana.",
+        ),
+        "artigo_lgpd": REFERENCIAS_POTENCIAIS.get(
+            categoria,
+            "Referência normativa potencial; requer revisão humana.",
+        ),
+        "recomendacao": RECOMENDACOES.get(
+            categoria,
+            "Revise o achado localmente e documente o controle técnico aplicável.",
+        ),
+        "evidencia_segura": evidencia,
+        "trecho": evidencia,
+    }
+
+
+def serializar_achados(resultados) -> list[dict]:
+    return [serializar_achado(achado) for achado in resultados]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -86,16 +288,29 @@ class Reporter:
         self.alvo_banco  = alvo_banco
         self.timestamp   = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.resultados  = []
+        self.escopo: dict | None = None
 
     def coletar(self):
+        if not self.alvo_codigo and not self.alvo_banco:
+            raise ValueError("Informe ao menos um alvo de código ou banco SQLite.")
+
+        escopos = []
         if self.alvo_codigo:
             if os.path.isfile(self.alvo_codigo):
-                self.resultados += analisar_arquivo(self.alvo_codigo)
+                resultados, escopo = analisar_arquivo_com_escopo(self.alvo_codigo)
             elif os.path.isdir(self.alvo_codigo):
-                self.resultados += analisar_diretorio(self.alvo_codigo)
+                resultados, escopo = analisar_diretorio_com_escopo(self.alvo_codigo)
+            else:
+                raise FileNotFoundError(f"Alvo de código não encontrado: {self.alvo_codigo}")
+            self.resultados += resultados
+            escopos.append(escopo)
 
-        if self.alvo_banco and os.path.isfile(self.alvo_banco):
-            self.resultados += analisar_banco(self.alvo_banco)
+        if self.alvo_banco:
+            resultados, escopo = analisar_banco_com_escopo(self.alvo_banco)
+            self.resultados += resultados
+            escopos.append(escopo)
+
+        self.escopo = combinar_escopos(escopos)
 
         # Ordena: ALTO → MEDIO → BAIXO, depois por arquivo e linha
         self.resultados.sort(
@@ -105,47 +320,47 @@ class Reporter:
 
     # ── Sumário em texto para o terminal ─────────────────────────────────────
     def _sumario(self) -> dict:
-        total = len(self.resultados)
-        por_risco = {"ALTO": 0, "MEDIO": 0, "BAIXO": 0}
-        por_categoria = {}
-        for v in self.resultados:
-            por_risco[v.risco] = por_risco.get(v.risco, 0) + 1
-            por_categoria[v.categoria] = por_categoria.get(v.categoria, 0) + 1
+        return construir_resumo(
+            self.resultados,
+            indicador_disponivel=_indicador_disponivel(self.escopo),
+        )
+
+    def dados_publicos(self) -> dict:
+        """Retorna o contrato serializável usado em JSON e pela API."""
+        resumo = self._sumario()
+        achados = serializar_achados(self.resultados)
         return {
-            "total": total,
-            "por_risco": por_risco,
-            "por_categoria": por_categoria,
-            "score_conformidade": max(0, 100 - (
-                por_risco["ALTO"]  * 10 +
-                por_risco["MEDIO"] *  5 +
-                por_risco["BAIXO"] *  2
-            )),
+            "ferramenta": "Privacy Scanner — TCC FATEC",
+            "versao": VERSAO_FERRAMENTA,
+            "timestamp": self.timestamp,
+            "status": self.escopo.get("status") if self.escopo else "complete",
+            "aviso_escopo": AVISO_ESCOPO_ANALISE,
+            "criterio_indicador": CRITERIO_INDICADOR_TECNICO,
+            "escopo": self.escopo,
+            "resumo": resumo,
+            "sumario": resumo,
+            "summary": resumo,
+            "achados": achados,
+            "vulnerabilidades": achados,
+            "vulnerabilities": achados,
         }
 
     # ── Exportar JSON ─────────────────────────────────────────────────────────
     def exportar_json(self, caminho: str):
-        sumario = self._sumario()
-        payload = {
-            "ferramenta": "Privacy Scanner — TCC FATEC",
-            "versao":     "1.0.0",
-            "timestamp":  self.timestamp,
-            "sumario":    sumario,
-            "vulnerabilidades": [
-                {**asdict(v), "recomendacao": RECOMENDACOES.get(v.categoria, "")}
-                for v in self.resultados
-            ],
-        }
+        payload = self.dados_publicos()
         with open(caminho, "w", encoding="utf-8") as f:
             json.dump(payload, f, ensure_ascii=False, indent=2)
-        print(f"📄 JSON gerado: {caminho}")
+        print(f"JSON gerado: {caminho}")
 
     # ── Exportar HTML ─────────────────────────────────────────────────────────
     def gerar_html(self) -> str:
         """Retorna o relatorio HTML em memoria."""
         sumario = self._sumario()
-        score = sumario["score_conformidade"]
+        score = sumario["indicador_tecnico"]
+        if score is None:
+            raise ValueError("Não é possível gerar relatório para escopo vazio, inválido ou sem análise concluída.")
         cor_score = "#15803d" if score >= 80 else "#b45309" if score >= 50 else "#b91c1c"
-        status_score = "Conforme" if score >= 80 else "Atencao" if score >= 50 else "Critico"
+        status_score = status_score_tecnico(score)
 
         arquivos = sorted({v.arquivo for v in self.resultados if v.arquivo})
         arquivos_python = sum(1 for a in arquivos if a.lower().endswith(".py"))
@@ -169,34 +384,37 @@ class Reporter:
 
         linhas_tabela = ""
         for idx, v in enumerate(self.resultados, start=1):
+            achado = serializar_achado(v)
             badge_risco = {
                 "ALTO": '<span class="badge alto">ALTO</span>',
                 "MEDIO": '<span class="badge medio">MEDIO</span>',
                 "BAIXO": '<span class="badge baixo">BAIXO</span>',
-            }.get(v.risco, esc(v.risco))
+            }.get(achado["risco"], esc(achado["risco"]))
 
-            local = f"{os.path.basename(v.arquivo)}:{v.linha}" if v.linha > 0 else os.path.basename(v.arquivo)
-            recomendacao = RECOMENDACOES.get(v.categoria, "Sem recomendacao cadastrada.")
-            trecho = f"<code>{esc(v.trecho)}</code>" if v.trecho else '<span class="muted">Nao informado</span>'
+            local = (
+                f"{os.path.basename(achado['arquivo'])}:{achado['linha']}"
+                if achado["linha"] > 0 else os.path.basename(achado["arquivo"])
+            )
+            evidencia = f"<span>{esc(achado['evidencia_segura'])}</span>"
 
-            risco_ordem = {"ALTO": 3, "MEDIO": 2, "BAIXO": 1}.get(v.risco, 0)
+            risco_ordem = {"ALTO": 3, "MEDIO": 2, "BAIXO": 1}.get(achado["risco"], 0)
             linhas_tabela += f"""
-            <tr data-risk="{esc(v.risco)}" data-risk-order="{risco_ordem}">
+            <tr data-risk="{esc(achado['risco'])}" data-risk-order="{risco_ordem}">
               <td class="index">{idx}</td>
               <td>{badge_risco}</td>
-              <td><strong>{esc(v.categoria)}</strong></td>
+              <td><strong>{esc(achado['categoria_publica'])}</strong></td>
               <td>{esc(local)}</td>
-              <td>{esc(v.artigo_lgpd)}</td>
-              <td>{esc(v.descricao)}</td>
-              <td>{esc(recomendacao)}</td>
-              <td>{trecho}</td>
+              <td>{esc(achado['artigo_lgpd'])}</td>
+              <td>{esc(achado['descricao'])}</td>
+              <td>{esc(achado['recomendacao'])}</td>
+              <td>{evidencia}</td>
             </tr>"""
 
         if not linhas_tabela:
             linhas_tabela = """
             <tr>
               <td colspan="8" class="empty-state">
-                Nenhuma vulnerabilidade encontrada nos alvos analisados.
+                Nenhum achado tecnico encontrado nos alvos analisados.
               </td>
             </tr>"""
 
@@ -209,13 +427,14 @@ class Reporter:
         alvo_codigo = esc(self.alvo_codigo or "Nao informado")
         alvo_banco = esc(self.alvo_banco or "Nao informado")
         timestamp = esc(self.timestamp)
+        aviso_escopo = esc(AVISO_ESCOPO_ANALISE)
 
         return f"""<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Privacy Scanner LGPD - Relatorio de Conformidade</title>
+  <title>Privacy Scanner LGPD - Relatorio Tecnico de Privacidade</title>
   <style>
     :root {{
       --bg: #f5f7fb;
@@ -274,6 +493,16 @@ class Reporter:
     .card.score {{ border-top: 4px solid {cor_score}; }}
     .card.score .num {{ color: {cor_score}; }}
     .panel {{ padding: 18px; }}
+    .notice {{
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      border-left: 4px solid #d97706;
+      border-radius: 8px;
+      padding: 12px 14px;
+      color: #78350f;
+      font-size: 13px;
+    }}
+    .notice strong {{ display: block; margin-bottom: 4px; color: #78350f; }}
     .targets {{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }}
     .target-box {{ border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: #fbfdff; }}
     .target-box span {{ display: block; color: var(--muted); font-size: 12px; margin-bottom: 4px; }}
@@ -367,7 +596,7 @@ class Reporter:
     <div class="header-grid">
       <div>
         <h1>Privacy Scanner LGPD</h1>
-        <div class="subtitle">Relatorio de conformidade e evidencias de privacidade em codigo Python, Java e SQLite.</div>
+        <div class="subtitle">Relatorio tecnico de indicios de risco a privacidade em codigo Python, Java e SQLite.</div>
         <div class="meta">Gerado em {timestamp} | Privacy by Design no ciclo de desenvolvimento</div>
       </div>
       <div class="score-pill"><strong>{score}/100</strong><span>{status_score}</span></div>
@@ -375,12 +604,15 @@ class Reporter:
   </header>
   <main>
     <section class="section">
+      <div class="notice"><strong>Limite da analise</strong>{aviso_escopo}</div>
+    </section>
+    <section class="section">
       <div class="cards">
-        <div class="card"><div class="num">{sumario['total']}</div><div class="lbl">Total de vulnerabilidades</div></div>
+        <div class="card"><div class="num">{sumario['total']}</div><div class="lbl">Total de achados tecnicos</div></div>
         <div class="card"><div class="num" style="color:#dc2626">{sumario['por_risco']['ALTO']}</div><div class="lbl">Risco alto</div></div>
         <div class="card"><div class="num" style="color:#d97706">{sumario['por_risco']['MEDIO']}</div><div class="lbl">Risco medio</div></div>
         <div class="card"><div class="num" style="color:#2563eb">{sumario['por_risco']['BAIXO']}</div><div class="lbl">Risco baixo</div></div>
-        <div class="card score"><div class="num">{score}</div><div class="lbl">Score LGPD ({status_score})</div></div>
+        <div class="card score"><div class="num">{score}</div><div class="lbl">Indicador tecnico ({status_score})</div></div>
       </div>
     </section>
     <section class="section">
@@ -398,11 +630,11 @@ class Reporter:
           <div class="muted">{arquivos_python} arquivo(s) Python, {arquivos_java} arquivo(s) Java e {bancos_sqlite} banco(s) SQLite com achados.</div>
           <div class="risk-count">{len(arquivos)}</div>
         </div>
-        {barras}
+          {barras.lstrip()}
       </div>
     </section>
     <section class="section">
-      <h2>Vulnerabilidades e recomendacoes</h2>
+      <h2>Achados tecnicos e recomendacoes</h2>
       <div class="table-wrap">
         <div class="table-toolbar">
           <div class="filter-group" aria-label="Filtrar por risco">
@@ -424,7 +656,7 @@ class Reporter:
                 <th class="sortable" data-sort="text">LGPD</th>
                 <th class="sortable" data-sort="text">Descricao</th>
                 <th>Recomendacao</th>
-                <th>Trecho</th>
+                <th>Evidencia segura</th>
               </tr>
             </thead>
             <tbody>{linhas_tabela}</tbody>
@@ -523,7 +755,7 @@ class Reporter:
       applyFilter();
     }})();
   </script>
-  <footer>Privacy Scanner LGPD v1.0.0 | TCC FATEC | Relatorio gerado automaticamente.</footer>
+  <footer>Privacy Scanner LGPD v{VERSAO_FERRAMENTA} | TCC FATEC | Relatorio gerado automaticamente.</footer>
 </body>
 </html>"""
 
@@ -532,193 +764,6 @@ class Reporter:
         with open(caminho, "w", encoding="utf-8") as f:
             f.write(html)
         print(f"HTML gerado: {caminho}")
-        return
-
-        sumario = self._sumario()
-        score   = sumario["score_conformidade"]
-        cor_score = (
-            "#27ae60" if score >= 80 else
-            "#f39c12" if score >= 50 else
-            "#e74c3c"
-        )
-
-        # ── Linhas da tabela ──
-        linhas_tabela = ""
-        for v in self.resultados:
-            badge_risco = {
-                "ALTO":  '<span class="badge alto">ALTO</span>',
-                "MEDIO": '<span class="badge medio">MÉDIO</span>',
-                "BAIXO": '<span class="badge baixo">BAIXO</span>',
-            }.get(v.risco, v.risco)
-
-            rec = html_lib.escape(RECOMENDACOES.get(v.categoria, "—"))
-            trecho_html = (
-                f'<code>{html_lib.escape(v.trecho)}</code>' if v.trecho else "—"
-            )
-            local = (
-                f"{os.path.basename(v.arquivo)}:{v.linha}"
-                if v.linha > 0 else os.path.basename(v.arquivo)
-            )
-            local = html_lib.escape(local)
-            categoria = html_lib.escape(v.categoria)
-            artigo_lgpd = html_lib.escape(v.artigo_lgpd)
-            descricao = html_lib.escape(v.descricao)
-
-            linhas_tabela += f"""
-            <tr>
-              <td>{badge_risco}</td>
-              <td><strong>{categoria}</strong></td>
-              <td>{local}</td>
-              <td>{artigo_lgpd}</td>
-              <td>{descricao}</td>
-              <td>{rec}</td>
-              <td>{trecho_html}</td>
-            </tr>"""
-
-        # ── Barras do sumário ──
-        def barra(label, count, cor):
-            return f"""
-            <div class="barra-item">
-              <span class="barra-label">{label}</span>
-              <div class="barra-fundo">
-                <div class="barra-fill" style="width:{min(count*8,100)}%;background:{cor}"></div>
-              </div>
-              <span class="barra-num">{count}</span>
-            </div>"""
-
-        barras = (
-            barra("ALTO",  sumario["por_risco"]["ALTO"],  "#e74c3c") +
-            barra("MÉDIO", sumario["por_risco"]["MEDIO"], "#f39c12") +
-            barra("BAIXO", sumario["por_risco"]["BAIXO"], "#3498db")
-        )
-
-        html = f"""<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Privacy Scanner — Relatório de Conformidade LGPD</title>
-  <style>
-    *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
-    body      {{ font-family: 'Segoe UI', Arial, sans-serif; background: #f4f6f9;
-                color: #2c3e50; font-size: 14px; }}
-    header    {{ background: #1a2744; color: #fff; padding: 24px 40px;
-                display: flex; justify-content: space-between; align-items: center; }}
-    header h1 {{ font-size: 20px; font-weight: 600; }}
-    header p  {{ font-size: 12px; opacity: .7; margin-top: 4px; }}
-    .main     {{ padding: 32px 40px; }}
-
-    /* Cartões do sumário */
-    .cards    {{ display: grid; grid-template-columns: repeat(4,1fr); gap: 16px;
-                margin-bottom: 32px; }}
-    .card     {{ background: #fff; border-radius: 10px; padding: 20px 24px;
-                box-shadow: 0 1px 4px rgba(0,0,0,.08); }}
-    .card .num  {{ font-size: 36px; font-weight: 700; }}
-    .card .lbl  {{ font-size: 12px; color: #888; margin-top: 4px; }}
-    .card.score .num {{ color: {cor_score}; }}
-
-    /* Barras */
-    .barras   {{ background:#fff; border-radius:10px; padding:20px 24px;
-                box-shadow:0 1px 4px rgba(0,0,0,.08); margin-bottom:32px; }}
-    .barras h2 {{ font-size:14px; font-weight:600; margin-bottom:16px; }}
-    .barra-item {{ display:flex; align-items:center; gap:12px; margin-bottom:10px; }}
-    .barra-label {{ width:50px; font-size:12px; font-weight:600; }}
-    .barra-fundo {{ flex:1; background:#eee; border-radius:4px; height:12px; }}
-    .barra-fill  {{ height:12px; border-radius:4px; transition:width .4s; }}
-    .barra-num   {{ width:30px; text-align:right; font-size:12px; font-weight:700; }}
-
-    /* Tabela */
-    .tabela-wrap {{ background:#fff; border-radius:10px;
-                   box-shadow:0 1px 4px rgba(0,0,0,.08); overflow:hidden; }}
-    .tabela-wrap h2 {{ font-size:14px; font-weight:600; padding:16px 24px;
-                      border-bottom:1px solid #f0f0f0; }}
-    table      {{ width:100%; border-collapse:collapse; font-size:13px; }}
-    th         {{ background:#f8f9fb; padding:10px 12px; text-align:left;
-                font-weight:600; font-size:12px; color:#555;
-                border-bottom:1px solid #e8e8e8; }}
-    td         {{ padding:10px 12px; border-bottom:1px solid #f0f0f0;
-                vertical-align:top; }}
-    tr:last-child td {{ border-bottom:none; }}
-    tr:hover td {{ background:#fafbfc; }}
-    code       {{ background:#f0f0f0; padding:2px 6px; border-radius:4px;
-                font-size:11px; font-family:monospace; word-break:break-all; }}
-
-    /* Badges de risco */
-    .badge     {{ display:inline-block; padding:2px 8px; border-radius:12px;
-                font-size:11px; font-weight:700; }}
-    .badge.alto  {{ background:#fde8e8; color:#c0392b; }}
-    .badge.medio {{ background:#fef3cd; color:#856404; }}
-    .badge.baixo {{ background:#d1ecf1; color:#0c5460; }}
-
-    footer {{ text-align:center; padding:24px; color:#aaa; font-size:12px; }}
-  </style>
-</head>
-<body>
-  <header>
-    <div>
-      <h1>🔒 Privacy Scanner — Relatório de Conformidade LGPD</h1>
-      <p>Gerado em {self.timestamp} &nbsp;|&nbsp; TCC FATEC &nbsp;|&nbsp;
-         Privacy by Design no Ciclo de Desenvolvimento de Software</p>
-    </div>
-  </header>
-
-  <div class="main">
-
-    <!-- Cartões -->
-    <div class="cards">
-      <div class="card">
-        <div class="num">{sumario['total']}</div>
-        <div class="lbl">Total de vulnerabilidades</div>
-      </div>
-      <div class="card" style="border-top:3px solid #e74c3c">
-        <div class="num" style="color:#e74c3c">{sumario['por_risco']['ALTO']}</div>
-        <div class="lbl">Risco ALTO</div>
-      </div>
-      <div class="card" style="border-top:3px solid #f39c12">
-        <div class="num" style="color:#f39c12">{sumario['por_risco']['MEDIO']}</div>
-        <div class="lbl">Risco MÉDIO</div>
-      </div>
-      <div class="card score" style="border-top:3px solid {cor_score}">
-        <div class="num">{score}/100</div>
-        <div class="lbl">Score de conformidade LGPD</div>
-      </div>
-    </div>
-
-    <!-- Barras -->
-    <div class="barras">
-      <h2>Distribuição por nível de risco</h2>
-      {barras}
-    </div>
-
-    <!-- Tabela -->
-    <div class="tabela-wrap">
-      <h2>Vulnerabilidades encontradas</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Risco</th>
-            <th>Categoria</th>
-            <th>Local</th>
-            <th>Artigo LGPD</th>
-            <th>Descrição</th>
-            <th>Recomendação</th>
-            <th>Trecho</th>
-          </tr>
-        </thead>
-        <tbody>
-          {linhas_tabela}
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <footer>Privacy Scanner v1.0.0 — TCC FATEC — Privacy by Design no SDLC</footer>
-</body>
-</html>"""
-
-        with open(caminho, "w", encoding="utf-8") as f:
-            f.write(html)
-        print(f"🌐 HTML gerado: {caminho}")
 
     # ── Imprimir no terminal ──────────────────────────────────────────────────
     def exportar_pdf(self, caminho: str):
@@ -746,8 +791,10 @@ class Reporter:
             return html_lib.escape(str(valor)) if valor is not None else ""
 
         sumario = self._sumario()
-        score = sumario["score_conformidade"]
-        status_score = "Conforme" if score >= 80 else "Atencao" if score >= 50 else "Critico"
+        score = sumario["indicador_tecnico"]
+        if score is None:
+            raise ValueError("Não é possível gerar relatório para escopo vazio, inválido ou sem análise concluída.")
+        status_score = status_score_tecnico(score)
         score_color = colors.HexColor("#15803d" if score >= 80 else "#b45309" if score >= 50 else "#b91c1c")
         risk_colors = {
             "ALTO": colors.HexColor("#dc2626"),
@@ -762,7 +809,7 @@ class Reporter:
             leftMargin=1.4 * cm,
             topMargin=1.2 * cm,
             bottomMargin=1.2 * cm,
-            title="Privacy Scanner LGPD - Relatorio de Conformidade",
+            title="Privacy Scanner LGPD - Relatorio Tecnico de Privacidade",
         )
 
         styles = getSampleStyleSheet()
@@ -800,6 +847,18 @@ class Reporter:
             leading=9,
         ))
         styles.add(ParagraphStyle(
+            name="Notice",
+            parent=styles["Normal"],
+            textColor=colors.HexColor("#78350f"),
+            backColor=colors.HexColor("#fffbeb"),
+            borderColor=colors.HexColor("#fcd34d"),
+            borderWidth=0.5,
+            borderPadding=6,
+            fontSize=8,
+            leading=11,
+            spaceAfter=12,
+        ))
+        styles.add(ParagraphStyle(
             name="Cell",
             parent=styles["Normal"],
             fontSize=7,
@@ -810,14 +869,15 @@ class Reporter:
         story = [
             Paragraph("Privacy Scanner LGPD", styles["TitleCenter"]),
             Paragraph(
-                f"Relatorio de conformidade gerado em {esc(self.timestamp)} | Privacy by Design no ciclo de desenvolvimento",
+                f"Relatorio tecnico de privacidade gerado em {esc(self.timestamp)} | Privacy by Design no ciclo de desenvolvimento",
                 styles["SubtitleCenter"],
             ),
+            Paragraph(f"<b>Limite da analise:</b> {esc(AVISO_ESCOPO_ANALISE)}", styles["Notice"]),
         ]
 
         summary_table = Table(
             [
-                ["Score LGPD", "Status", "Total", "ALTO", "MEDIO", "BAIXO"],
+                ["Indicador tecnico", "Status", "Total", "ALTO", "MEDIO", "BAIXO"],
                 [
                     f"{score}/100",
                     status_score,
@@ -864,26 +924,29 @@ class Reporter:
         story.append(Spacer(1, 8))
 
         if not self.resultados:
-            story.append(Paragraph("Nenhuma vulnerabilidade encontrada nos alvos analisados.", styles["Section"]))
+            story.append(Paragraph("Nenhum achado tecnico encontrado nos alvos analisados.", styles["Section"]))
         else:
             for risco in ["ALTO", "MEDIO", "BAIXO"]:
                 vulns = [v for v in self.resultados if v.risco == risco]
                 if not vulns:
                     continue
 
-                story.append(Paragraph(f"Vulnerabilidades de risco {risco}", styles["Section"]))
+                story.append(Paragraph(f"Achados técnicos de risco {risco}", styles["Section"]))
                 table_data = [["#", "Categoria", "Local", "LGPD", "Descricao", "Recomendacao"]]
 
                 for idx, v in enumerate(vulns, start=1):
-                    local = f"{os.path.basename(v.arquivo)}:{v.linha}" if v.linha > 0 else os.path.basename(v.arquivo)
-                    recomendacao = RECOMENDACOES.get(v.categoria, "Sem recomendacao cadastrada.")
+                    achado = serializar_achado(v)
+                    local = (
+                        f"{os.path.basename(achado['arquivo'])}:{achado['linha']}"
+                        if achado["linha"] > 0 else os.path.basename(achado["arquivo"])
+                    )
                     table_data.append([
                         str(idx),
-                        Paragraph(esc(v.categoria), styles["Cell"]),
+                        Paragraph(esc(achado["categoria_publica"]), styles["Cell"]),
                         Paragraph(esc(local), styles["Cell"]),
-                        Paragraph(esc(v.artigo_lgpd), styles["Cell"]),
-                        Paragraph(esc(v.descricao), styles["Cell"]),
-                        Paragraph(esc(recomendacao), styles["Cell"]),
+                        Paragraph(esc(achado["artigo_lgpd"]), styles["Cell"]),
+                        Paragraph(esc(achado["descricao"]), styles["Cell"]),
+                        Paragraph(esc(achado["recomendacao"]), styles["Cell"]),
                     ])
 
                 findings_table = Table(
@@ -907,14 +970,18 @@ class Reporter:
 
             story.append(PageBreak())
             story.append(Paragraph("Evidencias tecnicas", styles["Section"]))
-            evidence_data = [["Risco", "Categoria", "Local", "Trecho"]]
+            evidence_data = [["Risco", "Categoria", "Local", "Evidencia segura"]]
             for v in self.resultados:
-                local = f"{os.path.basename(v.arquivo)}:{v.linha}" if v.linha > 0 else os.path.basename(v.arquivo)
+                achado = serializar_achado(v)
+                local = (
+                    f"{os.path.basename(achado['arquivo'])}:{achado['linha']}"
+                    if achado["linha"] > 0 else os.path.basename(achado["arquivo"])
+                )
                 evidence_data.append([
-                    v.risco,
-                    Paragraph(esc(v.categoria), styles["Cell"]),
+                    achado["risco"],
+                    Paragraph(esc(achado["categoria_publica"]), styles["Cell"]),
                     Paragraph(esc(local), styles["Cell"]),
-                    Paragraph(esc(v.trecho or "Nao informado"), styles["Cell"]),
+                    Paragraph(esc(achado["evidencia_segura"]), styles["Cell"]),
                 ])
             evidence_table = Table(
                 evidence_data,
@@ -937,7 +1004,7 @@ class Reporter:
             canvas.saveState()
             canvas.setFont("Helvetica", 8)
             canvas.setFillColor(colors.HexColor("#64748b"))
-            canvas.drawString(1.4 * cm, 0.8 * cm, "Privacy Scanner LGPD v1.0.0 - TCC FATEC")
+            canvas.drawString(1.4 * cm, 0.8 * cm, f"Privacy Scanner LGPD v{VERSAO_FERRAMENTA} - TCC FATEC")
             canvas.drawRightString(19.6 * cm, 0.8 * cm, f"Pagina {doc_obj.page}")
             canvas.restoreState()
 
@@ -947,33 +1014,35 @@ class Reporter:
     def imprimir(self):
         sumario = self._sumario()
         print("\n" + "═" * 60)
-        print("  🔒 PRIVACY SCANNER — Relatório de Conformidade LGPD")
+        print("  🔒 PRIVACY SCANNER — Relatório Técnico de Privacidade")
         print("═" * 60)
         print(f"  Gerado em  : {self.timestamp}")
         print(f"  Código     : {self.alvo_codigo or '—'}")
         print(f"  Banco      : {self.alvo_banco  or '—'}")
-        print(f"  Total      : {sumario['total']} vulnerabilidade(s)")
+        print(f"  Total      : {sumario['total']} achado(s)")
         print(f"  ALTO       : {sumario['por_risco']['ALTO']}")
         print(f"  MÉDIO      : {sumario['por_risco']['MEDIO']}")
         print(f"  BAIXO      : {sumario['por_risco']['BAIXO']}")
-        print(f"  Score LGPD : {sumario['score_conformidade']}/100")
+        print(f"  Indicador  : {sumario['indicador_tecnico']}/100")
+        print(f"  Aviso      : {AVISO_ESCOPO_ANALISE}")
         print("═" * 60 + "\n")
 
         if not self.resultados:
-            print("  ✅  Nenhuma vulnerabilidade encontrada.\n")
+            print("  ✅  Nenhum achado técnico encontrado.\n")
             return
 
         for v in self.resultados:
-            local = f"{v.arquivo}:{v.linha}" if v.linha > 0 else v.arquivo
-            print(f"  [{v.risco}] {v.categoria}")
+            achado = serializar_achado(v)
+            local = (
+                f"{achado['arquivo']}:{achado['linha']}"
+                if achado["linha"] > 0 else achado["arquivo"]
+            )
+            print(f"  [{achado['risco']}] {achado['categoria_publica']}")
             print(f"  Local    : {local}")
-            print(f"  LGPD     : {v.artigo_lgpd}")
-            print(f"  Detalhe  : {v.descricao}")
-            rec = RECOMENDACOES.get(v.categoria)
-            if rec:
-                print(f"  Correção : {rec}")
-            if v.trecho:
-                print(f"  Trecho   : {v.trecho}")
+            print(f"  LGPD     : {achado['artigo_lgpd']}")
+            print(f"  Detalhe  : {achado['descricao']}")
+            print(f"  Correção : {achado['recomendacao']}")
+            print(f"  Evidência: {achado['evidencia_segura']}")
             print()
 
 
@@ -984,33 +1053,35 @@ def _imprimir_ascii(self):
     """Imprime resumo ASCII, compativel com terminal Windows."""
     sumario = self._sumario()
     print("\n" + "=" * 60)
-    print("  PRIVACY SCANNER - Relatorio de Conformidade LGPD")
+    print("  PRIVACY SCANNER - Relatorio Tecnico de Privacidade")
     print("=" * 60)
     print(f"  Gerado em  : {self.timestamp}")
     print(f"  Codigo     : {self.alvo_codigo or '-'}")
     print(f"  Banco      : {self.alvo_banco or '-'}")
-    print(f"  Total      : {sumario['total']} vulnerabilidade(s)")
+    print(f"  Total      : {sumario['total']} achado(s)")
     print(f"  ALTO       : {sumario['por_risco']['ALTO']}")
     print(f"  MEDIO      : {sumario['por_risco']['MEDIO']}")
     print(f"  BAIXO      : {sumario['por_risco']['BAIXO']}")
-    print(f"  Score LGPD : {sumario['score_conformidade']}/100")
+    print(f"  Indicador  : {sumario['indicador_tecnico']}/100")
+    print(f"  Aviso      : {AVISO_ESCOPO_ANALISE}")
     print("=" * 60 + "\n")
 
     if not self.resultados:
-        print("  Nenhuma vulnerabilidade encontrada.\n")
+        print("  Nenhum achado tecnico encontrado.\n")
         return
 
     for v in self.resultados:
-        local = f"{v.arquivo}:{v.linha}" if v.linha > 0 else v.arquivo
-        print(f"  [{v.risco}] {v.categoria}")
+        achado = serializar_achado(v)
+        local = (
+            f"{achado['arquivo']}:{achado['linha']}"
+            if achado["linha"] > 0 else achado["arquivo"]
+        )
+        print(f"  [{achado['risco']}] {achado['categoria_publica']}")
         print(f"  Local    : {local}")
-        print(f"  LGPD     : {v.artigo_lgpd}")
-        print(f"  Detalhe  : {v.descricao}")
-        rec = RECOMENDACOES.get(v.categoria)
-        if rec:
-            print(f"  Correcao : {rec}")
-        if v.trecho:
-            print(f"  Trecho   : {v.trecho}")
+        print(f"  LGPD     : {achado['artigo_lgpd']}")
+        print(f"  Detalhe  : {achado['descricao']}")
+        print(f"  Correcao : {achado['recomendacao']}")
+        print(f"  Evidencia: {achado['evidencia_segura']}")
         print()
 
 
@@ -1022,7 +1093,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Privacy Scanner — verifica vulnerabilidades de privacidade"
+        description="Privacy Scanner — verifica indicios tecnicos de risco a privacidade"
     )
     parser.add_argument("--codigo", "-c", help="Arquivo .py ou diretório")
     parser.add_argument("--banco",  "-b", help="Arquivo .db (SQLite)")
@@ -1035,10 +1106,28 @@ if __name__ == "__main__":
         parser.print_help()
         sys.exit(1)
 
-    reporter = Reporter(
-        alvo_codigo=args.codigo,
-        alvo_banco=args.banco,
-    ).coletar()
+    try:
+        reporter = Reporter(
+            alvo_codigo=args.codigo,
+            alvo_banco=args.banco,
+        ).coletar()
+    except (FileNotFoundError, ValueError):
+        print(json.dumps({
+            "success": False,
+            "status": "invalid",
+            "indicador_tecnico": None,
+            "mensagem": "O alvo informado é inválido ou não está disponível para análise.",
+        }, ensure_ascii=False))
+        sys.exit(2)
+
+    if not _indicador_disponivel(reporter.escopo):
+        print(json.dumps({
+            "success": False,
+            "status": reporter.escopo["status"],
+            "escopo": reporter.escopo,
+            "indicador_tecnico": None,
+        }, ensure_ascii=False))
+        sys.exit(2)
 
     reporter.imprimir()
 

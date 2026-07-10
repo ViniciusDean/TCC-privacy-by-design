@@ -2,7 +2,7 @@
 
 [![Validação e pacote VSIX](https://github.com/ViniciusDean/TCC-privacy-by-design/actions/workflows/ci.yml/badge.svg)](https://github.com/ViniciusDean/TCC-privacy-by-design/actions/workflows/ci.yml)
 
-Ferramenta de análise estática para detectar vulnerabilidades de privacidade em código Python, código Java e bancos SQLite, com mapeamento das ocorrências para artigos da Lei Geral de Proteção de Dados Pessoais (LGPD).
+Ferramenta de análise estática para detectar indícios técnicos de risco à privacidade em código Python, código Java e bancos SQLite, com mapeamento das ocorrências para artigos da Lei Geral de Proteção de Dados Pessoais (LGPD).
 
 Projeto desenvolvido no contexto de TCC sobre **Privacy by Design no Ciclo de Desenvolvimento de Software**.
 
@@ -10,13 +10,30 @@ Projeto desenvolvido no contexto de TCC sobre **Privacy by Design no Ciclo de De
 
 O Privacy Scanner LGPD ajuda desenvolvedores a identificar riscos de privacidade ainda durante o desenvolvimento, sem executar o código analisado.
 
+Os achados são evidências técnicas para revisão preliminar. Eles não comprovam, sozinhos, conformidade ou desconformidade jurídica com a LGPD, pois a conclusão depende de finalidade, base legal, políticas internas, arquitetura e processos fora do código-fonte.
+
+## Fonte Canônica do TCC
+
+O texto canônico é `latex_tcc/main.tex`. Os PDFs e DOCX históricos na raiz não
+devem ser entregues como versão final. Para gerar o PDF atual, com XeLaTeX
+instalado, execute:
+
+```powershell
+.\scripts\build_tcc.ps1
+```
+
+O script bloqueia termos obsoletos e marcadores de banca por padrão, gera o PDF
+em `output/pdf/` e exige revisão visual posterior. O DOCX restaurado é fonte de
+consulta; ele não deve ser regenerado automaticamente, pois o conversor atual
+não preserva integralmente a estrutura.
+
 Principais recursos:
 
 - Análise estática de código Python usando AST.
 - Análise inicial de código Java com regras textuais conservadoras.
 - Análise de schema SQLite.
 - Mapeamento automático para artigos da LGPD.
-- Score de conformidade de 0 a 100.
+- Indicador técnico de risco de 0 a 100.
 - Extensão VS Code com diagnósticos no editor.
 - Sidebar com resumo e agrupamento por risco.
 - Code Actions com recomendações LGPD.
@@ -40,7 +57,7 @@ TCC/
 |-- setup_windows.bat             # Setup inicial no Windows
 |-- validate_project.bat          # Validação local do projeto
 |
-|-- exemplo_vulneravel.py         # Exemplo com vulnerabilidades propositais
+|-- exemplo_vulneravel.py         # Exemplo com achados propositais
 |-- exemplo_correto.py            # Exemplo sem falsos positivos esperados
 |-- exemplo_parcial.py            # Exemplo intermediário/realista
 |-- exemplo_vulneravel.java       # Exemplo Java vulnerável
@@ -85,14 +102,14 @@ cd ..
 ### 3. Rodar testes
 
 ```powershell
-python -m pytest
+python -m pytest -q
+cd vscode-extension
+npm test
+cd ..
 ```
 
-Resultado esperado:
-
-```text
-93 passed
-```
+O resultado reproduzido para a versão 1.0.4 é **135 testes Python aprovados**,
+além do teste de contrato, lint e compilação TypeScript da extensão.
 
 ### 4. Testar a extensão no VS Code
 
@@ -161,10 +178,10 @@ Arquivos Java (`.java`) seguem o mesmo fluxo de análise e diagnostics.
 
 A sidebar mostra:
 
-- vulnerabilidades agrupadas por risco;
+- achados técnicos agrupados por risco;
 - arquivos afetados;
-- score LGPD;
-- total de vulnerabilidades;
+- indicador técnico;
+- total de achados;
 - contagem por risco;
 - quantidade de arquivos Python, arquivos Java e bancos SQLite com achados.
 
@@ -172,7 +189,7 @@ Enquanto a análise está em andamento, a sidebar mostra estado de carregamento 
 
 ## Code Actions
 
-Quando uma vulnerabilidade aparece sublinhada no editor, use a lâmpada/Quick Fix para:
+Quando um achado aparece sublinhado no editor, use a lâmpada/Quick Fix para:
 
 - ver a recomendação LGPD da regra;
 - copiar a recomendação para a área de transferência.
@@ -185,13 +202,13 @@ Também é possível ignorar uma ocorrência na interface. O achado deixa de apa
 
 O relatório HTML inclui:
 
-- score LGPD;
+- indicador técnico;
 - cards por risco;
 - escopo analisado;
 - resumo técnico;
-- tabela de vulnerabilidades;
+- tabela de achados técnicos;
 - recomendações;
-- trecho de código/schema;
+- evidência técnica redigida, sem literais sensíveis do código/schema;
 - filtro por risco;
 - ordenação ao clicar nos cabeçalhos da tabela.
 
@@ -204,7 +221,7 @@ O JSON contém:
 - metadados da ferramenta;
 - timestamp;
 - sumário;
-- lista estruturada de vulnerabilidades;
+- lista estruturada de achados técnicos;
 - recomendação de correção por categoria.
 
 ### PDF
@@ -212,10 +229,10 @@ O JSON contém:
 O relatório PDF inclui:
 
 - cabeçalho formal;
-- score LGPD;
+- indicador técnico;
 - resumo por risco;
 - escopo analisado;
-- vulnerabilidades agrupadas por risco;
+- achados técnicos agrupados por risco;
 - recomendações;
 - seção de evidências técnicas;
 - rodapé com paginação.
@@ -223,7 +240,8 @@ O relatório PDF inclui:
 A recomendação do projeto é manter:
 
 - HTML como relatório interativo;
-- PDF como relatório formal e estático para entrega/compliance.
+- PDF como documento técnico estático para revisão e evidência de teste, nunca
+  como certificação de conformidade.
 
 ## Regras Detectadas
 
@@ -234,10 +252,10 @@ A recomendação do projeto é manter:
 | DADO_HARDCODED | ALTO | Art. 46 | Dado pessoal fixo no código |
 | CRIPTOGRAFIA_FRACA | ALTO | Art. 46 | Uso de MD5 ou SHA1 |
 | DADO_EM_LOG | ALTO | Art. 46 | Dado pessoal em print/logging |
-| TRANSFERENCIA_SEM_BASE_LEGAL | ALTO | Art. 7 / Art. 33 | Envio a terceiros sem base legal documentada |
-| COLETA_EXCESSIVA | MÉDIO | Art. 6 | Coleta de muitos campos sensíveis |
-| AUSENCIA_EXCLUSAO | MÉDIO | Art. 18 | Classe sem método de exclusão/anonimização |
-| DADO_SEM_CRIPTOGRAFIA | MÉDIO | Art. 46 | Campo sensível sem proteção esperada |
+| TRANSFERENCIA_SEM_BASE_LEGAL | ALTO | Art. 7 / Art. 33 | Integração externa com marcador técnico de base legal não evidenciado |
+| COLETA_EXCESSIVA | MÉDIO | Art. 6 | Método com conjunto de campos sensíveis a revisar |
+| AUSENCIA_EXCLUSAO | MÉDIO | Art. 18 | Evidência de exclusão/anonimização não identificada localmente |
+| DADO_SEM_CRIPTOGRAFIA | MÉDIO | Art. 46 | Proteção do campo não evidenciada na análise estática |
 
 ### Código Java
 
@@ -246,10 +264,10 @@ A recomendação do projeto é manter:
 | DADO_HARDCODED | ALTO | Art. 46 | Dado pessoal literal atribuído a campo sensível |
 | CRIPTOGRAFIA_FRACA | ALTO | Art. 46 | MD5 ou SHA-1 via `MessageDigest`, Apache Commons Codec ou Guava |
 | DADO_EM_LOG | ALTO | Art. 46 / Art. 6 | Dado pessoal em logger ou `System.out/System.err` |
-| TRANSFERENCIA_SEM_BASE_LEGAL | ALTO | Art. 7 / Art. 33 | Dado pessoal enviado por clientes HTTP conhecidos sem marcador de base legal |
+| TRANSFERENCIA_SEM_BASE_LEGAL | ALTO | Art. 7 / Art. 33 | Integração HTTP com marcador técnico de base legal não evidenciado |
 | COLETA_EXCESSIVA | MÉDIO | Art. 6 | Método ou construtor com quatro ou mais parâmetros sensíveis |
-| AUSENCIA_EXCLUSAO | MÉDIO | Art. 18 | Classe com campos sensíveis sem método de exclusão/anonimização |
-| DADO_SEM_CRIPTOGRAFIA | MÉDIO | Art. 46 | Campo sensível recebe valor sem indício de proteção |
+| AUSENCIA_EXCLUSAO | MÉDIO | Art. 18 | Evidência de exclusão/anonimização não identificada localmente |
+| DADO_SEM_CRIPTOGRAFIA | MÉDIO | Art. 46 | Proteção do campo não evidenciada na análise estática |
 
 O suporte Java usa análise léxica conservadora, com reconhecimento de comentários,
 strings, instruções multilinha, classes e assinaturas de métodos. Ele não compila
@@ -260,14 +278,27 @@ achados devem ser revisados pelo desenvolvedor.
 
 | Categoria | Risco | Artigo LGPD | Descrição |
 |---|---|---|---|
-| CAMPO_SEM_HASH | ALTO | Art. 46 | Campo sensível armazenado em texto puro |
-| AUSENCIA_SOFT_DELETE | MÉDIO | Art. 18 | Ausência de `deleted_at` ou `is_deleted` |
-| AUSENCIA_CONSENTIMENTO | MÉDIO | Art. 7 | Ausência de controle de consentimento |
+| CAMPO_SEM_HASH | ALTO | Art. 46 | Proteção de campo sensível não evidenciada no schema; hash não é prova genérica de proteção |
+| AUSENCIA_SOFT_DELETE | MÉDIO | Art. 18 | Evidência de exclusão lógica ou anonimização não identificada no schema |
+| AUSENCIA_CONSENTIMENTO | MÉDIO | Art. 7 / Art. 11 | Rótulo público: proteção/base legal não evidenciada; exige revisão humana |
 | DADO_SENSIVEL_COMO_PK | MÉDIO | Art. 46 | CPF/email usado como chave primária |
-| AUSENCIA_RETENCAO | BAIXO | Art. 15 | Ausência de política de retenção |
-| MISTURA_DADOS | BAIXO | Art. 6 | Dados pessoais e não pessoais misturados |
+| AUSENCIA_RETENCAO | BAIXO | Art. 15--16 | Evidência de retenção ou expurgo não identificada no schema |
+| MISTURA_DADOS | BAIXO | Art. 6 | Organização de dados que merece revisão de minimização e separação lógica |
 
-## Score LGPD
+Os códigos de categoria permanecem estáveis para compatibilidade e benchmark. A
+interface e os relatórios exibem linguagem de evidência técnica, sem afirmar a
+ausência jurídica de consentimento, base legal ou controle.
+
+## Indicador Técnico LGPD
+
+O indicador é uma métrica operacional baseada na quantidade e severidade dos achados. Ele facilita comparação entre execuções, mas não deve ser apresentado como certificação de conformidade.
+
+A fórmula usa penalizações simples e crescentes por severidade: achados `ALTO`
+pesam mais porque indicam exposição direta ou proteção insuficiente de dados
+pessoais; achados `MÉDIO` sinalizam ausência de controles relevantes; achados
+`BAIXO` indicam pontos de governança ou desenho que merecem revisão. Os pesos
+`10`, `5` e `2` foram escolhidos como critério operacional de priorização, não
+como medida estatística, jurídica ou regulatória.
 
 Fórmula:
 
@@ -277,11 +308,11 @@ Fórmula:
 
 Interpretação:
 
-| Score | Situação |
+| Indicador | Situação |
 |---|---|
-| 80-100 | Boa conformidade |
-| 50-79 | Atenção |
-| 0-49 | Crítico |
+| 80-100 | Baixo risco técnico |
+| 50-79 | Revisar controles |
+| 0-49 | Risco técnico crítico |
 
 ## API Flask
 
@@ -300,6 +331,13 @@ Endpoints:
 | POST | `/api/analyze-directory` | Analisa um diretório |
 | POST | `/api/analyze-database` | Analisa um banco SQLite |
 | POST | `/api/export` | Exporta relatório HTML/JSON/PDF |
+
+As respostas canônicas usam `achados`, `resumo`, `criterio_indicador` e
+metadados de escopo (`status`, arquivos elegíveis/analisados/ignorados/falhos e
+erros por arquivo). O indicador é nulo quando não há escopo válido analisado.
+Os campos `vulnerabilities`, `vulnerabilidades` e `score_conformidade`
+permanecem como aliases idênticos de compatibilidade; interfaces novas devem
+usar os campos canônicos.
 
 ## Configurações da Extensão
 
@@ -333,7 +371,7 @@ Suíte atual:
 
 - `test_code_analyzer.py`: regras de código, falsos positivos, word boundary e artigos LGPD.
 - `test_db_analyzer.py`: regras SQLite, schemas corretos, edge cases e erros.
-- `test_reporter.py`: score, ordenação, recomendações, JSON, HTML e PDF.
+- `test_reporter.py`: indicador técnico, ordenação, recomendações, JSON, HTML e PDF.
 
 ## Scripts Úteis
 
@@ -362,7 +400,7 @@ Implementado:
 - análise Python;
 - análise SQLite;
 - mapeamento LGPD;
-- score de conformidade;
+- indicador técnico de risco;
 - relatório terminal;
 - exportação JSON;
 - exportação HTML interativa;
@@ -374,13 +412,20 @@ Implementado:
 - botão de exportação;
 - Code Actions;
 - workspace de teste;
-- suíte automatizada com 93 testes;
-- benchmark experimental inicial com 18 casos versionados.
+- suíte automatizada Python e de extensão;
+- benchmark controlado de regressão com 18 fixtures versionadas;
+- validação externa adjudicada em PEAK, Flasky e Chinook SQLite;
+- apresentação e roteiro de defesa em `output/presentation/`.
 
-Próximas etapas:
+### Artefatos da versão 1.0.4
 
-- melhoria do relatório PDF formal;
-- publicação da extensão no VS Code Marketplace.
+- `output/release/privacy-scanner-lgpd-1.0.4.vsix`: extensão instalável com o
+  backend Python incluído.
+- `output/presentation/TCC_Privacy_by_Design_Banca.pptx`: apresentação de 10
+  slides, acompanhada de roteiro para 12–15 minutos.
+- `output/pdf/TCC_Privacy_by_Design_2026_PROVA_COM_PLACEHOLDERS.pdf`: somente
+  prova visual enquanto os dois nomes da banca não forem preenchidos.
+- `output/release/SHA256SUMS.txt`: hashes dos artefatos entregáveis.
 
 ### Gerar extensão instalável
 
@@ -388,7 +433,7 @@ Próximas etapas:
 cd vscode-extension
 npm install
 npm run package
-code --install-extension .\privacy-scanner-lgpd-1.0.2.vsix --force
+code --install-extension .\privacy-scanner-lgpd-1.0.4.vsix --force
 ```
 
 O VSIX inclui o backend Python e funciona sem manter o repositório do TCC
@@ -400,7 +445,7 @@ O workflow `.github/workflows/ci.yml` é executado em cada push para `main`,
 pull request ou acionamento manual. Ele:
 
 - instala as dependências Python;
-- executa os 93 testes;
+- executa a suíte Python;
 - instala as dependências da extensão com `npm ci`;
 - compila o TypeScript;
 - gera o VSIX;

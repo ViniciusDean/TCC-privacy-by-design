@@ -5,6 +5,8 @@ Tests for reporter.py — validates aggregation and reporting functionality.
 import pytest
 import json
 import os
+import subprocess
+import sys
 from reporter import Reporter, RECOMENDACOES, ORDEM_RISCO
 from code_analyzer import Vulnerability
 
@@ -12,8 +14,8 @@ from code_analyzer import Vulnerability
 class TestReporterSummary:
     """Test summary generation."""
     
-    def test_summary_calculation_zero_vulnerabilities(self):
-        """Summary with zero vulnerabilities."""
+    def test_summary_calculation_zero_findings(self):
+        """Summary with zero findings."""
         reporter = Reporter()
         reporter.resultados = []
         
@@ -23,15 +25,18 @@ class TestReporterSummary:
         assert summary['por_risco']['ALTO'] == 0
         assert summary['por_risco']['MEDIO'] == 0
         assert summary['por_risco']['BAIXO'] == 0
+        assert summary['indicador_tecnico'] == 100
         assert summary['score_conformidade'] == 100
+        assert "criterio_indicador" in summary
     
     def test_summary_calculation_perfect_score(self):
-        """Perfect score with no vulnerabilities."""
+        """Perfect indicator with no findings."""
         reporter = Reporter()
         reporter.resultados = []
         
         summary = reporter._sumario()
         
+        assert summary['indicador_tecnico'] == 100
         assert summary['score_conformidade'] == 100
     
     def test_summary_calculation_with_alto_risk(self):
@@ -53,6 +58,7 @@ class TestReporterSummary:
         assert summary['total'] == 1
         assert summary['por_risco']['ALTO'] == 1
         # Score should be 100 - 10 = 90
+        assert summary['indicador_tecnico'] == 90
         assert summary['score_conformidade'] == 90
     
     def test_summary_calculation_with_medio_risk(self):
@@ -72,6 +78,7 @@ class TestReporterSummary:
         summary = reporter._sumario()
         
         # Score should be 100 - 5 = 95
+        assert summary['indicador_tecnico'] == 95
         assert summary['score_conformidade'] == 95
     
     def test_summary_calculation_with_baixo_risk(self):
@@ -91,6 +98,7 @@ class TestReporterSummary:
         summary = reporter._sumario()
         
         # Score should be 100 - 2 = 98
+        assert summary['indicador_tecnico'] == 98
         assert summary['score_conformidade'] == 98
     
     def test_summary_mixed_risks(self):
@@ -109,6 +117,7 @@ class TestReporterSummary:
         assert summary['por_risco']['ALTO'] == 2
         assert summary['por_risco']['MEDIO'] == 1
         # Score = 100 - (2*10 + 1*5 + 1*2) = 100 - 27 = 73
+        assert summary['indicador_tecnico'] == 73
         assert summary['score_conformidade'] == 73
 
 
@@ -214,17 +223,23 @@ class TestJSONExport:
         assert "ferramenta" in data
         assert "versao" in data
         assert "timestamp" in data
+        assert "aviso_escopo" in data
         assert "sumario" in data
+        assert "achados" in data
         assert "vulnerabilidades" in data
         
         # Check summary structure
         assert "total" in data["sumario"]
         assert "por_risco" in data["sumario"]
+        assert "indicador_tecnico" in data["sumario"]
         assert "score_conformidade" in data["sumario"]
+        assert "criterio_indicador" in data["sumario"]
+        assert "aviso_escopo" in data["sumario"]
         
         # Check vulnerability structure
+        assert data["achados"] == data["vulnerabilidades"]
         assert len(data["vulnerabilidades"]) == 1
-        v = data["vulnerabilidades"][0]
+        v = data["achados"][0]
         assert "arquivo" in v
         assert "linha" in v
         assert "categoria" in v
@@ -234,7 +249,7 @@ class TestJSONExport:
         assert "recomendacao" in v
     
     def test_json_unicode_support(self, tmp_path):
-        """JSON should properly handle Portuguese characters."""
+        """JSON mantém texto seguro em português sem reutilizar descrição interna."""
         reporter = Reporter()
         reporter.resultados = [
             Vulnerability(
@@ -253,10 +268,11 @@ class TestJSONExport:
         with open(json_file, encoding="utf-8") as f:
             data = json.load(f)
         
-        # Should properly decode special characters
-        v = data["vulnerabilidades"][0]
-        assert "Segurança" in v["descricao"]
-        assert "—" in v["artigo_lgpd"]
+        # A descrição pública é derivada da categoria, não da mensagem interna.
+        v = data["achados"][0]
+        assert "Possível" in v["descricao"]
+        assert "Segurança" not in v["descricao"]
+        assert "Art. 46" in v["artigo_lgpd"]
 
 
 class TestHTMLExport:
@@ -281,6 +297,8 @@ class TestHTMLExport:
         assert "<html" in html_content.lower()
         assert "<table" in html_content.lower()
         assert "Privacy Scanner" in html_content
+        assert "Limite da analise" in html_content
+        assert "não comprovam" in html_content
         assert "DADO_HARDCODED" in html_content
         assert "ALTO" in html_content
     
@@ -299,12 +317,12 @@ class TestHTMLExport:
             html_content = f.read()
         
         # Should contain summary data
-        assert "2" in html_content  # Total vulnerabilities
+        assert "2" in html_content  # Total findings
         assert "1" in html_content  # ALTO count
         assert "100" in html_content  # Score field (100 - score)
 
-    def test_html_escapes_vulnerability_content(self, tmp_path):
-        """HTML export should escape code excerpts and descriptions."""
+    def test_html_redacts_vulnerability_content(self, tmp_path):
+        """HTML nunca deve renderizar o trecho ou descrição interna bruta."""
         reporter = Reporter()
         reporter.resultados = [
             Vulnerability(
@@ -325,8 +343,84 @@ class TestHTMLExport:
             html_content = f.read()
 
         assert "<script>alert" not in html_content
-        assert "&lt;script&gt;alert" in html_content
-        assert "&lt;b&gt;123&lt;/b&gt;" in html_content
+        assert "&lt;script&gt;alert" not in html_content
+        assert "&lt;b&gt;123&lt;/b&gt;" not in html_content
+        assert "Evidencia segura" in html_content
+        assert "conteúdo foi ocultado" in html_content
+
+
+class TestSafePublicContract:
+    def test_public_contract_redacts_literal_and_keeps_legacy_aliases(self, tmp_path):
+        reporter = Reporter()
+        reporter.resultados = [
+            Vulnerability(
+                "codigo.py",
+                9,
+                "DADO_HARDCODED",
+                "senha = 'SENTINEL_SECRET_123'",
+                "ALTO",
+                "Artigo interno SENTINEL",
+                trecho='cpf = "111.222.333-44"',
+            )
+        ]
+
+        data = reporter.dados_publicos()
+        achado = data["achados"][0]
+        serialized = json.dumps(data, ensure_ascii=False)
+
+        assert data["achados"] == data["vulnerabilities"] == data["vulnerabilidades"]
+        assert data["resumo"] == data["summary"] == data["sumario"]
+        assert achado["trecho"] == achado["evidencia_segura"]
+        assert "SENTINEL_SECRET_123" not in serialized
+        assert "111.222.333-44" not in serialized
+        assert "conteúdo foi ocultado" in achado["evidencia_segura"]
+
+    def test_empty_scope_has_no_technical_indicator(self):
+        reporter = Reporter()
+        reporter.escopo = {
+            "status": "empty",
+            "arquivos_analisados": 0,
+        }
+
+        resumo = reporter._sumario()
+
+        assert resumo["indicador_tecnico"] is None
+        assert resumo["score_conformidade"] is None
+
+    def test_json_export_uses_ascii_terminal_message(self, tmp_path, capsys):
+        reporter = Reporter()
+        report_path = tmp_path / "resultado.json"
+
+        reporter.exportar_json(str(report_path))
+
+        output = capsys.readouterr().out
+        assert "JSON gerado:" in output
+        assert "📄" not in output
+
+    def test_cli_json_export_does_not_fail_on_windows_console_encoding(self, tmp_path):
+        source = tmp_path / "entrada.py"
+        output = tmp_path / "resultado.json"
+        source.write_text('senha = "SENTINEL_CLI"\n', encoding="utf-8")
+
+        process = subprocess.run(
+            [
+                sys.executable,
+                "reporter.py",
+                "--codigo", str(source),
+                "--json", str(output),
+            ],
+            cwd=os.getcwd(),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+
+        assert process.returncode == 0, process.stderr
+        assert "JSON gerado:" in process.stdout
+        assert output.exists()
+        assert "SENTINEL_CLI" not in output.read_text(encoding="utf-8")
 
 
 class TestPDFExport:
@@ -355,7 +449,7 @@ class TestIntegration:
         """Test complete reporting workflow."""
         reporter = Reporter()
         
-        # Add diverse vulnerabilities
+        # Add diverse findings
         reporter.resultados = [
             Vulnerability("code.py", 5, "DADO_HARDCODED", "Hardcoded password", "ALTO", "Art. 46"),
             Vulnerability("code.py", 10, "CRIPTOGRAFIA_FRACA", "MD5 usage", "ALTO", "Art. 46"),
@@ -377,7 +471,8 @@ class TestIntegration:
         # Verify JSON content
         with open(json_file) as f:
             data = json.load(f)
-        assert len(data["vulnerabilidades"]) == 4
+        assert len(data["achados"]) == 4
+        assert data["achados"] == data["vulnerabilidades"]
         assert data["sumario"]["total"] == 4
         assert data["sumario"]["por_risco"]["ALTO"] == 3
         

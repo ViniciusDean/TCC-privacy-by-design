@@ -1,0 +1,37 @@
+{
+  "projects": [
+    {
+      "id": "peak_back_end",
+      "name": "PEAK-TCC back-end",
+      "type": "source",
+      "evaluation_role": "tuning",
+      "fn_review_complete": true,
+      "path": "evaluation/real_projects/workspaces/peak-back-end",
+      "repository_url": "https://github.com/PEAK-TCC/back-end",
+      "commit": "7503f50",
+      "description": "Back-end Java/Spring do projeto PEAK-TCC, usado exclusivamente como conjunto de ajuste."
+    },
+    {
+      "id": "flasky",
+      "name": "Flasky",
+      "type": "source",
+      "evaluation_role": "validation",
+      "fn_review_complete": true,
+      "path": "evaluation/real_projects/workspaces/flasky",
+      "repository_url": "https://github.com/miguelgrinberg/flasky",
+      "commit": "3beedd640b9146b0bd65c8c2ecf402b01798bc33",
+      "description": "Aplicacao Flask externa, sob licenca MIT, usada como conjunto de validacao Python."
+    },
+    {
+      "id": "chinook_sqlite",
+      "name": "Chinook SQLite",
+      "type": "sqlite",
+      "evaluation_role": "validation",
+      "fn_review_complete": true,
+      "path": "evaluation/real_projects/workspaces/chinook-database/ChinookDatabase/DataSources/Chinook_Sqlite.sqlite",
+      "repository_url": "https://github.com/lerocha/chinook-database",
+      "commit": "7f67772503d71ba90f19283c38e93923addb43fa",
+      "description": "Esquema externo de loja digital com clientes, enderecos, telefones e e-mails ficticios."
+    }
+  ]
+}

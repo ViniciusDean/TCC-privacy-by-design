@@ -2,9 +2,10 @@
 Tests for db_analyzer.py — detects privacy vulnerabilities in SQLite schemas.
 """
 
+import os
 import pytest
 import sqlite3
-from db_analyzer import DBAnalyzer, analisar_banco
+from db_analyzer import DBAnalyzer, analisar_banco, analisar_banco_com_escopo
 
 
 class TestDBAnalyzerBasic:
@@ -49,19 +50,27 @@ class TestDBAnalyzerBasic:
         
         results = analisar_banco(temp_db_file)
         
-        # A tabela sem soft-delete deve gerar alerta (se tiver dados sensíveis)
-        assert len(results) >= 0
+        soft_delete_findings = [
+            v for v in results if v.categoria == "AUSENCIA_SOFT_DELETE"
+        ]
+        assert soft_delete_findings
+        assert all(v.risco == "MEDIO" for v in soft_delete_findings)
+        assert any("Art. 18" in v.artigo_lgpd for v in soft_delete_findings)
+        assert any("Tabela: usuarios" == v.trecho for v in soft_delete_findings)
     
     def test_detects_missing_retention_policy(self, temp_db_file):
         """Should detect missing retention column (AUSENCIA_RETENCAO)."""
         conn = sqlite3.connect(temp_db_file)
         cur = conn.cursor()
         
-        # Create table without retention column
+        # Create table with personal data but without retention column
         cur.execute('''
-            CREATE TABLE logs (
+            CREATE TABLE logs_acesso (
                 id INTEGER PRIMARY KEY,
-                descricao TEXT
+                email TEXT,
+                ip_address TEXT,
+                deleted_at TIMESTAMP,
+                consentimento BOOLEAN
             )
         ''')
         conn.commit()
@@ -69,8 +78,13 @@ class TestDBAnalyzerBasic:
         
         results = analisar_banco(temp_db_file)
         
-        # Logs sem retenção devem gerar alerta (geralmente BAIXO risco)
-        assert len(results) >= 0
+        retention_findings = [
+            v for v in results if v.categoria == "AUSENCIA_RETENCAO"
+        ]
+        assert retention_findings
+        assert all(v.risco == "BAIXO" for v in retention_findings)
+        assert any("Art. 15" in v.artigo_lgpd for v in retention_findings)
+        assert any("logs_acesso" in v.trecho for v in retention_findings)
     
     def test_detects_missing_consent_column(self, temp_db_file):
         """Should detect missing consent column (AUSENCIA_CONSENTIMENTO)."""
@@ -92,7 +106,11 @@ class TestDBAnalyzerBasic:
         results = analisar_banco(temp_db_file)
         
         # Sem coluna de consentimento, deve alertar
-        assert any(v.categoria == "AUSENCIA_CONSENTIMENTO" for v in results)
+        consent_findings = [
+            v for v in results if v.categoria == "AUSENCIA_CONSENTIMENTO"
+        ]
+        assert consent_findings
+        assert any("base legal" in v.descricao.lower() for v in consent_findings)
     
     def test_detects_sensitive_as_primary_key(self, temp_db_file):
         """Should detect sensitive field as primary key (DADO_SENSIVEL_COMO_PK)."""
@@ -262,8 +280,57 @@ class TestEdgeCases:
         
         results = analisar_banco(temp_db_file)
         
-        # Should detect even with quotes
-        assert len(results) >= 0
+        plaintext_fields = [
+            v for v in results if v.categoria == "CAMPO_SEM_HASH"
+        ]
+        assert {v.trecho for v in plaintext_fields} >= {
+            "usuarios.e_mail : TEXT",
+            "usuarios.CPF : TEXT",
+        }
+
+    def test_sqlite_is_opened_read_only_without_mutating_file(self, temp_db_file):
+        with sqlite3.connect(temp_db_file) as conn:
+            conn.execute("CREATE TABLE contatos (id INTEGER PRIMARY KEY, email TEXT)")
+
+        antes = os.stat(temp_db_file)
+        analisar_banco(temp_db_file)
+        depois = os.stat(temp_db_file)
+
+        assert depois.st_size == antes.st_size
+        assert depois.st_mtime_ns == antes.st_mtime_ns
+        assert not os.path.exists(f"{temp_db_file}-journal")
+
+    def test_identifier_tokens_support_camel_case_and_quoted_names(self, temp_db_file):
+        with sqlite3.connect(temp_db_file) as conn:
+            conn.execute(
+                'CREATE TABLE "usuarios""auditoria" ('
+                'id INTEGER PRIMARY KEY, "userEmail" TEXT, "base_legal" TEXT)'
+            )
+
+        resultados = analisar_banco(temp_db_file)
+        categorias = {resultado.categoria for resultado in resultados}
+
+        assert "CAMPO_SEM_HASH" in categorias
+        assert "AUSENCIA_CONSENTIMENTO" not in categorias
+
+    def test_tokenization_does_not_match_partial_identifier(self, temp_db_file):
+        with sqlite3.connect(temp_db_file) as conn:
+            conn.execute("CREATE TABLE metadados (id INTEGER PRIMARY KEY, agent TEXT)")
+
+        resultados = analisar_banco(temp_db_file)
+
+        assert resultados == []
+
+    def test_corrupt_database_is_auditable_failure(self, tmp_path):
+        database = tmp_path / "corrompido.db"
+        database.write_bytes(b"not a sqlite database")
+
+        resultados, escopo = analisar_banco_com_escopo(str(database))
+
+        assert resultados == []
+        assert escopo["status"] == "failed"
+        assert escopo["arquivos_falhos"] == 1
+        assert escopo["erros"][0]["codigo"] == "BANCO_INVALIDO"
 
 
 class TestArtigos:
@@ -305,8 +372,9 @@ class TestArtigos:
         results = analisar_banco(temp_db_file)
         
         soft_delete_missing = [v for v in results if v.categoria == "AUSENCIA_SOFT_DELETE"]
-        if soft_delete_missing:
-            assert any("Art. 18" in v.artigo_lgpd for v in soft_delete_missing)
+        assert soft_delete_missing
+        assert any("Art. 18" in v.artigo_lgpd for v in soft_delete_missing)
+        assert any("schema" in v.descricao.lower() for v in soft_delete_missing)
     
     def test_missing_consent_references_art_7(self, temp_db_file):
         """Missing consent should reference Art. 7º."""
@@ -316,6 +384,7 @@ class TestArtigos:
         cur.execute('''
             CREATE TABLE usuarios (
                 id INTEGER PRIMARY KEY,
+                nome TEXT,
                 email TEXT
             )
         ''')
@@ -325,8 +394,9 @@ class TestArtigos:
         results = analisar_banco(temp_db_file)
         
         consent_missing = [v for v in results if v.categoria == "AUSENCIA_CONSENTIMENTO"]
-        if consent_missing:
-            assert any("Art. 7º" in v.artigo_lgpd for v in consent_missing)
+        assert consent_missing
+        assert any("Art. 7º" in v.artigo_lgpd for v in consent_missing)
+        assert any("bases legais" in v.artigo_lgpd.lower() for v in consent_missing)
 
 
 class TestIntegration:
@@ -371,7 +441,7 @@ class TestIntegration:
         categories = {v.categoria for v in results}
         
         # CPF como PK é problema
-        assert "DADO_SENSIVEL_COMO_PK" in categories or len(results) > 0
+        assert "DADO_SENSIVEL_COMO_PK" in categories
         
         # Todos devem ter artigos LGPD
         assert all(v.artigo_lgpd for v in results)

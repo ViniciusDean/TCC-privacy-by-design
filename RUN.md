@@ -23,7 +23,7 @@ cd ..
 Resultado esperado da compilação:
 
 ```text
-privacy-scanner-lgpd@1.0.0 compile
+privacy-scanner-lgpd@1.0.4 compile
 tsc -p ./
 ```
 
@@ -32,13 +32,13 @@ tsc -p ./
 Rodar todos os testes Python:
 
 ```powershell
-python -m pytest
+python -m pytest -q
 ```
 
 Resultado esperado:
 
 ```text
-93 passed
+135 passed
 ```
 
 Compilar a extensão:
@@ -113,8 +113,8 @@ Resultado esperado:
 
 - marcações no editor;
 - alertas no painel `Problems`;
-- vulnerabilidades agrupadas por risco na sidebar;
-- score LGPD menor que 100.
+- achados técnicos agrupados por risco na sidebar;
+- indicador técnico calculado sobre todos os achados brutos.
 
 ### Arquivo correto
 
@@ -126,8 +126,8 @@ Privacy Scanner: Analisar arquivo atual
 
 Resultado esperado:
 
-- nenhuma vulnerabilidade relevante;
-- score LGPD próximo de 100;
+- nenhum achado técnico relevante;
+- indicador técnico disponível apenas após uma varredura com escopo válido;
 - ausência de falsos positivos nas boas práticas demonstradas.
 
 ### Exemplos Java
@@ -169,15 +169,15 @@ Categorias esperadas em banco vulnerável:
 - `DADO_SENSIVEL_COMO_PK`;
 - `MISTURA_DADOS`.
 
-Observação: vulnerabilidades de banco geralmente aparecem com linha `0`, pois vêm do schema e não de uma linha específica de código.
+Observação: achados de banco geralmente aparecem com linha `0`, pois vêm do schema e não de uma linha específica de código.
 
 ## 7. Exportar Relatórios
 
 ### Ignorar uma ocorrência na interface
 
-Na sidebar, clique com o botão direito em uma vulnerabilidade e escolha `Ignorar risco na interface`. Também é possível usar a lâmpada/Quick Fix no editor.
+Na sidebar, clique com o botão direito em um achado e escolha `Ignorar risco na interface`. Também é possível usar a lâmpada/Quick Fix no editor.
 
-O risco deixa de aparecer na sidebar, no score visível e no painel `Problems`, mas continua nos relatórios. Para desfazer, execute:
+O achado deixa de aparecer na sidebar e no painel `Problems`, mas continua nos relatórios. O indicador técnico bruto não é alterado. Para desfazer, execute:
 
 ```text
 Privacy Scanner: Restaurar riscos ignorados
@@ -194,10 +194,10 @@ Na extensão:
 
 O HTML é o relatório interativo. Ele contém:
 
-- score LGPD;
+- indicador técnico;
 - contagem por risco;
 - escopo analisado;
-- tabela de vulnerabilidades;
+- tabela de achados técnicos;
 - recomendações;
 - filtro por risco;
 - ordenação por coluna.
@@ -207,9 +207,9 @@ O HTML é o relatório interativo. Ele contém:
 O PDF é o relatório formal e estático. Ele contém:
 
 - cabeçalho do Privacy Scanner;
-- score LGPD;
+- indicador técnico;
 - resumo por risco;
-- vulnerabilidades agrupadas;
+- achados técnicos agrupados;
 - recomendações de correção;
 - paginação.
 

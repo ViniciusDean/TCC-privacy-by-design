@@ -52,6 +52,11 @@ CAMPOS_TECNICOS = {
     "ip_address", "ip_addr", "user_agent", "user_id", "session_id",
     "request_id", "trace_id",
 }
+CAMPOS_PROTEGIDOS = {
+    "hash", "hashed", "sha256", "sha512", "encrypt", "encrypted",
+    "cipher", "cifrado", "criptografado", "anonimizado", "anon",
+    "mask", "masked", "mascar", "mascarado", "mascarada", "redact", "redacted",
+}
 METODOS_EXCLUSAO_ANONIMIZACAO = (
     "delete", "delet", "remov", "exclu", "anonimiz", "anonymiz", "purge",
 )
@@ -63,6 +68,87 @@ DIRETORIOS_IGNORADOS = {
     "python_backend", "site-packages", "third_party", "vendor", "venv",
 }
 ARQUIVO_IGNORADOS = ".privacyignore"
+EXTENSOES_CODIGO = (".py", ".java")
+
+
+def novo_escopo_varredura(alvo: str, tipo: str) -> dict:
+    """Cria metadados auditáveis para uma execução de análise.
+
+    O escopo é separado dos achados para que a ausência de achados nunca seja
+    interpretada como sucesso quando nenhum arquivo pôde ser analisado.
+    """
+    return {
+        "tipo": tipo,
+        "alvo": os.path.abspath(os.fspath(alvo)),
+        "status": "pending",
+        "arquivos_elegiveis": 0,
+        "arquivos_analisados": 0,
+        "arquivos_ignorados": 0,
+        "arquivos_falhos": 0,
+        "erros": [],
+    }
+
+
+def codigo_erro_analise(erro: BaseException) -> str:
+    """Normaliza erros sem expor mensagem, conteúdo ou caminho interno."""
+    if isinstance(erro, SyntaxError):
+        return "SINTAXE_INVALIDA"
+    if isinstance(erro, UnicodeDecodeError):
+        return "CODIFICACAO_NAO_SUPORTADA"
+    if isinstance(erro, PermissionError):
+        return "ACESSO_NEGADO"
+    if isinstance(erro, FileNotFoundError):
+        return "ARQUIVO_NAO_ENCONTRADO"
+    if isinstance(erro, ValueError):
+        return "TIPO_NAO_SUPORTADO"
+    return "FALHA_DE_ANALISE"
+
+
+def mensagem_erro_analise(codigo: str) -> str:
+    mensagens = {
+        "SINTAXE_INVALIDA": "O arquivo não possui sintaxe válida para análise estática.",
+        "CODIFICACAO_NAO_SUPORTADA": "O arquivo não pôde ser lido com a codificação esperada.",
+        "ACESSO_NEGADO": "O arquivo não pôde ser acessado para análise.",
+        "ARQUIVO_NAO_ENCONTRADO": "O arquivo deixou de estar disponível durante a varredura.",
+        "TIPO_NAO_SUPORTADO": "O tipo de arquivo não é suportado pela análise.",
+        "FALHA_DE_ANALISE": "O arquivo não pôde ser analisado; revise-o localmente.",
+    }
+    return mensagens.get(codigo, mensagens["FALHA_DE_ANALISE"])
+
+
+def registrar_erro_escopo(escopo: dict, caminho: str, erro: BaseException) -> None:
+    codigo = codigo_erro_analise(erro)
+    escopo["arquivos_falhos"] += 1
+    escopo["erros"].append({
+        "arquivo": os.path.abspath(caminho),
+        "codigo": codigo,
+        "mensagem": mensagem_erro_analise(codigo),
+    })
+
+
+def finalizar_escopo_varredura(escopo: dict) -> dict:
+    if escopo["arquivos_analisados"] > 0:
+        escopo["status"] = (
+            "partial" if escopo["arquivos_falhos"] else "complete"
+        )
+    elif escopo["arquivos_falhos"] > 0:
+        escopo["status"] = "failed"
+    else:
+        escopo["status"] = "empty"
+    return escopo
+
+
+def _contar_arquivos_analisaveis(diretorio: str, extensoes: tuple[str, ...]) -> int:
+    """Conta somente candidatos de análise em uma árvore ignorada."""
+    total = 0
+    try:
+        for _, _, arquivos in os.walk(diretorio):
+            total += sum(nome.lower().endswith(extensoes) for nome in arquivos)
+    except OSError:
+        # O diretório já foi removido ou não pode ser enumerado; não deve
+        # impedir a análise dos demais alvos.
+        return total
+    return total
 
 
 def carregar_padroes_ignorados(diretorio: str) -> list[str]:
@@ -143,11 +229,11 @@ class CodeAnalyzer(ast.NodeVisitor):
         self.caminho    = caminho_arquivo
         self.linhas     = codigo_fonte.splitlines()
         self.resultados: list[Vulnerability] = []
-        self._pilha_funcoes: list[ast.FunctionDef] = []
+        self._pilha_funcoes: list[ast.FunctionDef | ast.AsyncFunctionDef] = []
         self._pilha_classes: list[ast.ClassDef] = []
 
     def visit(self, node):
-        if isinstance(node, ast.FunctionDef):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             self._pilha_funcoes.append(node)
             try:
                 return super().visit(node)
@@ -188,8 +274,10 @@ class CodeAnalyzer(ast.NodeVisitor):
         if nome_lower in CAMPOS_TECNICOS:
             return None
 
-        tokens = [t for t in re.split(r"[^a-z0-9]+|_", nome_lower) if t]
+        tokens = self._tokens_nome(nome)
         if tokens and tokens[0] == "ip":
+            return None
+        if any(token in CAMPOS_PROTEGIDOS for token in tokens):
             return None
 
         for campo in CAMPOS_SENSIVEIS:
@@ -206,7 +294,16 @@ class CodeAnalyzer(ast.NodeVisitor):
                     return campo
         return None
 
-    def _funcao_atual(self) -> Optional[ast.FunctionDef]:
+    @staticmethod
+    def _tokens_nome(nome: str) -> list[str]:
+        """Quebra snake_case e camelCase sem usar correspondência parcial."""
+        separado = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", nome)
+        separado = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", separado)
+        return [
+            token for token in re.split(r"[^a-z0-9]+|_", separado.lower()) if token
+        ]
+
+    def _funcao_atual(self) -> Optional[ast.FunctionDef | ast.AsyncFunctionDef]:
         return self._pilha_funcoes[-1] if self._pilha_funcoes else None
 
     def _em_funcao_exclusao_anonimizacao(self) -> bool:
@@ -216,12 +313,37 @@ class CodeAnalyzer(ast.NodeVisitor):
         nome = funcao.name.lower()
         return any(p in nome for p in METODOS_EXCLUSAO_ANONIMIZACAO)
 
-    def _valor_e_parametro(self, nome: str, node: ast.Assign) -> bool:
+    def _valor_e_parametro(self, nome: str, valor: ast.expr) -> bool:
         funcao = self._funcao_atual()
-        if not funcao or not isinstance(node.value, ast.Name):
+        if not funcao or not isinstance(valor, ast.Name):
             return False
-        parametros = {arg.arg for arg in funcao.args.args}
-        return node.value.id == nome and node.value.id in parametros
+        parametros = {
+            arg.arg
+            for arg in (
+                list(funcao.args.posonlyargs)
+                + list(funcao.args.args)
+                + list(funcao.args.kwonlyargs)
+            )
+        }
+        if funcao.args.vararg:
+            parametros.add(funcao.args.vararg.arg)
+        if funcao.args.kwarg:
+            parametros.add(funcao.args.kwarg.arg)
+        return valor.id == nome and valor.id in parametros
+
+    def _valor_e_declaracao_de_campo(self, valor: ast.expr) -> bool:
+        if not isinstance(valor, ast.Call):
+            return False
+
+        nome_chamada = self._nome_call(valor).lower()
+        if nome_chamada in {"field", "column", "mapped_column", "relationship"}:
+            return True
+        return nome_chamada.endswith(("field", ".field", "column", ".column"))
+
+    def _atribuicao_local_temporaria(self, target: ast.expr, valor: ast.expr) -> bool:
+        if not self._funcao_atual() or not isinstance(target, ast.Name):
+            return False
+        return not (isinstance(valor, ast.Call) and self._nome_call(valor) == "input")
 
     def _atribuicao_ambigua_tem_contexto_pessoal(
         self,
@@ -230,7 +352,7 @@ class CodeAnalyzer(ast.NodeVisitor):
         valor: ast.expr,
     ) -> bool:
         """Exige contexto adicional para campos ambiguos como nome/name/idade."""
-        tokens = [t for t in re.split(r"[^a-z0-9]+|_", nome.lower()) if t]
+        tokens = self._tokens_nome(nome)
         if any(token in CONTEXTO_PESSOAL for token in tokens):
             return True
 
@@ -245,12 +367,12 @@ class CodeAnalyzer(ast.NodeVisitor):
         return any(
             token in CONTEXTO_PESSOAL
             for nome in nomes
-            for token in re.split(r"[^a-z0-9]+|_", nome.lower())
+            for token in self._tokens_nome(nome)
             if token
         )
 
     def _campo_ambiguo_tem_contexto(self, nome: str) -> bool:
-        tokens = [t for t in re.split(r"[^a-z0-9]+|_", nome.lower()) if t]
+        tokens = self._tokens_nome(nome)
         return (
             any(token in CONTEXTO_PESSOAL for token in tokens)
             or self._contexto_atual_pessoal()
@@ -258,64 +380,80 @@ class CodeAnalyzer(ast.NodeVisitor):
 
     # ── Regra 1: variável com dado sensível atribuída como string simples ────
 
-    def visit_Assign(self, node: ast.Assign):
-        """
-        Detecta padrões como:
-            senha = "123456"
-            cpf   = input(...)
-        → dado pessoal armazenado sem criptografia aparente.
-        """
-        for target in node.targets:
+    def _processar_atribuicao(
+        self,
+        targets: list[ast.expr],
+        valor: ast.expr,
+        linha: int,
+    ) -> None:
+        """Aplica a regra de armazenamento a atribuições comuns e anotadas."""
+        for target in targets:
             nome = None
             if isinstance(target, ast.Name):
                 nome = target.id
             elif isinstance(target, ast.Attribute):
                 nome = target.attr
 
-            if nome:
-                campo = self._nome_contem_campo_sensivel(nome)
-                if campo:
-                    if self._em_funcao_exclusao_anonimizacao():
-                        continue
-                    if (
-                        campo in CAMPOS_AMBIGUOS
-                        and not self._atribuicao_ambigua_tem_contexto_pessoal(
-                            nome, target, node.value
-                        )
-                    ):
-                        continue
-                    # Verifica se o valor é string literal (dado hardcoded)
-                    if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
-                        # Ignora atribuições vazias (inicializações) — não é dado real
-                        if node.value.value == "":
-                            pass
-                        else:
-                            self._adicionar(
-                                node.lineno,
-                                "DADO_HARDCODED",
-                                f"Campo sensível '{campo}' recebe valor literal "
-                                f"(dado pessoal fixo no código).",
-                                "ALTO",
-                                "Art. 46 — Segurança e prevenção"
-                            )
-                    else:
-                        if isinstance(node.value, ast.Constant) and node.value.value is None:
-                            continue
-                        if self._valor_e_parametro(nome, node):
-                            continue
-                        # Atribuição normal — verifica se há criptografia na mesma linha
-                        trecho = self._trecho(node.lineno).lower()
-                        tem_cripto = any(c in trecho for c in FUNCOES_CRIPTOGRAFIA)
-                        if not tem_cripto:
-                            self._adicionar(
-                                node.lineno,
-                                "DADO_SEM_CRIPTOGRAFIA",
-                                f"Campo '{campo}' recebe dado pessoal sem indício "
-                                f"de criptografia ou hash.",
-                                "MEDIO",
-                                "Art. 46 — Segurança e prevenção"
-                            )
+            if not nome:
+                continue
 
+            campo = self._nome_contem_campo_sensivel(nome)
+            if not campo or self._em_funcao_exclusao_anonimizacao():
+                continue
+            if (
+                campo in CAMPOS_AMBIGUOS
+                and not self._atribuicao_ambigua_tem_contexto_pessoal(nome, target, valor)
+            ):
+                continue
+
+            # Valor literal não vazio é o caso de maior risco. O conteúdo não
+            # é publicado pelos relatórios; apenas a categoria e a localização.
+            if isinstance(valor, ast.Constant) and isinstance(valor.value, str):
+                if valor.value:
+                    self._adicionar(
+                        linha,
+                        "DADO_HARDCODED",
+                        f"Campo sensível '{campo}' recebe valor literal "
+                        f"(dado pessoal fixo no código).",
+                        "ALTO",
+                        "Art. 46 — Segurança e prevenção",
+                    )
+                continue
+
+            if isinstance(valor, ast.Constant) and valor.value is None:
+                continue
+            if isinstance(valor, ast.Constant) and isinstance(valor.value, bool):
+                continue
+            if self._valor_e_declaracao_de_campo(valor):
+                continue
+            if self._valor_e_parametro(nome, valor):
+                continue
+            if self._atribuicao_local_temporaria(target, valor):
+                continue
+
+            # A criptografia é inferida apenas da instrução local; a saída
+            # pública permanece uma evidência segura e não inclui a linha.
+            trecho = self._trecho(linha).lower()
+            tem_cripto = any(c.lower() in trecho for c in FUNCOES_CRIPTOGRAFIA)
+            if not tem_cripto:
+                self._adicionar(
+                    linha,
+                    "DADO_SEM_CRIPTOGRAFIA",
+                    f"Campo '{campo}' recebe dado pessoal sem indício "
+                    f"de criptografia ou hash.",
+                    "MEDIO",
+                    "Art. 46 — Segurança e prevenção",
+                )
+
+    def visit_Assign(self, node: ast.Assign):
+        """Detecta atribuições convencionais de dados pessoais."""
+        self._processar_atribuicao(node.targets, node.value, node.lineno)
+        self.generic_visit(node)
+
+    def visit_AnnAssign(self, node: ast.AnnAssign):
+        """Detecta atribuições anotadas, por exemplo ``self.email: str = ...``."""
+        if node.value is not None:
+            self._processar_atribuicao([node.target], node.value, node.lineno)
         self.generic_visit(node)
 
     # ── Regra 2: uso de criptografia fraca ───────────────────────────────────
@@ -349,7 +487,8 @@ class CodeAnalyzer(ast.NodeVisitor):
 
         # ── 3a: dado sensível passado diretamente para log ──
         if any(nome_chamada.startswith(log) for log in FUNCOES_LOG):
-            for arg in node.args:
+            argumentos_log = [*node.args, *(kw.value for kw in node.keywords)]
+            for arg in argumentos_log:
                 variaveis = self._extrair_nomes(arg)
                 for var in variaveis:
                     campo = self._nome_contem_campo_sensivel(var)
@@ -393,7 +532,10 @@ class CodeAnalyzer(ast.NodeVisitor):
 
     # ── Regra 4: coleta excessiva via input / formulário ─────────────────────
 
-    def visit_FunctionDef(self, node: ast.FunctionDef):
+    def _visitar_definicao_funcao(
+        self,
+        node: ast.FunctionDef | ast.AsyncFunctionDef,
+    ) -> None:
         """
         Detecta funções cujos parâmetros acumulam muitos campos sensíveis,
         indicando possível coleta excessiva.
@@ -423,6 +565,12 @@ class CodeAnalyzer(ast.NodeVisitor):
 
         self.generic_visit(node)
 
+    def visit_FunctionDef(self, node: ast.FunctionDef):
+        self._visitar_definicao_funcao(node)
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
+        self._visitar_definicao_funcao(node)
+
     # ── Regra 5: ausência de mecanismo de exclusão ───────────────────────────
 
     def visit_ClassDef(self, node: ast.ClassDef):
@@ -434,13 +582,14 @@ class CodeAnalyzer(ast.NodeVisitor):
         metodos = []
 
         for item in node.body:
-            if isinstance(item, ast.Assign):
-                for t in item.targets:
+            if isinstance(item, (ast.Assign, ast.AnnAssign)):
+                targets = item.targets if isinstance(item, ast.Assign) else [item.target]
+                for t in targets:
                     nome = t.id if isinstance(t, ast.Name) else (
                         t.attr if isinstance(t, ast.Attribute) else "")
                     if self._nome_contem_campo_sensivel(nome):
                         campos_na_classe.append(nome)
-            if isinstance(item, ast.FunctionDef):
+            if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 metodos.append(item.name.lower())
 
         if campos_na_classe:
@@ -485,19 +634,29 @@ class CodeAnalyzer(ast.NodeVisitor):
             return ".".join(reversed(partes))
         return ""
 
-    def _extrair_nomes(self, node) -> list[str]:
-        """Extrai nomes de variáveis de um nó AST (Name, JoinedStr, etc.)."""
-        nomes = []
-        if isinstance(node, ast.Name):
-            nomes.append(node.id)
-        elif isinstance(node, ast.JoinedStr):   # f-string
-            for v in ast.walk(node):
-                if isinstance(v, ast.Name):
-                    nomes.append(v.id)
-        elif isinstance(node, ast.Dict):
-            for k in node.keys:
-                if isinstance(k, ast.Constant):
-                    nomes.append(str(k.value))
+    def _extrair_nomes(self, node: ast.AST) -> list[str]:
+        """Extrai identificadores inclusive atributos, sem seguir valores mascarados."""
+        nomes: list[str] = []
+
+        def coletar(atual: ast.AST) -> None:
+            if isinstance(atual, ast.Call):
+                chamada = self._nome_call(atual).lower()
+                if any(marcador in chamada for marcador in CAMPOS_PROTEGIDOS):
+                    # `mascarar(cpf)` e `hash(email)` não representam exposição
+                    # do valor original no log.
+                    return
+            if isinstance(atual, ast.Name):
+                nomes.append(atual.id)
+            elif isinstance(atual, ast.Attribute):
+                nomes.append(atual.attr)
+            elif isinstance(atual, ast.Dict):
+                for chave in atual.keys:
+                    if isinstance(chave, ast.Constant) and isinstance(chave.value, str):
+                        nomes.append(chave.value)
+            for filho in ast.iter_child_nodes(atual):
+                coletar(filho)
+
+        coletar(node)
         return nomes
 
 
@@ -531,33 +690,91 @@ def analisar_arquivo(caminho: str) -> list[Vulnerability]:
     return analisador.resultados
 
 
+def analisar_arquivo_com_escopo(caminho: str) -> tuple[list[Vulnerability], dict]:
+    """Analisa um arquivo isolado sem converter falha em um falso resultado limpo."""
+    if not isinstance(caminho, (str, os.PathLike)) or not str(caminho).strip():
+        raise ValueError("O caminho do arquivo é obrigatório.")
+    if not os.path.isfile(caminho):
+        raise FileNotFoundError(f"Arquivo não encontrado: {caminho}")
+
+    escopo = novo_escopo_varredura(caminho, "arquivo")
+    escopo["arquivos_elegiveis"] = 1
+    if os.path.getsize(caminho) == 0:
+        return [], finalizar_escopo_varredura(escopo)
+
+    try:
+        resultados = analisar_arquivo(caminho)
+    except (OSError, SyntaxError, UnicodeDecodeError, ValueError) as erro:
+        registrar_erro_escopo(escopo, caminho, erro)
+        return [], finalizar_escopo_varredura(escopo)
+
+    escopo["arquivos_analisados"] = 1
+    return resultados, finalizar_escopo_varredura(escopo)
+
+
+def analisar_diretorio_com_escopo(diretorio: str) -> tuple[list[Vulnerability], dict]:
+    """Varre um diretório preservando achados dos arquivos válidos.
+
+    Erros de leitura, codificação e sintaxe são registrados por arquivo. Assim,
+    um candidato defeituoso não oculta os indícios encontrados nos demais.
+    """
+    if not isinstance(diretorio, (str, os.PathLike)) or not str(diretorio).strip():
+        raise ValueError("O diretório é obrigatório.")
+    if not os.path.isdir(diretorio):
+        raise FileNotFoundError(f"Diretório não encontrado: {diretorio}")
+
+    todos: list[Vulnerability] = []
+    diretorio_raiz = os.path.abspath(diretorio)
+    escopo = novo_escopo_varredura(diretorio_raiz, "diretorio")
+    padroes_ignorados = carregar_padroes_ignorados(diretorio_raiz)
+
+    for raiz, diretorios, arquivos in os.walk(diretorio_raiz):
+        diretorios_mantidos = []
+        for nome in diretorios:
+            caminho_diretorio = os.path.join(raiz, nome)
+            relativo = os.path.relpath(caminho_diretorio, diretorio_raiz)
+            ignorado = (
+                nome.lower() in DIRETORIOS_IGNORADOS
+                or caminho_deve_ser_ignorado(relativo, padroes_ignorados, diretorio=True)
+            )
+            if ignorado:
+                escopo["arquivos_ignorados"] += _contar_arquivos_analisaveis(
+                    caminho_diretorio,
+                    EXTENSOES_CODIGO,
+                )
+            else:
+                diretorios_mantidos.append(nome)
+        diretorios[:] = diretorios_mantidos
+
+        for arquivo in arquivos:
+            if not arquivo.lower().endswith(EXTENSOES_CODIGO):
+                continue
+            caminho = os.path.join(raiz, arquivo)
+            relativo = os.path.relpath(caminho, diretorio_raiz)
+            if caminho_deve_ser_ignorado(relativo, padroes_ignorados):
+                escopo["arquivos_ignorados"] += 1
+                continue
+
+            escopo["arquivos_elegiveis"] += 1
+            if os.path.getsize(caminho) == 0:
+                registrar_erro_escopo(escopo, caminho, ValueError("arquivo vazio"))
+                continue
+            try:
+                todos.extend(analisar_arquivo(caminho))
+            except (OSError, SyntaxError, UnicodeDecodeError, ValueError) as erro:
+                registrar_erro_escopo(escopo, caminho, erro)
+                continue
+            escopo["arquivos_analisados"] += 1
+
+    return todos, finalizar_escopo_varredura(escopo)
+
+
 def analisar_diretorio(diretorio: str) -> list[Vulnerability]:
     """
     Varre recursivamente um diretório e analisa arquivos .py e .java.
     """
-    todos: list[Vulnerability] = []
-    diretorio_raiz = os.path.abspath(diretorio)
-    padroes_ignorados = carregar_padroes_ignorados(diretorio_raiz)
-    for raiz, diretorios, arquivos in os.walk(diretorio):
-        diretorios[:] = [
-            nome for nome in diretorios
-            if (
-                nome.lower() not in DIRETORIOS_IGNORADOS
-                and not caminho_deve_ser_ignorado(
-                    os.path.relpath(os.path.join(raiz, nome), diretorio_raiz),
-                    padroes_ignorados,
-                    diretorio=True,
-                )
-            )
-        ]
-        for arquivo in arquivos:
-            if arquivo.lower().endswith((".py", ".java")):
-                caminho = os.path.join(raiz, arquivo)
-                relativo = os.path.relpath(caminho, diretorio_raiz)
-                if caminho_deve_ser_ignorado(relativo, padroes_ignorados):
-                    continue
-                todos.extend(analisar_arquivo(caminho))
-    return todos
+    resultados, _ = analisar_diretorio_com_escopo(diretorio)
+    return resultados
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -568,20 +785,43 @@ if __name__ == "__main__":
     import json
 
     alvo = sys.argv[1] if len(sys.argv) > 1 else "."
-    resultados = (
-        analisar_arquivo(alvo) if alvo.lower().endswith((".py", ".java"))
-        else analisar_diretorio(alvo)
-    )
+    try:
+        resultados, escopo = (
+            analisar_arquivo_com_escopo(alvo)
+            if alvo.lower().endswith(EXTENSOES_CODIGO)
+            else analisar_diretorio_com_escopo(alvo)
+        )
+    except (FileNotFoundError, ValueError) as erro:
+        codigo = codigo_erro_analise(erro)
+        print(json.dumps({
+            "success": False,
+            "status": "invalid",
+            "error": {"codigo": codigo, "mensagem": mensagem_erro_analise(codigo)},
+            "indicador_tecnico": None,
+        }, ensure_ascii=False))
+        sys.exit(2)
 
-    if not resultados:
-        print("Nenhuma vulnerabilidade de privacidade encontrada.")
-    else:
-        print(f"\n{len(resultados)} vulnerabilidade(s) encontrada(s):\n")
-        for v in resultados:
-            print(f"  [{v.risco}] {v.categoria}")
-            print(f"  Arquivo : {v.arquivo}:{v.linha}")
-            print(f"  LGPD    : {v.artigo_lgpd}")
-            print(f"  Detalhe : {v.descricao}")
-            if v.trecho:
-                print(f"  Trecho  : {v.trecho}")
-            print()
+    if escopo["status"] not in {"complete", "partial"}:
+        print(json.dumps({
+            "success": False,
+            "status": escopo["status"],
+            "escopo": escopo,
+            "indicador_tecnico": None,
+        }, ensure_ascii=False))
+        sys.exit(2)
+
+    print(json.dumps({
+        "success": True,
+        "status": escopo["status"],
+        "escopo": escopo,
+        "achados": [
+            {
+                "arquivo": v.arquivo,
+                "linha": v.linha,
+                "categoria": v.categoria,
+                "risco": v.risco,
+                "evidencia_segura": "Regra estática acionada; conteúdo original ocultado.",
+            }
+            for v in resultados
+        ],
+    }, ensure_ascii=False, indent=2))

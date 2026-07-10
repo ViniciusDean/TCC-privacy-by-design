@@ -298,6 +298,55 @@ class Usuario:
 
         assert any(v.categoria == "DADO_SEM_CRIPTOGRAFIA" for v in results)
 
+    def test_ignores_python_orm_field_declarations(self, temp_py_file):
+        """ORM/schema declarations are metadata, not runtime storage."""
+        code = '''
+class Usuario:
+    email = models.EmailField(unique=True)
+    cpf_hash = Column(String)
+    email_verificado = Column(Boolean, default=False)
+
+    def anonimizar(self):
+        pass
+'''
+        temp_py_file.write(code)
+        temp_py_file.flush()
+
+        results = analisar_arquivo(temp_py_file.name)
+
+        assert not any(v.categoria == "DADO_SEM_CRIPTOGRAFIA" for v in results)
+
+    def test_ignores_temporary_sensitive_local_variables(self, temp_py_file):
+        """Temporary flow variables should not be treated as stored plaintext."""
+        code = '''
+def autenticar(request, token_service):
+    token = request.headers.get("Authorization")
+    email = token_service.validar(token)
+    email_verificado = False
+    return email
+'''
+        temp_py_file.write(code)
+        temp_py_file.flush()
+
+        results = analisar_arquivo(temp_py_file.name)
+
+        assert not any(v.categoria == "DADO_SEM_CRIPTOGRAFIA" for v in results)
+
+    def test_ignores_hashed_fields_in_transfer_payload(self, temp_py_file):
+        """Protected field names in payloads should not be reported as raw data."""
+        code = '''
+import requests
+
+def enviar(email_hash):
+    requests.post("https://analytics.example", json={"email_hash": email_hash})
+'''
+        temp_py_file.write(code)
+        temp_py_file.flush()
+
+        results = analisar_arquivo(temp_py_file.name)
+
+        assert "TRANSFERENCIA_SEM_BASE_LEGAL" not in {v.categoria for v in results}
+
 
 class TestNoFalsePositives:
     """Test that correct code doesn't trigger false positives."""
@@ -388,6 +437,47 @@ class TestArtigos:
         v = [v for v in results if v.categoria == "DADO_EM_LOG"][0]
         assert "Art. 46" in v.artigo_lgpd
         assert "Art. 6º" in v.artigo_lgpd
+
+
+class TestAstCoverage:
+    """Cobertura para sintaxes Python que não passam por ``Assign`` simples."""
+
+    def test_detects_async_camel_case_and_annotated_assignments(self, temp_py_file):
+        temp_py_file.write(
+            '''
+class Usuario:
+    userEmail: str = input("email")
+
+    async def cadastrar(self, cpf, telefone, token, endereco):
+        self.cpf: str = buscar_valor()
+''',
+        )
+        temp_py_file.flush()
+
+        resultados = analisar_arquivo(temp_py_file.name)
+        categorias = {resultado.categoria for resultado in resultados}
+
+        assert "DADO_SEM_CRIPTOGRAFIA" in categorias
+        assert "COLETA_EXCESSIVA" in categorias
+
+    def test_detects_attribute_in_log_but_not_masked_value(self, temp_py_file):
+        temp_py_file.write(
+            '''
+import logging
+
+class Usuario:
+    def registrar(self):
+        logging.info(self.cpf)
+        logging.info(mask(self.cpf))
+        logging.info(self.cpf_mascarado)
+''',
+        )
+        temp_py_file.flush()
+
+        resultados = analisar_arquivo(temp_py_file.name)
+        logs = [resultado for resultado in resultados if resultado.categoria == "DADO_EM_LOG"]
+
+        assert len(logs) == 1
 
 
 class TestDirectory:

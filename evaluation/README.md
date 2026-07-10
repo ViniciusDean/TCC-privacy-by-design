@@ -35,5 +35,32 @@ Os resultados sao gravados em:
   classificados.
 
 Este conjunto inicial e controlado e nao substitui a avaliacao posterior em
-projetos reais. Casos novos devem ser revisados manualmente antes de entrarem no
+projetos reais. Ele mede decisoes **caso--categoria** no gabarito versionado:
+resultados de 100% descrevem consistencia interna com as fixtures, nao desempenho
+generalizavel. Casos novos devem ser revisados manualmente antes de entrarem no
 gabarito.
+
+## Validação externa
+
+Depois do benchmark sintético, use `real_projects/` para cadastrar projetos
+reais e gerar achados técnicos para revisão manual:
+
+```powershell
+python evaluation\real_projects\run_real_projects.py
+```
+
+Cada execução é gravada em `real_projects/results/runs/<run_id>/` com commit,
+versão, ambiente, papel de avaliação e hash do escopo. O resumo mais recente é atualizado em
+`real_projects/results/latest_summary.md`.
+
+Classifique cada achado em `real_projects/results/manual_adjudication.csv`, pelo
+seu `finding_id`, usando apenas `TP` ou `FP`; registre falsos negativos em
+`real_projects/manual_false_negatives.csv`. Esses arquivos manuais não são
+sobrescritos por uma nova execução. As métricas externas de precisão, recall e
+F1 só são exibidas após todos os achados terem sido classificados e a inspeção
+de falsos negativos do projeto ter sido concluída.
+
+O PEAK Java é o conjunto de ajuste. Flasky e Chinook são conjuntos de validação;
+suas métricas são publicadas separadamente e não orientam novas alterações de
+regras nesta versão. Mesmo após a revisão completa, os valores descrevem apenas
+essa amostra e não certificam desempenho geral ou conformidade jurídica.

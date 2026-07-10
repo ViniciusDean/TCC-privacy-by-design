@@ -1,10 +1,12 @@
-# Resultado do benchmark
+# Benchmark controlado de regressão
 
-Gerado em: `2026-06-15T03:13:27.715364+00:00`
+Gerado em: `2026-07-10T02:35:05.911713+00:00`
 
-Casos avaliados: **18**
+Casos avaliados: **18**; decisões `caso-categoria`: **120**.
 
-## Resultado global
+> As métricas abaixo medem aderência ao gabarito das fixtures sintéticas. Elas não devem ser apresentadas como estimativa de precisão, recall ou eficácia em projetos reais.
+
+## Resultado no corpus controlado
 
 | TP | FP | FN | TN | Precisao | Recall | F1 | Especificidade |
 |---:|---:|---:|---:|---:|---:|---:|---:|

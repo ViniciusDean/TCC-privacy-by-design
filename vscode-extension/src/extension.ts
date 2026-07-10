@@ -3,36 +3,22 @@ import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
 import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
+import {
+    AnalysisResponse,
+    AnalysisSummary,
+    Finding,
+    LatestRequestGate,
+    ScopeMetadata,
+    normalizeAnalysisResponse,
+    validateBackendHealth
+} from './contract';
 
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Interfaces
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface Vulnerability {
-    arquivo: string;
-    linha: number;
-    categoria: string;
-    descricao: string;
-    risco: 'ALTO' | 'MEDIO' | 'BAIXO';
-    artigo_lgpd: string;
-    trecho?: string;
-    recomendacao?: string;
-}
-
-interface AnalysisResponse {
-    success: boolean;
-    vulnerabilities: Vulnerability[];
-    summary?: {
-        total: number;
-        por_risco: {
-            ALTO: number;
-            MEDIO: number;
-            BAIXO: number;
-        };
-        score_conformidade: number;
-    };
-}
+type Vulnerability = Finding;
 
 interface RecommendationPayload {
     categoria: string;
@@ -52,13 +38,24 @@ let statusBar: vscode.StatusBarItem;
 let isAnalyzing: boolean = false;
 let extensionContext: vscode.ExtensionContext;
 let ignoredVulnerabilityKeys: Set<string> = new Set();
+let canonicalSummary: AnalysisSummary | undefined;
+let currentScope: ScopeMetadata | undefined;
+let currentScopeNotice: string | undefined;
+let sidebarEnabled: boolean = true;
+let diagnosticsEnabled: boolean = true;
+let activeRequestController: AbortController | undefined;
+const requestGate = new LatestRequestGate();
 
-// Mapa global de vulnerabilidades: filePath -> Vulnerability[]
-let allVulnerabilities: Map<string, Vulnerability[]> = new Map();
+const ANALYSIS_TIMEOUT_MS = 15000;
+const HEALTH_TIMEOUT_MS = 2000;
+
+// Mapa global de achados: filePath -> Vulnerability[]
+const allVulnerabilities: Map<string, Vulnerability[]> = new Map();
 let vulnerabilitiesProvider: VulnerabilitiesProvider;
 let summaryProvider: SummaryProvider;
 
-const IGNORED_VULNERABILITIES_KEY = 'privacy-scanner.ignoredVulnerabilities';
+const IGNORED_FINDINGS_KEY = 'privacy-scanner.ignoredFindings.v2';
+const LEGACY_IGNORED_VULNERABILITIES_KEY = 'privacy-scanner.ignoredVulnerabilities';
 
 const riskToSeverity = (risk: string): vscode.DiagnosticSeverity => {
     switch (risk) {
@@ -68,8 +65,6 @@ const riskToSeverity = (risk: string): vscode.DiagnosticSeverity => {
         default: return vscode.DiagnosticSeverity.Information;
     }
 };
-
-const riskOrder: Record<string, number> = { ALTO: 0, MEDIO: 1, BAIXO: 2 };
 
 function isDatabaseUri(uri: vscode.Uri): boolean {
     const filePath = uri.fsPath.toLowerCase();
@@ -88,7 +83,7 @@ function vulnerabilityKey(vulnerability: Vulnerability): string {
         filePath,
         vulnerability.linha,
         vulnerability.categoria,
-        vulnerability.trecho || ''
+        vulnerability.risco
     ].join('|');
 }
 
@@ -106,6 +101,9 @@ function activeIgnoredCount(): number {
 
 function refreshAllDiagnostics(): void {
     diagnosticCollection.clear();
+    if (!diagnosticsEnabled) {
+        return;
+    }
     for (const [filePath, vulnerabilities] of allVulnerabilities) {
         if (filePath.toLowerCase().endsWith('.py') || filePath.toLowerCase().endsWith('.java')) {
             displayDiagnostics(vscode.Uri.file(filePath), vulnerabilities);
@@ -114,8 +112,12 @@ function refreshAllDiagnostics(): void {
 }
 
 function refreshViews(): void {
-    vulnerabilitiesProvider.refresh();
-    summaryProvider.refresh();
+    if (vulnerabilitiesProvider) {
+        vulnerabilitiesProvider.refresh();
+    }
+    if (summaryProvider) {
+        summaryProvider.refresh();
+    }
 }
 
 function setAnalyzing(value: boolean, message: string = 'Analisando...'): void {
@@ -126,6 +128,99 @@ function setAnalyzing(value: boolean, message: string = 'Analisando...'): void {
     refreshViews();
 }
 
+interface AnalysisSession {
+    requestId: number;
+    controller: AbortController;
+}
+
+function beginAnalysis(message: string): AnalysisSession {
+    activeRequestController?.abort();
+    // Nenhum indicador de uma varredura anterior deve sobreviver enquanto o
+    // novo escopo ainda não foi validado pelo backend.
+    canonicalSummary = undefined;
+    currentScope = undefined;
+    currentScopeNotice = undefined;
+    const session = {
+        requestId: requestGate.begin(),
+        controller: new AbortController()
+    };
+    activeRequestController = session.controller;
+    setAnalyzing(true, message);
+    return session;
+}
+
+function isCurrentSession(session: AnalysisSession): boolean {
+    return requestGate.isCurrent(session.requestId);
+}
+
+function finishAnalysis(session: AnalysisSession): void {
+    if (!isCurrentSession(session)) {
+        return;
+    }
+    if (activeRequestController === session.controller) {
+        activeRequestController = undefined;
+    }
+    setAnalyzing(false);
+}
+
+function cancelActiveAnalysis(): void {
+    activeRequestController?.abort();
+    activeRequestController = undefined;
+    requestGate.invalidate();
+    if (isAnalyzing) {
+        setAnalyzing(false);
+    }
+}
+
+function isCancellation(error: unknown): boolean {
+    return axios.isCancel(error) || (error instanceof Error && error.name === 'CanceledError');
+}
+
+function responseFromAxiosError(error: unknown): AnalysisResponse | undefined {
+    if (axios.isAxiosError(error) && error.response) {
+        return normalizeAnalysisResponse(error.response.data);
+    }
+    return undefined;
+}
+
+function applyViewConfiguration(): void {
+    void vscode.commands.executeCommand(
+        'setContext',
+        'privacy-scanner:showVulnerabilities',
+        sidebarEnabled
+    );
+    void vscode.commands.executeCommand(
+        'setContext',
+        'privacy-scanner:showSummary',
+        sidebarEnabled
+    );
+    refreshAllDiagnostics();
+    refreshViews();
+}
+
+function updateCanonicalState(result: AnalysisResponse): void {
+    canonicalSummary = result.resumo;
+    currentScope = result.escopo;
+    currentScopeNotice = result.aviso_escopo;
+}
+
+function updateFailedScopeState(result: AnalysisResponse): void {
+    updateCanonicalState(result);
+    if (canonicalSummary) {
+        canonicalSummary = { ...canonicalSummary, indicador_tecnico: null };
+    }
+}
+
+function ensureBackendRunning(): boolean {
+    if (serverRunning) {
+        return true;
+    }
+    vscode.window.showWarningMessage(
+        'O backend compatível do Privacy Scanner não está disponível. Verifique a inicialização e a porta configurada.'
+    );
+    return false;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Inicialização da extensão
 // ─────────────────────────────────────────────────────────────────────────────
@@ -133,8 +228,11 @@ function setAnalyzing(value: boolean, message: string = 'Analisando...'): void {
 export async function activate(context: vscode.ExtensionContext) {
     console.log('🔒 Privacy Scanner LGPD ativado');
     extensionContext = context;
+    // A chave anterior podia conter o trecho usado como identificador. Ela é
+    // removida na migração para não manter código-fonte bruto no estado local.
+    await context.workspaceState.update(LEGACY_IGNORED_VULNERABILITIES_KEY, undefined);
     ignoredVulnerabilityKeys = new Set(
-        context.workspaceState.get<string[]>(IGNORED_VULNERABILITIES_KEY, [])
+        context.workspaceState.get<string[]>(IGNORED_FINDINGS_KEY, [])
     );
 
     // Status bar
@@ -168,15 +266,14 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.window.registerTreeDataProvider('privacy-scanner-summary', summaryProvider)
     );
 
-    // Set context keys to show views
-    vscode.commands.executeCommand('setContext', 'privacy-scanner:showVulnerabilities', true);
-    vscode.commands.executeCommand('setContext', 'privacy-scanner:showSummary', true);
-
     // Carregar configurações
     loadConfig();
 
     // Iniciar servidor Flask
     await startFlaskServer(context);
+    if (!serverRunning) {
+        setAnalyzing(false);
+    }
 
     // Registrar comandos
     registerCommands(context);
@@ -248,7 +345,11 @@ function registerCommands(context: vscode.ExtensionContext) {
     // Limpar resultados
     context.subscriptions.push(
         vscode.commands.registerCommand('privacy-scanner.clearResults', async () => {
+            cancelActiveAnalysis();
             allVulnerabilities.clear();
+            canonicalSummary = undefined;
+            currentScope = undefined;
+            currentScopeNotice = undefined;
             diagnosticCollection.clear();
             refreshViews();
             updateStatusBar('Resultados limpos', 'pass');
@@ -272,15 +373,15 @@ function registerCommands(context: vscode.ExtensionContext) {
 
             ignoredVulnerabilityKeys.add(vulnerabilityKey(vulnerability));
             await extensionContext.workspaceState.update(
-                IGNORED_VULNERABILITIES_KEY,
+                IGNORED_FINDINGS_KEY,
                 Array.from(ignoredVulnerabilityKeys)
             );
             refreshAllDiagnostics();
             refreshViews();
             const visibleCount = visibleVulnerabilities().length;
-            updateStatusBar(`${visibleCount} vulnerabilidades`, visibleCount === 0 ? 'pass' : 'alert');
+            updateStatusBar(`${visibleCount} achados`, visibleCount === 0 ? 'pass' : 'alert');
             vscode.window.showInformationMessage(
-                'Risco ocultado na interface. Ele continuará aparecendo nos relatórios.'
+                'Achado ocultado somente na interface. O indicador técnico e os relatórios não são alterados.'
             );
         })
     );
@@ -289,17 +390,17 @@ function registerCommands(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('privacy-scanner.restoreIgnoredVulnerabilities', async () => {
             if (ignoredVulnerabilityKeys.size === 0) {
-                vscode.window.showInformationMessage('Nenhum risco está ocultado na interface.');
+                vscode.window.showInformationMessage('Nenhum achado está ocultado na interface.');
                 return;
             }
 
             ignoredVulnerabilityKeys.clear();
-            await extensionContext.workspaceState.update(IGNORED_VULNERABILITIES_KEY, []);
+            await extensionContext.workspaceState.update(IGNORED_FINDINGS_KEY, []);
             refreshAllDiagnostics();
             refreshViews();
             const visibleCount = visibleVulnerabilities().length;
-            updateStatusBar(`${visibleCount} vulnerabilidades`, visibleCount === 0 ? 'pass' : 'alert');
-            vscode.window.showInformationMessage('Riscos ocultados restaurados na interface.');
+            updateStatusBar(`${visibleCount} achados`, visibleCount === 0 ? 'pass' : 'alert');
+            vscode.window.showInformationMessage('Achados ocultados restaurados na interface.');
         })
     );
 
@@ -320,7 +421,13 @@ function registerCommands(context: vscode.ExtensionContext) {
     // Mostrar sidebar
     context.subscriptions.push(
         vscode.commands.registerCommand('privacy-scanner.showSidebar', async () => {
-            vscode.commands.executeCommand('workbench.view.extension.privacy-scanner-sidebar');
+            if (!sidebarEnabled) {
+                vscode.window.showInformationMessage(
+                    'A sidebar está desativada em privacy-scanner.enableSidebar.'
+                );
+                return;
+            }
+            await vscode.commands.executeCommand('workbench.view.extension.privacy-scanner-sidebar');
         })
     );
 
@@ -368,55 +475,81 @@ function registerCommands(context: vscode.ExtensionContext) {
 // Análise de arquivos
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function analyzeFile(uri: vscode.Uri) {
+async function analyzeFile(uri: vscode.Uri): Promise<void> {
     const isCode = uri.path.toLowerCase().endsWith('.py') || uri.path.toLowerCase().endsWith('.java');
     const isDB = isDatabaseUri(uri);
+    const filePath = uri.fsPath;
 
     if (!isCode && !isDB) {
         return;
     }
+    if (!ensureBackendRunning()) {
+        return;
+    }
 
+    const session = beginAnalysis('Analisando arquivo...');
     try {
-        setAnalyzing(true);
+        const endpoint = isCode ? '/api/analyze-file' : '/api/analyze-database';
+        const payload = isCode ? { filepath: filePath } : { database: filePath };
 
-        const filePath = uri.fsPath;
-        let endpoint = isCode ? '/api/analyze-file' : '/api/analyze-database';
-        let payload = isCode ? { filepath: filePath } : { database: filePath };
-
-        const response = await axios.post<AnalysisResponse>(
+        const response = await axios.post<unknown>(
             `http://localhost:${serverPort}${endpoint}`,
-            payload
+            payload,
+            { timeout: ANALYSIS_TIMEOUT_MS, signal: session.controller.signal }
         );
-
-        if (response.data.success) {
-            const vulns = response.data.vulnerabilities;
-            
-            // Atualizar diagnósticos para código; banco não tem linha útil no editor.
-            if (isCode) {
-                displayDiagnostics(uri, vulns);
-            }
-
-            // Atualizar mapa global
-            if (vulns.length > 0) {
-                allVulnerabilities.set(filePath, vulns);
-            } else {
-                allVulnerabilities.delete(filePath);
-            }
-
-            setAnalyzing(false);
-
-            const visibleCount = vulns.filter(v => !isIgnored(v)).length;
-            updateStatusBar(
-                `${visibleCount} vulnerabilidades`,
-                visibleCount === 0 ? 'pass' : 'alert'
-            );
-        } else {
-            setAnalyzing(false);
+        if (!isCurrentSession(session)) {
+            return;
         }
+
+        const result = normalizeAnalysisResponse(response.data);
+        if (!result.success) {
+            allVulnerabilities.delete(filePath);
+            if (isCode) {
+                diagnosticCollection.delete(uri);
+            }
+            updateFailedScopeState(result);
+            vscode.window.showWarningMessage('O backend não concluiu a análise do arquivo.');
+            updateStatusBar('Análise não concluída', 'error');
+            return;
+        }
+
+        // Atualizar diagnósticos para código; banco não tem linha útil no editor.
+        if (isCode) {
+            displayDiagnostics(uri, result.achados);
+        }
+
+        if (result.achados.length > 0) {
+            allVulnerabilities.set(filePath, result.achados);
+        } else {
+            allVulnerabilities.delete(filePath);
+        }
+
+        updateCanonicalState(result);
+        const rawTotal = result.resumo?.total ?? result.achados.length;
+        updateStatusBar(
+            `${rawTotal} achados técnicos`,
+            rawTotal === 0 ? 'pass' : 'alert'
+        );
     } catch (error) {
+        if (!isCurrentSession(session) || isCancellation(error)) {
+            return;
+        }
+        const backendFailure = responseFromAxiosError(error);
+        if (backendFailure) {
+            allVulnerabilities.delete(filePath);
+            if (isCode) {
+                diagnosticCollection.delete(uri);
+            }
+            updateFailedScopeState(backendFailure);
+            vscode.window.showWarningMessage('O backend recusou a análise do arquivo.');
+            updateStatusBar('Análise não concluída', 'error');
+            return;
+        }
         console.error('Erro ao analisar arquivo:', error);
-        setAnalyzing(false);
+        vscode.window.showErrorMessage('Erro ao analisar arquivo. Verifique o backend e tente novamente.');
         updateStatusBar('Erro na análise', 'error');
+    } finally {
+        finishAnalysis(session);
     }
 }
 
@@ -437,7 +570,7 @@ function getCategoryFromDiagnostic(diagnostic: vscode.Diagnostic): string {
         return diagnostic.code;
     }
 
-    return diagnostic.message.split(':')[0] || 'Vulnerabilidade LGPD';
+    return diagnostic.message.split(':')[0] || 'Achado técnico de privacidade';
 }
 
 class PrivacyCodeActionProvider implements vscode.CodeActionProvider {
@@ -494,13 +627,13 @@ class PrivacyCodeActionProvider implements vscode.CodeActionProvider {
             );
             if (vulnerability) {
                 const ignoreAction = new vscode.CodeAction(
-                    `Ignorar este risco na interface: ${payload.categoria}`,
+                    `Ocultar este achado na interface: ${payload.categoria}`,
                     vscode.CodeActionKind.QuickFix
                 );
                 ignoreAction.diagnostics = [diagnostic];
                 ignoreAction.command = {
                     command: 'privacy-scanner.ignoreVulnerability',
-                    title: 'Ignorar risco na interface',
+                    title: 'Ocultar achado na interface',
                     arguments: [vulnerability]
                 };
                 actions.push(ignoreAction);
@@ -525,96 +658,167 @@ async function analyzeDatabaseFromPicker() {
     if (!files || files.length === 0) {
         return;
     }
-
-    setAnalyzing(true, 'Analisando banco...');
-    let total = 0;
-    for (const file of files) {
-        total += await analyzeDatabaseUri(file);
+    if (!ensureBackendRunning()) {
+        return;
     }
 
-    setAnalyzing(false);
-    vscode.window.showInformationMessage(
-        `Análise de banco concluída: ${total} vulnerabilidades encontradas`
-    );
+    const session = beginAnalysis('Analisando banco SQLite...');
+    let total = 0;
+    let failures = 0;
+    try {
+        for (const file of files) {
+            if (!isCurrentSession(session)) {
+                return;
+            }
+
+            try {
+                const result = await analyzeDatabaseUri(file, session);
+                if (!isCurrentSession(session)) {
+                    return;
+                }
+                if (!result.success) {
+                    failures += 1;
+                    updateFailedScopeState(result);
+                    continue;
+                }
+                total += result.resumo?.total ?? result.achados.length;
+                updateCanonicalState(result);
+            } catch (error) {
+                if (isCancellation(error) || !isCurrentSession(session)) {
+                    return;
+                }
+                failures += 1;
+                console.error(`Erro ao analisar banco ${file.fsPath}:`, error);
+            }
+        }
+
+        if (!isCurrentSession(session)) {
+            return;
+        }
+        const suffix = failures > 0 ? ` (${failures} banco(s) não analisado(s))` : '';
+        vscode.window.showInformationMessage(
+            `Análise de banco concluída: ${total} achados técnicos encontrados${suffix}`
+        );
+        updateStatusBar(`${total} achados técnicos`, total === 0 ? 'pass' : 'alert');
+    } finally {
+        finishAnalysis(session);
+    }
 }
 
-async function analyzeDatabaseUri(uri: vscode.Uri): Promise<number> {
+async function analyzeDatabaseUri(uri: vscode.Uri, session: AnalysisSession): Promise<AnalysisResponse> {
     const filePath = uri.fsPath;
-    const response = await axios.post<AnalysisResponse>(
-        `http://localhost:${serverPort}/api/analyze-database`,
-        { database: filePath }
-    );
-
-    if (!response.data.success) {
-        return 0;
+    let response: { data: unknown };
+    try {
+        response = await axios.post<unknown>(
+            `http://localhost:${serverPort}/api/analyze-database`,
+            { database: filePath },
+            { timeout: ANALYSIS_TIMEOUT_MS, signal: session.controller.signal }
+        );
+    } catch (error) {
+        const backendFailure = responseFromAxiosError(error);
+        if (backendFailure) {
+            allVulnerabilities.delete(filePath);
+            return backendFailure;
+        }
+        throw error;
+    }
+    if (!isCurrentSession(session)) {
+        throw new Error('Resposta de análise de banco ultrapassada.');
     }
 
-    const vulns = response.data.vulnerabilities;
-    if (vulns.length > 0) {
-        allVulnerabilities.set(filePath, vulns);
+    const result = normalizeAnalysisResponse(response.data);
+    if (!result.success) {
+        allVulnerabilities.delete(filePath);
+        return result;
+    }
+
+    if (result.achados.length > 0) {
+        allVulnerabilities.set(filePath, result.achados);
     } else {
         allVulnerabilities.delete(filePath);
     }
 
-    return vulns.filter(v => !isIgnored(v)).length;
+    return result;
 }
 
-async function analyzeWorkspace() {
+async function analyzeWorkspace(): Promise<void> {
+    if (!ensureBackendRunning()) {
+        return;
+    }
+    const session = beginAnalysis('Analisando projeto...');
     try {
-        setAnalyzing(true, 'Analisando projeto...');
-
         if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
             vscode.window.showWarningMessage('Nenhuma pasta de trabalho aberta');
-            setAnalyzing(false);
             return;
         }
 
         const workspacePath = vscode.workspace.workspaceFolders[0].uri.fsPath;
-        const response = await axios.post<AnalysisResponse>(
+        const response = await axios.post<unknown>(
             `http://localhost:${serverPort}/api/analyze-directory`,
-            { directory: workspacePath }
+            { directory: workspacePath },
+            { timeout: ANALYSIS_TIMEOUT_MS, signal: session.controller.signal }
         );
+        if (!isCurrentSession(session)) {
+            return;
+        }
 
-        if (response.data.success) {
-            // Limpar mapa global antes de análise completa
+        const result = normalizeAnalysisResponse(response.data);
+        if (!result.success) {
             allVulnerabilities.clear();
             diagnosticCollection.clear();
-
-            // Agrupar vulnerabilidades por arquivo
-            const grouped = new Map<string, Vulnerability[]>();
-            for (const vuln of response.data.vulnerabilities) {
-                if (!grouped.has(vuln.arquivo)) {
-                    grouped.set(vuln.arquivo, []);
-                }
-                grouped.get(vuln.arquivo)!.push(vuln);
-            }
-
-            // Adicionar diagnostics e atualizar mapa global
-            for (const [arquivo, vulns] of grouped) {
-                allVulnerabilities.set(arquivo, vulns);
-                
-                // Só mostra diagnósticos para arquivos de código suportados.
-                if (arquivo.toLowerCase().endsWith('.py') || arquivo.toLowerCase().endsWith('.java')) {
-                    const uri = vscode.Uri.file(arquivo);
-                    displayDiagnostics(uri, vulns);
-                }
-            }
-
-            // Refresh TreeViews
-            setAnalyzing(false);
-            const totalVulnerabilities = visibleVulnerabilities().length;
-
-            vscode.window.showInformationMessage(
-                `Análise concluída: ${totalVulnerabilities} vulnerabilidades encontradas`
-            );
-            updateStatusBar(`${totalVulnerabilities} vulns`, totalVulnerabilities === 0 ? 'pass' : 'alert');
-        } else {
-            setAnalyzing(false);
+            updateFailedScopeState(result);
+            vscode.window.showWarningMessage('O backend não concluiu a análise do projeto.');
+            updateStatusBar('Análise não concluída', 'error');
+            return;
         }
+
+        // Limpar mapa global antes de análise completa.
+        allVulnerabilities.clear();
+        diagnosticCollection.clear();
+
+        // Agrupar achados por arquivo.
+        const grouped = new Map<string, Vulnerability[]>();
+        for (const finding of result.achados) {
+            if (!grouped.has(finding.arquivo)) {
+                grouped.set(finding.arquivo, []);
+            }
+            grouped.get(finding.arquivo)!.push(finding);
+        }
+
+        // Adicionar diagnósticos e atualizar mapa global.
+        for (const [arquivo, findings] of grouped) {
+            allVulnerabilities.set(arquivo, findings);
+
+            // Só mostra diagnósticos para arquivos de código suportados.
+            if (arquivo.toLowerCase().endsWith('.py') || arquivo.toLowerCase().endsWith('.java')) {
+                displayDiagnostics(vscode.Uri.file(arquivo), findings);
+            }
+        }
+
+        updateCanonicalState(result);
+        const rawTotal = result.resumo?.total ?? result.achados.length;
+        vscode.window.showInformationMessage(
+            `Análise concluída: ${rawTotal} achados técnicos encontrados`
+        );
+        updateStatusBar(`${rawTotal} achados técnicos`, rawTotal === 0 ? 'pass' : 'alert');
     } catch (error) {
+        if (!isCurrentSession(session) || isCancellation(error)) {
+            return;
+        }
+        const backendFailure = responseFromAxiosError(error);
+        if (backendFailure) {
+            allVulnerabilities.clear();
+            diagnosticCollection.clear();
+            updateFailedScopeState(backendFailure);
+            vscode.window.showWarningMessage('O backend recusou a análise do projeto.');
+            updateStatusBar('Análise não concluída', 'error');
+            return;
+        }
         console.error('Erro ao analisar projeto:', error);
-        setAnalyzing(false);
-        vscode.window.showErrorMessage('Erro ao analisar projeto');
+        vscode.window.showErrorMessage('Erro ao analisar projeto. Verifique o backend e tente novamente.');
+        updateStatusBar('Erro na análise', 'error');
+    } finally {
+        finishAnalysis(session);
     }
 }
 
@@ -622,12 +826,17 @@ async function analyzeWorkspace() {
 // Exibição de diagnósticos
 // ─────────────────────────────────────────────────────────────────────────────
 
-function displayDiagnostics(uri: vscode.Uri, vulnerabilities: Vulnerability[]) {
+function displayDiagnostics(uri: vscode.Uri, vulnerabilities: Vulnerability[]): void {
+    if (!diagnosticsEnabled) {
+        diagnosticCollection.delete(uri);
+        return;
+    }
+
     const diagnostics: vscode.Diagnostic[] = [];
 
     for (const vuln of vulnerabilities) {
         if (vuln.linha <= 0 || isIgnored(vuln)) {
-            continue; // Ignora vulnerabilidades de banco (linha 0)
+            continue; // Ignora achados de banco (linha 0)
         }
 
         const range = new vscode.Range(
@@ -637,7 +846,7 @@ function displayDiagnostics(uri: vscode.Uri, vulnerabilities: Vulnerability[]) {
 
         const diagnostic = new vscode.Diagnostic(
             range,
-            `${vuln.categoria}: ${vuln.descricao}\n${vuln.artigo_lgpd}`,
+            `${vuln.categoria}: ${vuln.evidencia_segura}${vuln.artigo_lgpd ? `\n${vuln.artigo_lgpd}` : ''}`,
             riskToSeverity(vuln.risco)
         );
 
@@ -665,133 +874,166 @@ function displayDiagnostics(uri: vscode.Uri, vulnerabilities: Vulnerability[]) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function registerListeners(context: vscode.ExtensionContext) {
-    const config = vscode.workspace.getConfiguration('privacy-scanner');
-    const autoAnalyze = config.get('autoAnalyzeOnSave', true);
+    const autoAnalyzeEnabled = (): boolean => vscode.workspace
+        .getConfiguration('privacy-scanner')
+        .get('autoAnalyzeOnSave', true);
 
-    if (autoAnalyze) {
-        context.subscriptions.push(
-            vscode.workspace.onDidSaveTextDocument(async (document) => {
-                if (isSupportedCodeDocument(document) || isDatabaseUri(document.uri)) {
-                    await analyzeFile(document.uri);
-                }
-            }),
-            vscode.workspace.onDidOpenTextDocument(async (document) => {
-                if (isSupportedCodeDocument(document) || isDatabaseUri(document.uri)) {
-                    await analyzeFile(document.uri);
-                }
-            }),
-            vscode.window.onDidChangeActiveTextEditor(async (editor) => {
-                if (!editor) {
-                    return;
-                }
-                if (isSupportedCodeDocument(editor.document) || isDatabaseUri(editor.document.uri)) {
-                    await analyzeFile(editor.document.uri);
-                }
-            })
-        );
-    }
+    const analyzeDocumentIfEnabled = async (document: vscode.TextDocument): Promise<void> => {
+        if (
+            autoAnalyzeEnabled()
+            && (isSupportedCodeDocument(document) || isDatabaseUri(document.uri))
+        ) {
+            await analyzeFile(document.uri);
+        }
+    };
+
+    context.subscriptions.push(
+        vscode.workspace.onDidSaveTextDocument(analyzeDocumentIfEnabled),
+        vscode.workspace.onDidOpenTextDocument(analyzeDocumentIfEnabled),
+        vscode.window.onDidChangeActiveTextEditor(async (editor) => {
+            if (editor) {
+                await analyzeDocumentIfEnabled(editor.document);
+            }
+        }),
+        vscode.workspace.onDidChangeConfiguration(event => {
+            if (
+                event.affectsConfiguration('privacy-scanner.enableSidebar')
+                || event.affectsConfiguration('privacy-scanner.showDiagnostics')
+            ) {
+                loadConfig(false);
+            }
+            if (event.affectsConfiguration('privacy-scanner.serverPort')) {
+                vscode.window.showInformationMessage(
+                    'A alteração de privacy-scanner.serverPort será aplicada após recarregar a janela.'
+                );
+            }
+        })
+    );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Servidor Flask
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function startFlaskServer(context: vscode.ExtensionContext): Promise<void> {
-    return new Promise((resolve) => {
-        const pythonPath = vscode.workspace.getConfiguration('privacy-scanner').get('pythonPath', 'python');
-        const extensionPath = context.extensionPath;
-        const bundledServer = path.join(extensionPath, 'python_backend', 'server.py');
-        const developmentServer = path.join(extensionPath, '..', 'server.py');
-        const serverScript = fs.existsSync(bundledServer)
-            ? bundledServer
-            : developmentServer;
+interface HealthCheckResult {
+    reachable: boolean;
+    valid: boolean;
+    reason?: string;
+    version?: string;
+}
 
-        if (!fs.existsSync(serverScript)) {
-            console.warn(`Arquivo do servidor não encontrado: ${serverScript}`);
+async function checkBackendHealth(): Promise<HealthCheckResult> {
+    try {
+        const response = await axios.get<unknown>(
+            `http://localhost:${serverPort}/health`,
+            { timeout: HEALTH_TIMEOUT_MS }
+        );
+        const health = validateBackendHealth(response.data);
+        return {
+            reachable: true,
+            valid: health.valid,
+            reason: health.reason,
+            version: health.version
+        };
+    } catch {
+        return { reachable: false, valid: false };
+    }
+}
+
+function wait(milliseconds: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
+
+async function startFlaskServer(context: vscode.ExtensionContext): Promise<void> {
+    const pythonPath = vscode.workspace.getConfiguration('privacy-scanner').get('pythonPath', 'python');
+    const extensionPath = context.extensionPath;
+    const bundledServer = path.join(extensionPath, 'python_backend', 'server.py');
+    const developmentServer = path.join(extensionPath, '..', 'server.py');
+    const serverScript = fs.existsSync(bundledServer)
+        ? bundledServer
+        : developmentServer;
+
+    if (!fs.existsSync(serverScript)) {
+        console.warn(`Arquivo do servidor não encontrado: ${serverScript}`);
+        vscode.window.showErrorMessage(
+            'Backend do Privacy Scanner não encontrado. Reinstale a extensão ou gere novamente o pacote VSIX.'
+        );
+        return;
+    }
+
+    const existing = await checkBackendHealth();
+    if (existing.reachable) {
+        if (!existing.valid) {
             vscode.window.showErrorMessage(
-                'Backend do Privacy Scanner não encontrado. Reinstale a extensão ou gere novamente o pacote VSIX.'
+                `A porta ${serverPort} está ocupada por um serviço incompatível. ${existing.reason || ''}`
             );
-            resolve();
             return;
         }
+        serverRunning = true;
+        console.log(`Backend Privacy Scanner ativo (versão ${existing.version}).`);
+        return;
+    }
 
-        let spawned = false;
-        let stderrOutput = '';
-
-        const spawnServer = () => {
-            if (spawned) {
-                return;
-            }
-
-            spawned = true;
-            flaskProcess = spawn(pythonPath, [serverScript, String(serverPort)], {
-                cwd: path.dirname(serverScript),
-                windowsHide: true
-            });
-
-            flaskProcess.stdout.on('data', (data) => {
-                console.log(`[Privacy Scanner Server] ${data.toString().trim()}`);
-            });
-
-            flaskProcess.stderr.on('data', (data) => {
-                const message = data.toString();
-                stderrOutput += message;
-                console.error(`[Privacy Scanner Server] ${message.trim()}`);
-            });
-
-            flaskProcess.on('error', (error) => {
-                console.error(`Erro ao iniciar servidor Flask: ${error}`);
-                vscode.window.showErrorMessage(`Erro ao iniciar servidor Flask: ${error.message}`);
-                resolve();
-            });
-
-            flaskProcess.on('exit', (code) => {
-                serverRunning = false;
-                if (code !== 0 && code !== null) {
-                    console.error(`Servidor Flask encerrado com codigo ${code}`);
-                    if (
-                        stderrOutput.includes('ModuleNotFoundError')
-                        || stderrOutput.includes('No module named')
-                    ) {
-                        const requirementsPath = path.join(
-                            path.dirname(serverScript),
-                            'requirements.txt'
-                        );
-                        vscode.window.showErrorMessage(
-                            `Dependências Python ausentes. Execute: "${pythonPath}" -m pip install -r "${requirementsPath}"`
-                        );
-                    }
-                }
-            });
-        };
-
-        // Aguardar servidor ficar pronto
-        let attempts = 0;
-        const checkServer = setInterval(async () => {
-            try {
-                await axios.get(`http://localhost:${serverPort}/health`);
-                clearInterval(checkServer);
-                serverRunning = true;
-                console.log(spawned ? '✅ Servidor Flask ativo' : '✅ Servidor Flask já estava ativo');
-                resolve();
-            } catch {
-                attempts++;
-                if (attempts === 1) {
-                    spawnServer();
-                }
-                if (attempts > 30) {
-                    clearInterval(checkServer);
-                    console.error('Timeout ao conectar ao servidor Flask');
-                    if (!stderrOutput.includes('ModuleNotFoundError')) {
-                        vscode.window.showErrorMessage(
-                            `Não foi possível iniciar o Privacy Scanner na porta ${serverPort}. Consulte o console "Extension Host".`
-                        );
-                    }
-                    resolve();
-                }
-            }
-        }, 500);
+    let stderrOutput = '';
+    const startedProcess = spawn(pythonPath, [serverScript, String(serverPort)], {
+        cwd: path.dirname(serverScript),
+        windowsHide: true
     });
+    flaskProcess = startedProcess;
+
+    startedProcess.stdout.on('data', data => {
+        console.log(`[Privacy Scanner Server] ${data.toString().trim()}`);
+    });
+    startedProcess.stderr.on('data', data => {
+        const message = data.toString();
+        stderrOutput += message;
+        console.error(`[Privacy Scanner Server] ${message.trim()}`);
+    });
+    startedProcess.on('error', error => {
+        serverRunning = false;
+        console.error(`Erro ao iniciar servidor Flask: ${error}`);
+    });
+    startedProcess.on('exit', code => {
+        serverRunning = false;
+        if (code !== 0 && code !== null) {
+            console.error(`Servidor Flask encerrado com código ${code}`);
+        }
+    });
+
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+        await wait(500);
+        const health = await checkBackendHealth();
+        if (health.reachable && health.valid) {
+            serverRunning = true;
+            console.log(`Backend Privacy Scanner iniciado (versão ${health.version}).`);
+            return;
+        }
+        if (health.reachable && !health.valid) {
+            startedProcess.kill();
+            vscode.window.showErrorMessage(
+                `O serviço iniciado na porta ${serverPort} não é um backend compatível. ${health.reason || ''}`
+            );
+            return;
+        }
+    }
+
+    console.error('Timeout ao conectar ao servidor Flask');
+    if (!startedProcess.killed) {
+        startedProcess.kill();
+    }
+    if (
+        stderrOutput.includes('ModuleNotFoundError')
+        || stderrOutput.includes('No module named')
+    ) {
+        const requirementsPath = path.join(path.dirname(serverScript), 'requirements.txt');
+        vscode.window.showErrorMessage(
+            `Dependências Python ausentes. Execute: "${pythonPath}" -m pip install -r "${requirementsPath}"`
+        );
+        return;
+    }
+    vscode.window.showErrorMessage(
+        `Não foi possível iniciar o Privacy Scanner na porta ${serverPort}. Consulte o console "Extension Host".`
+    );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -871,6 +1113,9 @@ async function exportReportWithSaveDialog(format: 'html' | 'json') {
 
 async function exportReport(format: 'html' | 'json' | 'pdf', targetUri?: vscode.Uri) {
     try {
+        if (!ensureBackendRunning()) {
+            return;
+        }
         if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
             vscode.window.showWarningMessage('Nenhuma pasta de trabalho aberta');
             return;
@@ -888,7 +1133,8 @@ async function exportReport(format: 'html' | 'json' | 'pdf', targetUri?: vscode.
 
         const response = await axios.post(
             `http://localhost:${serverPort}/api/export`,
-            { directory: workspacePath, format }
+            { directory: workspacePath, format },
+            { timeout: ANALYSIS_TIMEOUT_MS }
         );
 
         if (response.data.content) {
@@ -915,9 +1161,14 @@ async function exportReport(format: 'html' | 'json' | 'pdf', targetUri?: vscode.
 // Utilitários
 // ─────────────────────────────────────────────────────────────────────────────
 
-function loadConfig() {
+function loadConfig(loadServerPort: boolean = true): void {
     const config = vscode.workspace.getConfiguration('privacy-scanner');
-    serverPort = config.get('serverPort', 5000);
+    if (loadServerPort) {
+        serverPort = config.get('serverPort', 5000);
+    }
+    sidebarEnabled = config.get('enableSidebar', true);
+    diagnosticsEnabled = config.get('showDiagnostics', true);
+    applyViewConfiguration();
 }
 
 function updateStatusBar(text: string, state: 'loading' | 'pass' | 'alert' | 'error') {
@@ -962,11 +1213,17 @@ class VulnerabilityTreeItem extends vscode.TreeItem {
                 risk === 'ALTO' ? 'error' : risk === 'MEDIO' ? 'warning' : 'info'
             );
             this.description = data.linha > 0 ? `Linha ${data.linha}` : path.basename(data.arquivo);
-            this.tooltip = `${data.categoria}: ${data.descricao}\nLGPD: ${data.artigo_lgpd}`;
+            this.tooltip = [
+                `Categoria: ${data.categoria}`,
+                `Arquivo: ${data.arquivo}`,
+                data.linha > 0 ? `Linha: ${data.linha}` : undefined,
+                `Evidência segura: ${data.evidencia_segura}`,
+                data.artigo_lgpd ? `Referência normativa potencial: ${data.artigo_lgpd}` : undefined
+            ].filter(Boolean).join('\n');
             if (data.linha > 0) {
                 this.command = {
                     command: 'privacy-scanner.openVulnerability',
-                    title: 'Abrir Vulnerabilidade',
+                    title: 'Abrir achado técnico',
                     arguments: [data.arquivo, data.linha]
                 };
             }
@@ -1001,8 +1258,8 @@ class VulnerabilitiesProvider implements vscode.TreeDataProvider<VulnerabilityTr
             const visible = visibleVulnerabilities();
             if (visible.length === 0) {
                 const message = activeIgnoredCount() > 0
-                    ? 'Nenhuma vulnerabilidade visível'
-                    : 'Nenhuma vulnerabilidade encontrada';
+                    ? 'Nenhum achado visível'
+                    : 'Nenhum achado encontrado';
                 return Promise.resolve([new VulnerabilityTreeItem(message, vscode.TreeItemCollapsibleState.None, 'empty')]);
             }
 
@@ -1071,40 +1328,110 @@ class SummaryProvider implements vscode.TreeDataProvider<VulnerabilityTreeItem> 
 
         if (isAnalyzing) {
             return Promise.resolve([
-                new VulnerabilityTreeItem('Score LGPD: calculando...', vscode.TreeItemCollapsibleState.None, 'loading'),
+                new VulnerabilityTreeItem('Indicador técnico: calculando...', vscode.TreeItemCollapsibleState.None, 'loading'),
                 new VulnerabilityTreeItem('Analise em andamento', vscode.TreeItemCollapsibleState.None, 'loading'),
                 new VulnerabilityTreeItem('Aguardando resultado do scanner', vscode.TreeItemCollapsibleState.None, 'loading')
             ]);
         }
 
-        const allVulns = visibleVulnerabilities();
-        const counts = {
-            ALTO: allVulns.filter(v => v.risco === 'ALTO').length,
-            MEDIO: allVulns.filter(v => v.risco === 'MEDIO').length,
-            BAIXO: allVulns.filter(v => v.risco === 'BAIXO').length,
-        };
-
-        const total = allVulns.length;
-        const score = Math.max(0, 100 - (counts.ALTO * 10 + counts.MEDIO * 5 + counts.BAIXO * 2));
-        const filesWithFindings = Array.from(new Set(allVulns.map(v => v.arquivo)));
-        const databaseCount = filesWithFindings.filter(f => isDatabaseUri(vscode.Uri.file(f))).length;
-        const pythonCount = filesWithFindings.filter(f => f.endsWith('.py')).length;
-        const javaCount = filesWithFindings.filter(f => f.toLowerCase().endsWith('.java')).length;
-
+        const summary = canonicalSummary;
+        const visibleCount = visibleVulnerabilities().length;
+        const displayMetric = (value: number | null | undefined): string => value === null || value === undefined
+            ? 'não informado'
+            : String(value);
+        const indicator = summary?.indicador_tecnico;
         const items = [
-            new VulnerabilityTreeItem(`Score LGPD: ${score}/100`, vscode.TreeItemCollapsibleState.None, 'summary', { icon: 'shield' }),
-            new VulnerabilityTreeItem(`Total: ${total} vulnerabilidades`, vscode.TreeItemCollapsibleState.None, 'summary', { icon: 'search' }),
-            new VulnerabilityTreeItem(`Arquivos Python: ${pythonCount}`, vscode.TreeItemCollapsibleState.None, 'summary', { icon: 'file-code' }),
-            new VulnerabilityTreeItem(`Arquivos Java: ${javaCount}`, vscode.TreeItemCollapsibleState.None, 'summary', { icon: 'file-code' }),
-            new VulnerabilityTreeItem(`Bancos SQLite: ${databaseCount}`, vscode.TreeItemCollapsibleState.None, 'summary', { icon: 'database' }),
-            new VulnerabilityTreeItem(`Risco ALTO: ${counts.ALTO}`, vscode.TreeItemCollapsibleState.None, 'summary', { icon: 'error' }),
-            new VulnerabilityTreeItem(`Risco MÉDIO: ${counts.MEDIO}`, vscode.TreeItemCollapsibleState.None, 'summary', { icon: 'warning' }),
-            new VulnerabilityTreeItem(`Risco BAIXO: ${counts.BAIXO}`, vscode.TreeItemCollapsibleState.None, 'summary', { icon: 'info' })
+            new VulnerabilityTreeItem(
+                indicator === null || indicator === undefined
+                    ? 'Indicador técnico: não disponível para este escopo'
+                    : `Indicador técnico: ${indicator}/100`,
+                vscode.TreeItemCollapsibleState.None,
+                'summary',
+                { icon: 'shield' }
+            ),
+            new VulnerabilityTreeItem(
+                'Limite: indícios técnicos, não conclusão jurídica',
+                vscode.TreeItemCollapsibleState.None,
+                'summary',
+                { icon: 'info' }
+            ),
+            new VulnerabilityTreeItem(
+                `Total bruto do backend: ${displayMetric(summary?.total)} achados`,
+                vscode.TreeItemCollapsibleState.None,
+                'summary',
+                { icon: 'search' }
+            ),
+            new VulnerabilityTreeItem(
+                `Risco ALTO (backend): ${displayMetric(summary?.por_risco.ALTO)}`,
+                vscode.TreeItemCollapsibleState.None,
+                'summary',
+                { icon: 'error' }
+            ),
+            new VulnerabilityTreeItem(
+                `Risco MÉDIO (backend): ${displayMetric(summary?.por_risco.MEDIO)}`,
+                vscode.TreeItemCollapsibleState.None,
+                'summary',
+                { icon: 'warning' }
+            ),
+            new VulnerabilityTreeItem(
+                `Risco BAIXO (backend): ${displayMetric(summary?.por_risco.BAIXO)}`,
+                vscode.TreeItemCollapsibleState.None,
+                'summary',
+                { icon: 'info' }
+            ),
+            new VulnerabilityTreeItem(
+                `Achados visíveis na interface: ${visibleCount}`,
+                vscode.TreeItemCollapsibleState.None,
+                'summary',
+                { icon: 'eye' }
+            )
         ];
+
+        if (summary?.criterio_indicador) {
+            items.push(new VulnerabilityTreeItem(
+                `Critério do indicador: ${summary.criterio_indicador}`,
+                vscode.TreeItemCollapsibleState.None,
+                'summary',
+                { icon: 'note' }
+            ));
+        }
+        const scopeNotice = summary?.aviso_escopo || currentScopeNotice;
+        if (scopeNotice) {
+            items.push(new VulnerabilityTreeItem(
+                `Escopo: ${scopeNotice}`,
+                vscode.TreeItemCollapsibleState.None,
+                'summary',
+                { icon: 'info' }
+            ));
+        }
+        if (currentScope?.status) {
+            items.push(new VulnerabilityTreeItem(
+                `Status da varredura: ${currentScope.status}`,
+                vscode.TreeItemCollapsibleState.None,
+                'summary',
+                { icon: 'pulse' }
+            ));
+        }
+        const scopeCounters: Array<[string, number | undefined, string]> = [
+            ['Arquivos elegíveis', currentScope?.arquivos_elegiveis, 'files'],
+            ['Arquivos analisados', currentScope?.arquivos_analisados, 'file-code'],
+            ['Arquivos ignorados', currentScope?.arquivos_ignorados, 'eye-closed'],
+            ['Arquivos com falha', currentScope?.arquivos_falhos, 'warning']
+        ];
+        for (const [label, value, icon] of scopeCounters) {
+            if (value !== undefined) {
+                items.push(new VulnerabilityTreeItem(
+                    `${label}: ${value}`,
+                    vscode.TreeItemCollapsibleState.None,
+                    'summary',
+                    { icon }
+                ));
+            }
+        }
         const ignoredCount = activeIgnoredCount();
         if (ignoredCount > 0) {
             items.push(new VulnerabilityTreeItem(
-                `Ocultados na interface: ${ignoredCount}`,
+                `Ocultados somente na interface: ${ignoredCount}`,
                 vscode.TreeItemCollapsibleState.None,
                 'summary',
                 { icon: 'eye-closed' }
@@ -1115,6 +1442,7 @@ class SummaryProvider implements vscode.TreeDataProvider<VulnerabilityTreeItem> 
 }
 
 export function deactivate() {
+    cancelActiveAnalysis();
     if (flaskProcess && !flaskProcess.killed) {
         flaskProcess.kill();
         flaskProcess = undefined;

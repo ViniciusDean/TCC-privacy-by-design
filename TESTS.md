@@ -1,19 +1,22 @@
 # Testes do Privacy Scanner LGPD
 
-A suíte automatizada possui atualmente **93 testes**, todos passando.
+A suíte automatizada cobre analisadores, relatórios, API, avaliação externa e
+integração da extensão. Na versão 1.0.4, a execução reproduzida contém **135
+testes Python**, além do contrato, lint e compilação TypeScript da extensão.
 
 ## Executar
 
 Na raiz do projeto:
 
 ```powershell
-python -m pytest
+python -m pytest -q
 ```
 
-Resultado esperado:
+Na extensão, execute também:
 
-```text
-93 passed
+```powershell
+cd vscode-extension
+npm test
 ```
 
 Para saída detalhada:

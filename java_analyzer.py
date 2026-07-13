@@ -62,6 +62,7 @@ METODOS_EXCLUSAO = (
 MARCADORES_CRIPTOGRAFIA = (
     "bcrypt", "argon2", "pbkdf2", "scrypt", "sha-256", "sha-512",
     "sha256", "sha512", "aes", "cipher", "encrypt", "criptograf",
+    "passwordencoder", "password_encoder", "generate_password_hash",
     "hashpassword", "passwordencoder", "messagedigest",
 )
 MARCADORES_TRANSFERENCIA = (
@@ -418,6 +419,20 @@ def _campo_modelo_pessoal(nome: str):
     return _campo_sensivel(nome)
 
 
+def _confianca_classe_persistente(codigo: str, classe: Bloco) -> str | None:
+    """Retorna confiança estrutural para modelos Java persistentes."""
+    prefixo = codigo[max(0, classe.inicio - 400):classe.inicio]
+    prefixo = re.split(r"[};]", prefixo)[-1]
+    if re.search(r"@(Entity|Document|Table|Embeddable)\b", prefixo):
+        return "ALTA"
+    nome = classe.nome.lower()
+    return "MEDIA" if nome.endswith(("entity", "model", "document")) else None
+
+
+def _classe_persistente(codigo: str, classe: Bloco) -> bool:
+    return _confianca_classe_persistente(codigo, classe) is not None
+
+
 def analisar_java(caminho: str):
     """Analisa um arquivo .java e retorna objetos Vulnerability."""
     if not os.path.isfile(caminho):
@@ -436,8 +451,9 @@ def analisar_java(caminho: str):
     metodos = _encontrar_metodos(estrutura, classes)
     resultados = []
     chaves_adicionadas = set()
+    variaveis_protegidas: dict[int, set[str]] = {}
 
-    def adicionar(posicao, categoria, descricao, risco, artigo):
+    def adicionar(posicao, categoria, descricao, risco, artigo, confianca="ALTA"):
         numero = _linha_de(posicao, quebras)
         chave = (numero, categoria)
         if chave in chaves_adicionadas:
@@ -452,6 +468,7 @@ def analisar_java(caminho: str):
             risco=risco,
             artigo_lgpd=artigo,
             trecho=trecho,
+            confianca=confianca,
         ))
 
     # Regras por instrução: atribuições, criptografia, logs e transferências.
@@ -500,6 +517,7 @@ def analisar_java(caminho: str):
                     "ALTO",
                     "Art. 7º — Hipóteses de tratamento; "
                     "Art. 33 — Transferência internacional",
+                    "MEDIA",
                 )
 
         atribuicao = PADRAO_ATRIBUICAO.search(instrucao)
@@ -511,11 +529,15 @@ def analisar_java(caminho: str):
         if _atribuicao_em_anotacao(instrucao, atribuicao.start("nome")):
             continue
 
+        metodo = _metodo_em(posicao, metodos)
+        chave_metodo = metodo.inicio if metodo else -1
+        protegidas_metodo = variaveis_protegidas.setdefault(chave_metodo, set())
+        if _tem_protecao(valor):
+            protegidas_metodo.add(nome)
+
         campo = _campo_sensivel(nome)
         if not campo:
             continue
-
-        metodo = _metodo_em(posicao, metodos)
         if metodo and any(parte in metodo.nome.lower() for parte in METODOS_EXCLUSAO):
             continue
 
@@ -542,6 +564,10 @@ def analisar_java(caminho: str):
             marcador in nome.lower()
             for marcador in ("hash", "hashed", "encrypt", "encrypted", "cipher")
         )
+        valor_protegido = any(
+            identificador in protegidas_metodo
+            for identificador in valor_identificadores
+        )
         if (
             campo in CAMPOS_PROTECAO_ELEVADA
             and not _valor_constante_inofensivo(valor)
@@ -549,6 +575,7 @@ def analisar_java(caminho: str):
             and not _declaracao_variavel(instrucao, atribuicao.start("nome"))
             and not nome_protegido
             and not _tem_protecao(valor)
+            and not valor_protegido
         ):
             adicionar(
                 posicao + atribuicao.start("nome"),
@@ -557,6 +584,7 @@ def analisar_java(caminho: str):
                 "criptografia ou hash no código Java.",
                 "MEDIO",
                 "Art. 46 — Segurança e prevenção",
+                "MEDIA",
             )
 
     # Coleta excessiva em métodos e construtores.
@@ -579,6 +607,7 @@ def analisar_java(caminho: str):
                 f"({', '.join(campos)}). Verifique se todos são necessários.",
                 "MEDIO",
                 "Art. 6º, III — Necessidade; Art. 6º, I — Finalidade",
+                "MEDIA",
             )
 
     # Records funcionam como fronteira de entrada e possuem construtor implícito.
@@ -597,11 +626,15 @@ def analisar_java(caminho: str):
                 f"({', '.join(campos)}). Verifique se todos são necessários.",
                 "MEDIO",
                 "Art. 6º, III — Necessidade; Art. 6º, I — Finalidade",
+                "MEDIA",
             )
 
     # Classes-modelo com dados pessoais devem oferecer exclusão ou anonimização.
     for classe in classes:
         if _nome_colaborador(classe.nome):
+            continue
+        confianca_classe = _confianca_classe_persistente(sem_comentarios, classe)
+        if not confianca_classe:
             continue
 
         campos = []
@@ -633,6 +666,7 @@ def analisar_java(caminho: str):
                 "ou anonimização.",
                 "MEDIO",
                 "Art. 18, IV — Direito à eliminação dos dados",
+                confianca_classe,
             )
 
     return sorted(resultados, key=lambda item: (item.linha, item.categoria))

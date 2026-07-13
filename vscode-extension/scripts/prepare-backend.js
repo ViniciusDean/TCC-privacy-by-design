@@ -11,6 +11,8 @@ const backendFiles = [
     'java_analyzer.py',
     'db_analyzer.py',
     'reporter.py',
+    'analysis_profile.py',
+    'requirements-runtime.txt',
     'requirements.txt'
 ];
 

@@ -7,6 +7,11 @@ import hashlib
 import logging
 import requests
 
+
+class Model:
+    """Marcador local para manter o exemplo executável sem depender de um ORM."""
+
+
 # ── Vulnerabilidade 1: dado hardcoded ───────────────────────────────────────
 senha = "minhasenha123"         # ALTO — dado pessoal fixo no código
 cpf   = "123.456.789-00"        # ALTO — CPF hardcoded
@@ -30,7 +35,7 @@ def cadastrar_usuario(nome, email, cpf, telefone, nascimento, endereco, renda):
 
 
 # ── Vulnerabilidade 6: classe sem método de exclusão ───────────────────────
-class Usuario:
+class Usuario(Model):
     nome      = ""
     email     = ""
     cpf       = ""

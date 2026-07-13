@@ -33,6 +33,8 @@ class Vulnerability:
     risco:       str             # "ALTO" | "MEDIO" | "BAIXO"
     artigo_lgpd: str
     trecho:      Optional[str] = None  # "tabela.coluna : TIPO"
+    confianca:   str = "ALTA"
+    risco_base:  Optional[str] = None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -90,6 +92,20 @@ MARCADORES_PROTECAO = {
     "pseudonimizado",
 }
 
+TABELAS_PESSOAIS = {
+    "user", "usuario", "customer", "cliente", "client", "employee",
+    "funcionario", "person", "pessoa", "owner", "patient", "paciente",
+    "contact", "contato", "account", "conta", "member", "membro",
+    "users", "usuarios", "customers", "clientes", "clients", "employees",
+    "funcionarios", "people", "pessoas", "owners", "patients", "pacientes",
+    "contacts", "contatos", "accounts", "contas", "members", "membros",
+}
+CAMPOS_DEPENDENTES_CONTEXTO = {
+    "name", "nome", "lastname", "sobrenome", "address", "endereco",
+    "city", "cidade", "postal", "postalcode", "cep", "phone", "telefone",
+    "birth", "birthdate", "nascimento", "age", "idade",
+}
+
 
 def _tokens_identificador(nome: str) -> list[str]:
     """Normaliza snake_case e camelCase para evitar correspondência parcial."""
@@ -122,7 +138,7 @@ class DBAnalyzer:
         self.conn.execute("PRAGMA query_only = ON")
         self.cur        = self.conn.cursor()
 
-    def _adicionar(self, categoria, descricao, risco, artigo, trecho=""):
+    def _adicionar(self, categoria, descricao, risco, artigo, trecho="", confianca="ALTA"):
         self.resultados.append(Vulnerability(
             arquivo=self.caminho,
             linha=0,
@@ -131,9 +147,13 @@ class DBAnalyzer:
             risco=risco,
             artigo_lgpd=artigo,
             trecho=trecho,
+            confianca=confianca,
         ))
 
-    def _campo_pessoal(self, nome: str) -> Optional[str]:
+    def _tabela_pessoal(self, tabela: str) -> bool:
+        return any(token in TABELAS_PESSOAIS for token in _tokens_identificador(tabela))
+
+    def _campo_pessoal(self, nome: str, tabela: str | None = None) -> Optional[str]:
         nome_lower = nome.lower()
         tokens = _tokens_identificador(nome)
         normalizado = "_".join(tokens)
@@ -141,19 +161,31 @@ class DBAnalyzer:
             campo_tokens = _tokens_identificador(campo)
             campo_normalizado = "_".join(campo_tokens)
             if nome_lower == campo or normalizado == campo_normalizado:
+                if (
+                    tabela is not None
+                    and campo_normalizado in CAMPOS_DEPENDENTES_CONTEXTO
+                    and not self._tabela_pessoal(tabela)
+                ):
+                    continue
                 return campo
             if campo in tokens:
+                if (
+                    tabela is not None
+                    and campo_normalizado in CAMPOS_DEPENDENTES_CONTEXTO
+                    and not self._tabela_pessoal(tabela)
+                ):
+                    continue
                 return campo
         return None
 
-    def _campo_sensivel(self, nome: str) -> Optional[str]:
+    def _campo_sensivel(self, nome: str, tabela: str | None = None) -> Optional[str]:
         tokens = _tokens_identificador(nome)
         if (
             any(nome.lower().endswith(s) for s in SUFIXOS_HASH)
             or any(token in MARCADORES_PROTECAO for token in tokens)
         ):
             return None
-        return self._campo_pessoal(nome)
+        return self._campo_pessoal(nome, tabela)
 
     def _tabelas(self) -> list[str]:
         self.cur.execute(
@@ -184,7 +216,7 @@ class DBAnalyzer:
     # ── Regra 1: campo sensível em texto puro sem hash ───────────────────────
     def _verificar_criptografia(self, tabela: str, colunas: list[dict]):
         for col in colunas:
-            campo = self._campo_sensivel(col["name"])
+            campo = self._campo_sensivel(col["name"], tabela)
             if not campo:
                 continue
             tipo = col["type"]
@@ -194,6 +226,7 @@ class DBAnalyzer:
                 graves = ["senha", "password", "passwd", "pwd",
                           "cpf", "cartao", "card", "cvv"]
                 risco = "ALTO" if campo in graves else "MEDIO"
+                confianca = "ALTA" if campo in graves else "MEDIA"
                 self._adicionar(
                     "CAMPO_SEM_HASH",
                     f"Coluna '{col['name']}' (campo sensível: '{campo}') "
@@ -204,12 +237,13 @@ class DBAnalyzer:
                     risco,
                     "Art. 46 — Segurança e prevenção",
                     f"{tabela}.{col['name']} : {tipo}",
+                    confianca,
                 )
 
     # ── Regra 2: tabela com dados pessoais sem coluna de exclusão ────────────
     def _verificar_exclusao(self, tabela: str, colunas: list[dict]):
         nomes_colunas = [c["name"].lower() for c in colunas]
-        tem_sensivel  = any(self._campo_pessoal(n) for n in nomes_colunas)
+        tem_sensivel  = any(self._campo_pessoal(n, tabela) for n in nomes_colunas)
         tem_exclusao  = any(ex in nomes_colunas for ex in COLUNAS_EXCLUSAO)
 
         if tem_sensivel and not tem_exclusao:
@@ -222,12 +256,13 @@ class DBAnalyzer:
                 "MEDIO",
                 "Art. 18, IV — Direito à eliminação dos dados",
                 f"Tabela: {tabela}",
+                "MEDIA",
             )
 
     # ── Regra 3: tabela com dados pessoais sem controle de retenção ──────────
     def _verificar_retencao(self, tabela: str, colunas: list[dict]):
         nomes_colunas = [c["name"].lower() for c in colunas]
-        tem_sensivel  = any(self._campo_pessoal(n) for n in nomes_colunas)
+        tem_sensivel  = any(self._campo_pessoal(n, tabela) for n in nomes_colunas)
         tem_retencao  = any(r in nomes_colunas for r in COLUNAS_RETENCAO)
 
         if tem_sensivel and not tem_retencao:
@@ -240,6 +275,7 @@ class DBAnalyzer:
                 "BAIXO",
                 "Art. 15 — Término do tratamento | Art. 6º, I — Finalidade",
                 f"Tabela: {tabela}",
+                "BAIXA",
             )
 
     # ── Regra 4: mistura de dados pessoais com dados operacionais ────────────
@@ -249,7 +285,7 @@ class DBAnalyzer:
         operacionais (status, created_at, updated_at etc.), indicando
         ausência de separação de dados.
         """
-        campos_sensiveis  = [c for c in colunas if self._campo_pessoal(c["name"])]
+        campos_sensiveis  = [c for c in colunas if self._campo_pessoal(c["name"], tabela)]
         campos_operacionais = [
             c for c in colunas
             if any(op in c["name"].lower()
@@ -268,6 +304,7 @@ class DBAnalyzer:
                 "BAIXO",
                 "Art. 46 — Segurança | Princípio Privacy by Design — Separação",
                 f"Tabela: {tabela}",
+                "MEDIA",
             )
 
     # ── Regra 5: ausência de consentimento em tabela de usuários ─────────────
@@ -299,6 +336,7 @@ class DBAnalyzer:
                 "MEDIO",
                 "Art. 7º — Bases legais para tratamento de dados pessoais",
                 f"Tabela: {tabela}",
+                "BAIXA",
             )
 
     # ── Regra 6: campo sensível exposto sem índice de controle ───────────────
@@ -308,7 +346,7 @@ class DBAnalyzer:
         podem facilitar correlação entre sistemas (linkability).
         """
         for col in colunas:
-            campo = self._campo_pessoal(col["name"])
+            campo = self._campo_pessoal(col["name"], tabela)
             if not campo:
                 continue
             if col["pk"] == 1:

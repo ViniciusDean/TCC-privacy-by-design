@@ -3,6 +3,31 @@
 from pathlib import Path
 
 from code_analyzer import analisar_arquivo, analisar_diretorio
+from analysis_profile import apply_profile, parse_profile
+
+
+def test_java_presets_filter_nominal_model_confidence(tmp_path):
+    raw = analisar(
+        tmp_path,
+        "class CustomerModel { private String cpf; }",
+    )
+
+    assert any(item.confianca == "MEDIA" for item in raw)
+    assert not apply_profile(raw, parse_profile())
+    assert apply_profile(raw, parse_profile({"preset": "equilibrado"}))
+
+
+def test_entity_annotation_does_not_leak_to_following_class(tmp_path):
+    raw = analisar(
+        tmp_path,
+        """
+        @Entity class Persisted { private String cpf; }
+        class Configuration { private String email; }
+        """,
+    )
+
+    absence = [item for item in raw if item.categoria == "AUSENCIA_EXCLUSAO"]
+    assert len(absence) == 1
 
 
 def analisar(tmp_path: Path, codigo: str):
@@ -215,6 +240,7 @@ def test_detecta_coleta_excessiva_em_construtor(tmp_path):
     resultados = analisar(
         tmp_path,
         """
+        @Entity
         class Usuario {
             Usuario(String nome, String email, String cpf, String telefone) {}
         }
@@ -275,6 +301,7 @@ def test_detecta_classe_sem_exclusao(tmp_path):
     resultados = analisar(
         tmp_path,
         """
+        @Entity
         class Usuario {
             private String cpf;
             private String email;
@@ -502,3 +529,21 @@ def test_diretorio_analisa_python_e_java(tmp_path):
 
     extensoes = {resultado.arquivo.rsplit(".", 1)[-1] for resultado in resultados}
     assert extensoes == {"py", "java"}
+
+
+def test_variavel_intermediaria_protegida_nao_gera_alerta(tmp_path):
+    resultados = analisar(
+        tmp_path,
+        """
+        @Entity
+        class UsuarioEntity {
+            private String password;
+            void atualizar(String password) {
+                String protegido = passwordEncoder.encode(password);
+                this.password = protegido;
+            }
+            void delete() {}
+        }
+        """,
+    )
+    assert "DADO_SEM_CRIPTOGRAFIA" not in categorias(resultados)

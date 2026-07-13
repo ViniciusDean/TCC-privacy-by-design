@@ -1,3 +1,6 @@
+@interface Entity {}
+
+@Entity
 class Usuario {
     private String cpf;
 

@@ -14,6 +14,13 @@ import tempfile
 
 from flask import Flask, jsonify, request
 
+from analysis_profile import (
+    AnalysisProfile,
+    ProfileValidationError,
+    apply_profile,
+    parse_profile,
+)
+
 from code_analyzer import (
     DIRETORIOS_IGNORADOS,
     analisar_arquivo_com_escopo,
@@ -40,6 +47,7 @@ port = int(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1].isdigit() else 5000
 
 SERVICE = "privacy-scanner"
 VERSION = VERSAO_FERRAMENTA
+API_VERSION = 1
 DB_EXTENSIONS = (".db", ".sqlite", ".sqlite3")
 
 
@@ -69,18 +77,29 @@ def _envelope(
     *,
     success: bool,
     error: dict | None = None,
+    profile: AnalysisProfile | None = None,
 ) -> dict:
     """Monta um único contrato para todos os endpoints de análise."""
+    profile = profile or parse_profile()
+    resultados = apply_profile(resultados, profile)
     resumo = construir_resumo(
         resultados,
         indicador_disponivel=_indicador_disponivel(escopo),
     )
-    achados = serializar_achados(resultados)
+    alvo = escopo.get("alvo")
+    scope_root = (
+        alvo if alvo and os.path.isdir(alvo)
+        else os.path.dirname(alvo) if alvo
+        else None
+    )
+    achados = serializar_achados(resultados, scope_root)
     payload = {
         "success": success,
         "status": escopo["status"],
         "service": SERVICE,
         "version": VERSION,
+        "api_version": API_VERSION,
+        "perfil_analise": profile.public_metadata(),
         "aviso_escopo": AVISO_ESCOPO_ANALISE,
         "criterio_indicador": CRITERIO_INDICADOR_TECNICO,
         "escopo": escopo,
@@ -106,6 +125,7 @@ def _erro(
     codigo: str,
     mensagem: str,
     escopo: dict | None = None,
+    profile: AnalysisProfile | None = None,
 ) -> tuple:
     escopo = escopo or _escopo_indisponivel()
     return jsonify(_envelope(
@@ -113,6 +133,7 @@ def _erro(
         escopo,
         success=False,
         error={"codigo": codigo, "mensagem": mensagem},
+        profile=profile,
     )), http_status
 
 
@@ -129,6 +150,13 @@ def _json_object() -> tuple[dict | None, tuple[str, str] | None]:
     if not isinstance(data, dict):
         return None, ("JSON_ESTRUTURA_INVALIDA", "O corpo JSON deve ser um objeto.")
     return data, None
+
+
+def _profile_from_data(data: dict) -> tuple[AnalysisProfile | None, tuple | None]:
+    try:
+        return parse_profile(data.get("profile")), None
+    except ProfileValidationError as error:
+        return None, _erro(400, "PERFIL_INVALIDO", str(error))
 
 
 def _alvo(
@@ -213,9 +241,9 @@ def _analisar_diretorio(directory: str) -> tuple[list, dict]:
     return achados_codigo + achados_banco, escopo
 
 
-def _resposta_varredura(resultados, escopo: dict):
+def _resposta_varredura(resultados, escopo: dict, profile: AnalysisProfile | None = None):
     if escopo["status"] in {"complete", "partial"}:
-        return jsonify(_envelope(resultados, escopo, success=True))
+        return jsonify(_envelope(resultados, escopo, success=True, profile=profile))
 
     codigo = "ESCOPO_VAZIO" if escopo["status"] == "empty" else "ANALISE_SEM_RESULTADO"
     mensagem = (
@@ -223,13 +251,16 @@ def _resposta_varredura(resultados, escopo: dict):
         if codigo == "ESCOPO_VAZIO"
         else "Nenhum arquivo pôde ser analisado; corrija os erros de escopo e tente novamente."
     )
-    return _erro(422, codigo, mensagem, escopo)
+    return _erro(422, codigo, mensagem, escopo, profile)
 
 
 @app.route("/health", methods=["GET"])
 def health():
     """Identidade estável consumida pela extensão antes de cada análise."""
-    return jsonify({"status": "ok", "service": SERVICE, "version": VERSION})
+    return jsonify({
+        "status": "ok", "service": SERVICE, "version": VERSION,
+        "api_version": API_VERSION,
+    })
 
 
 @app.route("/api/analyze-file", methods=["POST"])
@@ -237,6 +268,9 @@ def analyze_file():
     data, erro_json = _json_object()
     if erro_json:
         return _erro(400, *erro_json)
+    profile, profile_error = _profile_from_data(data)
+    if profile_error:
+        return profile_error
     filepath, erro_alvo = _alvo(data, "filepath", "arquivo")
     if erro_alvo:
         return _erro(*erro_alvo)
@@ -247,7 +281,7 @@ def analyze_file():
         resultados, escopo = analisar_arquivo_com_escopo(filepath)
     except OSError:
         return _erro(422, "ALVO_INACESSIVEL", "O arquivo não pôde ser acessado para análise.")
-    return _resposta_varredura(resultados, escopo)
+    return _resposta_varredura(resultados, escopo, profile)
 
 
 @app.route("/api/analyze-directory", methods=["POST"])
@@ -255,6 +289,9 @@ def analyze_directory():
     data, erro_json = _json_object()
     if erro_json:
         return _erro(400, *erro_json)
+    profile, profile_error = _profile_from_data(data)
+    if profile_error:
+        return profile_error
     directory, erro_alvo = _alvo(data, "directory", "diretorio")
     if erro_alvo:
         return _erro(*erro_alvo)
@@ -263,7 +300,7 @@ def analyze_directory():
         resultados, escopo = _analisar_diretorio(directory)
     except OSError:
         return _erro(422, "ALVO_INACESSIVEL", "O diretório não pôde ser percorrido para análise.")
-    return _resposta_varredura(resultados, escopo)
+    return _resposta_varredura(resultados, escopo, profile)
 
 
 @app.route("/api/analyze-database", methods=["POST"])
@@ -271,6 +308,9 @@ def analyze_database():
     data, erro_json = _json_object()
     if erro_json:
         return _erro(400, *erro_json)
+    profile, profile_error = _profile_from_data(data)
+    if profile_error:
+        return profile_error
     database, erro_alvo = _alvo(data, "database", "arquivo")
     if erro_alvo:
         return _erro(*erro_alvo)
@@ -279,7 +319,7 @@ def analyze_database():
         resultados, escopo = analisar_banco_com_escopo(database)
     except OSError:
         return _erro(422, "ALVO_INACESSIVEL", "O banco não pôde ser acessado para análise.")
-    return _resposta_varredura(resultados, escopo)
+    return _resposta_varredura(resultados, escopo, profile)
 
 
 @app.route("/api/export", methods=["POST"])
@@ -287,6 +327,9 @@ def export_report():
     data, erro_json = _json_object()
     if erro_json:
         return _erro(400, *erro_json)
+    profile, profile_error = _profile_from_data(data)
+    if profile_error:
+        return profile_error
     directory, erro_alvo = _alvo(data, "directory", "diretorio")
     if erro_alvo:
         return _erro(*erro_alvo)
@@ -301,11 +344,14 @@ def export_report():
     except OSError:
         return _erro(422, "ALVO_INACESSIVEL", "O diretório não pôde ser percorrido para análise.")
     if escopo["status"] not in {"complete", "partial"}:
-        return _resposta_varredura(resultados, escopo)
+        return _resposta_varredura(resultados, escopo, profile)
+
+    resultados = apply_profile(resultados, profile)
 
     reporter = Reporter(alvo_codigo=directory)
     reporter.resultados = resultados
     reporter.escopo = escopo
+    reporter.perfil_analise = profile.public_metadata()
     reporter.resultados.sort(key=lambda v: (v.risco, v.arquivo, v.linha))
 
     try:
@@ -329,7 +375,7 @@ def export_report():
     except (OSError, RuntimeError, ValueError):
         return _erro(500, "EXPORTACAO_INDISPONIVEL", "Não foi possível gerar o relatório solicitado.", escopo)
 
-    payload = _envelope(resultados, escopo, success=True)
+    payload = _envelope(resultados, escopo, success=True, profile=profile)
     payload.update({"content": content, "format": format_type, "encoding": encoding})
     return jsonify(payload)
 

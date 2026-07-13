@@ -17,8 +17,15 @@ concurrency:
 jobs:
   validar:
     name: Testes, compilacao e VSIX
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        vscode-version: ["1.85.2", "1.128.0"]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    env:
+      VSCODE_TEST_VERSION: ${{ matrix.vscode-version }}
 
     steps:
       - name: Baixar repositorio
@@ -50,16 +57,31 @@ jobs:
 
       - name: Compilar extensao
         working-directory: vscode-extension
-        run: npm run compile
+        run: npm test
+
+      - name: Testar no Extension Host (Linux)
+        if: runner.os == 'Linux'
+        working-directory: vscode-extension
+        run: xvfb-run -a npm run test:integration
+
+      - name: Testar no Extension Host (Windows)
+        if: runner.os == 'Windows'
+        working-directory: vscode-extension
+        run: npm run test:integration
 
       - name: Gerar pacote VSIX
         working-directory: vscode-extension
         run: npm run package
 
+      - name: Instalar VSIX em ambiente isolado
+        working-directory: vscode-extension
+        run: npm run test:vsix
+
       - name: Publicar pacote para download
+        if: runner.os == 'Linux'
         uses: actions/upload-artifact@v7
         with:
-          name: privacy-scanner-lgpd-vsix
+          name: privacy-scanner-lgpd-vsix-${{ matrix.vscode-version }}
           path: vscode-extension/*.vsix
           if-no-files-found: error
           retention-days: 30

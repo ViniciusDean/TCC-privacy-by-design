@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Perfil do Privacy Scanner",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "preset": {
+      "enum": ["conservador", "equilibrado", "completo"],
+      "default": "conservador"
+    },
+    "categories": {
+      "type": "object",
+      "default": {},
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enabled": { "type": "boolean", "default": true },
+          "minimumConfidence": { "enum": ["ALTA", "MEDIA", "BAIXA"] },
+          "severity": { "enum": ["ALTO", "MEDIO", "BAIXO"] }
+        }
+      }
+    }
+  },
+  "required": ["schemaVersion", "preset", "categories"]
+}

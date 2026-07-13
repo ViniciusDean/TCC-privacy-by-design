@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import argparse
 import hashlib
 import json
 import platform
@@ -27,6 +28,7 @@ if str(ROOT) not in sys.path:
 
 from code_analyzer import analisar_arquivo, analisar_diretorio  # noqa: E402
 from db_analyzer import analisar_banco  # noqa: E402
+from analysis_profile import apply_profile, parse_profile  # noqa: E402
 
 
 ADJUDICATION_FIELDS = [
@@ -46,6 +48,8 @@ FINDING_FIELDS = [
     "line",
     "category",
     "risk",
+    "base_risk",
+    "confidence",
     "lgpd_article",
     "description",
     "safe_evidence",
@@ -112,28 +116,61 @@ def artifact_fingerprint(path: Path, project_type: str) -> str:
     return digest.hexdigest()
 
 
-def analyze_project(project: dict) -> tuple[list, dict, Path]:
+def verify_project_commit(project: dict, path: Path) -> str:
+    """Falha antes da analise quando o checkout nao corresponde ao pre-registro."""
+    expected = str(project.get("commit", "")).strip()
+    if not expected or expected == "PENDING_FREEZE":
+        raise ValueError(f"Commit nao fixado para {project['id']}.")
+    start = path if path.is_dir() else path.parent
+    repository = next((candidate for candidate in (start, *start.parents) if (candidate / ".git").exists()), None)
+    if repository is None:
+        raise ValueError(f"Checkout Git nao localizado para {project['id']}.")
+    actual = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=repository,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    if len(expected) < 7 or not actual.lower().startswith(expected.lower()):
+        raise ValueError(
+            f"Commit divergente em {project['id']}: esperado {expected}, atual {actual}."
+        )
+    return actual
+
+
+def analyze_project(project: dict) -> tuple[list, list, dict, Path]:
     project_type = project.get("type", "source")
     path = Path(project["path"]).expanduser().resolve()
     if not path.exists():
         raise FileNotFoundError(f"Caminho nao encontrado: {path}")
+    checked_commit = verify_project_commit(project, path)
 
     started = time.perf_counter()
     if project_type == "sqlite":
-        findings = analisar_banco(str(path))
+        raw_findings = analisar_banco(str(path))
     elif path.is_dir():
-        findings = analisar_diretorio(str(path))
+        raw_findings = analisar_diretorio(str(path))
     else:
-        findings = analisar_arquivo(str(path))
+        raw_findings = analisar_arquivo(str(path))
     elapsed = time.perf_counter() - started
+
+    profile = parse_profile(
+        project.get("profile"),
+        source="projects.json" if project.get("profile") is not None else "padrao",
+    )
+    findings = apply_profile(raw_findings, profile)
 
     metadata = count_artifacts(path, project_type)
     metadata.update({
         "elapsed_seconds": round(elapsed, 4),
         "finding_count": len(findings),
+        "raw_finding_count": len(raw_findings),
+        "perfil_analise": profile.public_metadata(),
         "input_sha256": artifact_fingerprint(path, project_type),
+        "project_commit": checked_commit,
     })
-    return findings, metadata, path
+    return raw_findings, findings, metadata, path
 
 
 def relative_artifact_path(artifact_path: str, project_path: Path) -> str:
@@ -197,6 +234,8 @@ def serialize_finding(project: dict, project_path: Path, finding) -> dict:
         "line": line,
         "category": category,
         "risk": finding.risco,
+        "base_risk": getattr(finding, "risco_base", None) or finding.risco,
+        "confidence": getattr(finding, "confianca", "ALTA"),
         "lgpd_article": finding.artigo_lgpd,
         "description": finding.descricao,
         "safe_evidence": safe_evidence(finding),
@@ -251,7 +290,7 @@ def git_metadata() -> dict:
             return "indisponivel"
 
     return {
-        "scanner_version": "1.0.4",
+        "scanner_version": (ROOT / "VERSION").read_text(encoding="utf-8").strip(),
         "git_commit": command("git", "rev-parse", "HEAD"),
         "working_tree": "dirty" if command("git", "status", "--porcelain") not in {"", "indisponivel"} else "clean",
         "python": sys.version.split()[0],
@@ -313,15 +352,16 @@ def render_summary(results: dict) -> str:
         "",
         "## Projetos analisados",
         "",
-        "| Projeto | Papel | Tipo | Arquivos Python | Arquivos Java | SQLite | Achados | Tempo (s) | Hash do escopo |",
-        "|---|---|---|---:|---:|---:|---:|---:|---|",
+        "| Projeto | Papel | Tipo | Perfil | Brutos | Exibidos | Python | Java | SQLite | Tempo (s) | Hash do escopo |",
+        "|---|---|---|---|---:|---:|---:|---:|---:|---:|---|",
     ]
     for project in results["projects"]:
         meta = project["metadata"]
         lines.append(
-            f"| {project['id']} | {project['evaluation_role']} | {project['type']} | {meta.get('python_files', 0)} | "
-            f"{meta.get('java_files', 0)} | {meta.get('sqlite_files', 0)} | "
-            f"{meta['finding_count']} | {meta['elapsed_seconds']:.4f} | "
+            f"| {project['id']} | {project['evaluation_role']} | {project['type']} | "
+            f"{meta.get('perfil_analise', {}).get('preset', 'n/a')} | {meta.get('raw_finding_count', meta['finding_count'])} | "
+            f"{meta['finding_count']} | {meta.get('python_files', 0)} | "
+            f"{meta.get('java_files', 0)} | {meta.get('sqlite_files', 0)} | {meta['elapsed_seconds']:.4f} | "
             f"{str(meta.get('input_sha256', 'n/a'))[:12]} |"
         )
 
@@ -368,7 +408,12 @@ def render_summary(results: dict) -> str:
     return "\n".join(lines)
 
 
-def write_results(rows: list[dict], project_summaries: list[dict], errors: dict[str, str]) -> dict:
+def write_results(
+    rows: list[dict],
+    project_summaries: list[dict],
+    errors: dict[str, str],
+    raw_rows: list[dict] | None = None,
+) -> dict:
     ensure_manual_review_files()
     merged_rows = merge_adjudications(rows, load_adjudications())
     now = datetime.now(timezone.utc)
@@ -409,6 +454,7 @@ def write_results(rows: list[dict], project_summaries: list[dict], errors: dict[
         "manual_review_by_project": project_metrics,
         "manual_review_by_role": role_metrics,
         "findings": merged_rows,
+        "unfiltered_findings": raw_rows if raw_rows is not None else rows,
     }
     run_dir = RUNS_DIR / run_id
     run_dir.mkdir(parents=True, exist_ok=False)
@@ -422,27 +468,47 @@ def write_results(rows: list[dict], project_summaries: list[dict], errors: dict[
             FINDING_FIELDS,
             merged_rows,
         )
+        raw_output = directory / "unfiltered_findings.json" if directory == run_dir else directory / "latest_unfiltered_findings.json"
+        raw_output.write_text(
+            json.dumps(raw_rows if raw_rows is not None else rows, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
         (directory / "summary.md" if directory == run_dir else directory / "latest_summary.md").write_text(summary, encoding="utf-8")
     return results
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Executa corpus externo versionado.")
+    parser.add_argument("--role", help="Executa somente projetos com este evaluation_role.")
+    parser.add_argument("--project", action="append", help="ID de projeto; pode repetir.")
+    args = parser.parse_args()
     try:
         projects = load_projects()
     except (FileNotFoundError, ValueError) as exc:
         print(exc)
         return 2
 
+    projects = [project for project in projects if project.get("enabled", True)]
+    if args.role:
+        projects = [project for project in projects if project.get("evaluation_role") == args.role]
+    if args.project:
+        selected = set(args.project)
+        projects = [project for project in projects if project.get("id") in selected]
+    if not projects:
+        print("Nenhum projeto corresponde aos filtros informados.")
+        return 2
+
     rows: list[dict] = []
+    raw_rows: list[dict] = []
     project_summaries: list[dict] = []
     errors: dict[str, str] = {}
     for project in projects:
         try:
-            findings, metadata, project_path = analyze_project(project)
+            raw_findings, findings, metadata, project_path = analyze_project(project)
         except Exception as exc:
             errors[project["id"]] = str(exc)
-            findings, project_path = [], Path(project["path"]).expanduser()
-            metadata = {"elapsed_seconds": 0.0, "finding_count": 0, "error": str(exc)}
+            raw_findings, findings, project_path = [], [], Path(project["path"]).expanduser()
+            metadata = {"elapsed_seconds": 0.0, "finding_count": 0, "raw_finding_count": 0, "error": str(exc)}
         project_summaries.append({
             "id": project["id"],
             "name": project.get("name", project["id"]),
@@ -453,8 +519,9 @@ def main() -> int:
             "metadata": metadata,
         })
         rows.extend(serialize_finding(project, project_path, finding) for finding in findings)
+        raw_rows.extend(serialize_finding(project, project_path, finding) for finding in raw_findings)
 
-    results = write_results(rows, project_summaries, errors)
+    results = write_results(rows, project_summaries, errors, raw_rows)
     print(f"Projetos: {len(projects)}")
     print(f"Achados: {len(rows)}")
     print(f"Execução: {results['run_id']}")

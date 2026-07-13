@@ -1,4 +1,8 @@
-class Usuario:
+class Model:
+    pass
+
+
+class Usuario(Model):
     cpf = None
 
     def atualizar(self, request):

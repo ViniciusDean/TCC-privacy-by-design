@@ -27,7 +27,7 @@ A extensão conversa com o servidor Flask do projeto e exibe os resultados dentr
 
 ## Pré-requisitos
 
-- VS Code 1.60 ou superior.
+- VS Code 1.85 ou superior (Extension Host com Node 18).
 - Python 3.8 ou superior.
 - Node.js e npm.
 - Dependências Python instaladas na raiz do projeto.
@@ -173,6 +173,31 @@ Também existem comandos diretos:
 
 ## Configurações
 
+### Perfil versionado da versão 1.1
+
+Cada pasta pode conter `.privacy-scanner.json`. O preset `conservador` é o
+padrão; `equilibrado` inclui confiança média e `completo` inclui também baixa.
+Categorias podem ser desativadas ou receber limiar de confiança e severidade
+próprios. O arquivo possui validação e autocomplete no VS Code.
+
+```json
+{
+  "schemaVersion": 1,
+  "preset": "conservador",
+  "categories": {
+    "DADO_EM_LOG": {
+      "enabled": true,
+      "minimumConfidence": "ALTA",
+      "severity": "ALTO"
+    }
+  }
+}
+```
+
+Comandos adicionais permitem criar, selecionar e validar o perfil, reiniciar o
+backend e abrir logs seguros. Configuração inválida bloqueia a análise sem
+fallback silencioso. Workspaces com várias pastas aplicam o perfil de cada raiz.
+
 Em `settings.json`:
 
 ```json
@@ -264,12 +289,12 @@ O comando:
 
 1. copia o backend Python necessário para dentro do pacote;
 2. compila o TypeScript;
-3. gera `privacy-scanner-lgpd-1.0.4.vsix`.
+3. gera `privacy-scanner-lgpd-1.1.0.vsix`.
 
 Para instalar pelo terminal:
 
 ```powershell
-code --install-extension .\privacy-scanner-lgpd-1.0.4.vsix --force
+code --install-extension .\privacy-scanner-lgpd-1.1.0.vsix --force
 ```
 
 Também é possível abrir a área de extensões do VS Code, clicar em `...`,
@@ -278,20 +303,21 @@ selecionar `Install from VSIX...` e escolher o arquivo gerado.
 Após instalar, use `Developer: Reload Window` ou reinicie o VS Code. A extensão
 passa a funcionar em qualquer pasta aberta, sem depender do repositório do TCC.
 
-O computador ainda precisa ter Python e as dependências de execução:
+O computador ainda precisa ter Python 3. As dependências podem ser preparadas
+sem alterar o ambiente global pelo comando:
 
-```powershell
-python -m pip install flask reportlab
-```
+`Privacy Scanner: Configurar dependencias do backend`
 
-Se as dependências estiverem ausentes, a extensão mostrará o comando completo
-usando o `requirements.txt` incluído no VSIX.
+Após confirmação, a extensão cria um ambiente virtual em seu armazenamento
+privado, instala apenas Flask e ReportLab e valida o `/health`. A instalação
+manual por `requirements-runtime.txt` continua disponível para ambientes sem
+acesso de rede.
 
 ### Pacote gerado pelo GitHub
 
 Cada push para `main` executa o workflow do GitHub Actions. Ao final de uma
 execução bem-sucedida, o VSIX fica disponível na seção `Artifacts` com o nome
-`privacy-scanner-lgpd-vsix`.
+`privacy-scanner-lgpd-vsix-<versao-do-vscode>`.
 
 ## Exclusões e falsos positivos
 
@@ -374,3 +400,5 @@ Depois recarregue a janela `[Extension Development Host]`.
 - O suporte Java usa análise léxica e não compila o projeto.
 - O Java cobre sete categorias, mas não acompanha fluxo de dados entre métodos.
 - Algumas ocorrências podem exigir revisão manual.
+- Confiança e severidade configurável são critérios operacionais, não
+  probabilidades estatísticas nem classificações jurídicas.

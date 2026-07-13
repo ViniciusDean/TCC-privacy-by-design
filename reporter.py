@@ -83,7 +83,7 @@ RECOMENDACOES = {
 }
 
 ORDEM_RISCO = {"ALTO": 0, "MEDIO": 1, "BAIXO": 2}
-VERSAO_FERRAMENTA = "1.0.4"
+VERSAO_FERRAMENTA = "1.1.0"
 
 AVISO_ESCOPO_ANALISE = (
     "Os resultados representam indícios técnicos identificados por análise "
@@ -233,7 +233,23 @@ def combinar_escopos(escopos: list[dict], alvo: str | None = None) -> dict:
     return finalizar_escopo_varredura(combinado)
 
 
-def serializar_achado(achado) -> dict:
+def _caminho_identidade(arquivo: str, scope_root: str | None) -> str:
+    """Normaliza a localizacao sem incorporar o caminho absoluto da maquina."""
+    arquivo_absoluto = os.path.abspath(arquivo)
+    if scope_root:
+        raiz = os.path.abspath(scope_root)
+        if os.path.isfile(raiz):
+            raiz = os.path.dirname(raiz)
+        try:
+            relativo = os.path.relpath(arquivo_absoluto, raiz)
+            if relativo != os.pardir and not relativo.startswith(os.pardir + os.sep):
+                return relativo.replace("\\", "/").lower()
+        except ValueError:
+            pass
+    return os.path.basename(arquivo_absoluto).lower()
+
+
+def serializar_achado(achado, scope_root: str | None = None) -> dict:
     """Converte um achado interno em contrato público sem trecho bruto.
 
     O campo legado ``trecho`` é mantido somente como alias da evidência segura;
@@ -241,22 +257,37 @@ def serializar_achado(achado) -> dict:
     """
     categoria = str(achado.categoria)
     risco = str(achado.risco) if achado.risco in ORDEM_RISCO else "NAO_CLASSIFICADO"
+    risco_base = str(getattr(achado, "risco_base", None) or risco)
+    confianca = str(getattr(achado, "confianca", "ALTA"))
     evidencia = EVIDENCIAS_SEGURAS.get(
         categoria,
         "Regra estática acionada; detalhes originais foram ocultados para revisão local.",
     )
     arquivo = os.fspath(achado.arquivo)
     linha = int(achado.linha or 0)
+    caminho_identidade = _caminho_identidade(arquivo, scope_root)
+    localizador = str(
+        getattr(achado, "localizador_interno", None)
+        or getattr(achado, "trecho", "")
+    )
+    localizador = " ".join(localizador.lower().split())
+    localizador_hash = hashlib.sha256(localizador.encode("utf-8")).hexdigest()[:16]
     finding_id = hashlib.sha256(
+        f"v2\0{caminho_identidade}\0{linha}\0{categoria}\0{localizador_hash}".encode("utf-8")
+    ).hexdigest()[:20]
+    finding_id_legacy = hashlib.sha256(
         f"{arquivo}\0{linha}\0{categoria}\0{risco}".encode("utf-8")
     ).hexdigest()[:20]
     return {
         "finding_id": finding_id,
+        "finding_id_legacy": finding_id_legacy,
         "arquivo": arquivo,
         "linha": linha,
         "categoria": categoria,
         "categoria_publica": CATEGORIAS_PUBLICAS.get(categoria, categoria),
         "risco": risco,
+        "risco_base": risco_base,
+        "confianca": confianca,
         "descricao": DESCRICOES_SEGURAS.get(
             categoria,
             "Indício técnico identificado por análise estática; requer revisão humana.",
@@ -274,8 +305,8 @@ def serializar_achado(achado) -> dict:
     }
 
 
-def serializar_achados(resultados) -> list[dict]:
-    return [serializar_achado(achado) for achado in resultados]
+def serializar_achados(resultados, scope_root: str | None = None) -> list[dict]:
+    return [serializar_achado(achado, scope_root) for achado in resultados]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -289,6 +320,13 @@ class Reporter:
         self.timestamp   = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.resultados  = []
         self.escopo: dict | None = None
+        self.perfil_analise: dict | None = None
+
+    def _scope_root(self) -> str | None:
+        alvo = self.alvo_codigo or self.alvo_banco
+        if not alvo:
+            return None
+        return alvo if os.path.isdir(alvo) else os.path.dirname(os.path.abspath(alvo))
 
     def coletar(self):
         if not self.alvo_codigo and not self.alvo_banco:
@@ -328,7 +366,7 @@ class Reporter:
     def dados_publicos(self) -> dict:
         """Retorna o contrato serializável usado em JSON e pela API."""
         resumo = self._sumario()
-        achados = serializar_achados(self.resultados)
+        achados = serializar_achados(self.resultados, self._scope_root())
         return {
             "ferramenta": "Privacy Scanner — TCC FATEC",
             "versao": VERSAO_FERRAMENTA,
@@ -337,6 +375,7 @@ class Reporter:
             "aviso_escopo": AVISO_ESCOPO_ANALISE,
             "criterio_indicador": CRITERIO_INDICADOR_TECNICO,
             "escopo": self.escopo,
+            "perfil_analise": self.perfil_analise,
             "resumo": resumo,
             "sumario": resumo,
             "summary": resumo,
@@ -384,7 +423,7 @@ class Reporter:
 
         linhas_tabela = ""
         for idx, v in enumerate(self.resultados, start=1):
-            achado = serializar_achado(v)
+            achado = serializar_achado(v, self._scope_root())
             badge_risco = {
                 "ALTO": '<span class="badge alto">ALTO</span>',
                 "MEDIO": '<span class="badge medio">MEDIO</span>',
@@ -935,7 +974,7 @@ class Reporter:
                 table_data = [["#", "Categoria", "Local", "LGPD", "Descricao", "Recomendacao"]]
 
                 for idx, v in enumerate(vulns, start=1):
-                    achado = serializar_achado(v)
+                    achado = serializar_achado(v, self._scope_root())
                     local = (
                         f"{os.path.basename(achado['arquivo'])}:{achado['linha']}"
                         if achado["linha"] > 0 else os.path.basename(achado["arquivo"])
@@ -972,7 +1011,7 @@ class Reporter:
             story.append(Paragraph("Evidencias tecnicas", styles["Section"]))
             evidence_data = [["Risco", "Categoria", "Local", "Evidencia segura"]]
             for v in self.resultados:
-                achado = serializar_achado(v)
+                achado = serializar_achado(v, self._scope_root())
                 local = (
                     f"{os.path.basename(achado['arquivo'])}:{achado['linha']}"
                     if achado["linha"] > 0 else os.path.basename(achado["arquivo"])
@@ -1032,7 +1071,7 @@ class Reporter:
             return
 
         for v in self.resultados:
-            achado = serializar_achado(v)
+            achado = serializar_achado(v, self._scope_root())
             local = (
                 f"{achado['arquivo']}:{achado['linha']}"
                 if achado["linha"] > 0 else achado["arquivo"]
@@ -1071,7 +1110,7 @@ def _imprimir_ascii(self):
         return
 
     for v in self.resultados:
-        achado = serializar_achado(v)
+        achado = serializar_achado(v, self._scope_root())
         local = (
             f"{achado['arquivo']}:{achado['linha']}"
             if achado["linha"] > 0 else achado["arquivo"]

@@ -40,6 +40,16 @@ resultados de 100% descrevem consistencia interna com as fixtures, nao desempenh
 generalizavel. Casos novos devem ser revisados manualmente antes de entrarem no
 gabarito.
 
+O benchmark 2 torna explícito o contexto estrutural de persistência nas três
+fixtures de modelo/schema alteradas. O benchmark 1 permanece auditável na tag
+`v1.0.4`; resultados de versões diferentes só devem ser comparados quando
+executados sobre a mesma versão do corpus.
+
+O executor de projetos reais registra separadamente os achados brutos
+(`latest_unfiltered_findings.json`) e os achados selecionados pelo perfil
+(`latest_raw_findings.json`, mantido com esse nome por compatibilidade). Cada
+projeto registra preset, origem e hash da configuração aplicada.
+
 ## Validação externa
 
 Depois do benchmark sintético, use `real_projects/` para cadastrar projetos
@@ -64,3 +74,19 @@ O PEAK Java é o conjunto de ajuste. Flasky e Chinook são conjuntos de validaç
 suas métricas são publicadas separadamente e não orientam novas alterações de
 regras nesta versão. Mesmo após a revisão completa, os valores descrevem apenas
 essa amostra e não certificam desempenho geral ou conformidade jurídica.
+
+## Protocolo da versão 1.1
+
+Django Oscar, Spring PetClinic e Northwind SQLite estão cadastrados como
+`holdout_v1_1`, inicialmente com `enabled: false`. Eles só podem ser habilitados,
+fixados por commit e executados depois do congelamento das regras da versão 1.1.
+Depois da primeira execução, os resultados não podem orientar novas heurísticas.
+
+```powershell
+python evaluation\real_projects\run_real_projects.py --role holdout_v1_1
+python evaluation\real_projects\create_double_review_sample.py
+python evaluation\real_projects\calculate_agreement.py
+```
+
+A amostra dupla usa 25% de cada estrato projeto/categoria/risco e semente fixa.
+As colunas `confidence` e `base_risk` preservam a justificativa do perfil aplicado.

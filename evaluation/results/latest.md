@@ -1,6 +1,7 @@
 # Benchmark controlado de regressão
 
-Gerado em: `2026-07-10T02:35:05.911713+00:00`
+Gerado em: `2026-07-13T03:56:42.273208+00:00`
+Versão do scanner: `1.1.0`
 
 Casos avaliados: **18**; decisões `caso-categoria`: **120**.
 

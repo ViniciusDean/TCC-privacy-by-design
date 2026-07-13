@@ -7,13 +7,17 @@
  */
 
 export type Risk = 'ALTO' | 'MEDIO' | 'BAIXO';
+export type Confidence = 'ALTA' | 'MEDIA' | 'BAIXA';
 
 export interface Finding {
     finding_id?: string;
+    finding_id_legacy?: string;
     arquivo: string;
     linha: number;
     categoria: string;
     risco: Risk;
+    risco_base?: Risk;
+    confianca?: Confidence;
     artigo_lgpd: string;
     /** Evidencia curta e segura para exibicao; nunca o codigo-fonte bruto. */
     evidencia_segura: string;
@@ -52,6 +56,13 @@ export interface AnalysisResponse {
     resumo?: AnalysisSummary;
     escopo?: ScopeMetadata;
     message?: string;
+    perfil_analise?: AnalysisProfileMetadata;
+}
+
+export interface AnalysisProfileMetadata {
+    preset?: string;
+    origem?: string;
+    hash?: string;
 }
 
 export interface BackendHealth {
@@ -59,6 +70,50 @@ export interface BackendHealth {
     reason?: string;
     service?: string;
     version?: string;
+}
+
+export function aggregateAnalysisResponses(responses: AnalysisResponse[]): AnalysisResponse {
+    const successful = responses.filter(item => item.success);
+    if (successful.length === 0) {
+        return responses[responses.length - 1] ?? { success: false, status: 'invalid', achados: [] };
+    }
+    const riskCounts = successful.reduce(
+        (acc, item) => {
+            for (const risk of ['ALTO', 'MEDIO', 'BAIXO'] as const) {
+                acc[risk] += item.resumo?.por_risco[risk] ?? 0;
+            }
+            return acc;
+        },
+        { ALTO: 0, MEDIO: 0, BAIXO: 0 }
+    );
+    const scope = responses.reduce<ScopeMetadata>((acc, item) => ({
+        status: acc.status,
+        arquivos_elegiveis: (acc.arquivos_elegiveis ?? 0) + (item.escopo?.arquivos_elegiveis ?? 0),
+        arquivos_analisados: (acc.arquivos_analisados ?? 0) + (item.escopo?.arquivos_analisados ?? 0),
+        arquivos_ignorados: (acc.arquivos_ignorados ?? 0) + (item.escopo?.arquivos_ignorados ?? 0),
+        arquivos_falhos: (acc.arquivos_falhos ?? 0) + (item.escopo?.arquivos_falhos ?? 0)
+    }), { status: 'complete' });
+    const partial = responses.some(
+        item => !item.success || item.status === 'partial' || item.escopo?.status === 'partial'
+    );
+    scope.status = partial ? 'partial' : 'complete';
+    const findings = successful.flatMap(item => item.achados);
+    return {
+        success: true,
+        status: scope.status,
+        achados: findings,
+        aviso_escopo: successful[0]?.aviso_escopo,
+        resumo: {
+            total: findings.length,
+            por_risco: riskCounts,
+            indicador_tecnico: Math.max(
+                0,
+                100 - riskCounts.ALTO * 10 - riskCounts.MEDIO * 5 - riskCounts.BAIXO * 2
+            )
+        },
+        escopo: scope,
+        perfil_analise: successful.length === 1 ? successful[0].perfil_analise : undefined
+    };
 }
 
 type UnknownRecord = Record<string, unknown>;
@@ -147,14 +202,22 @@ export function normalizeFinding(value: unknown): Finding | undefined {
 
     return {
         finding_id: stringValue(record.finding_id, record.id),
+        finding_id_legacy: stringValue(record.finding_id_legacy),
         arquivo,
         linha,
         categoria,
         risco: normalizeRisk(record.risco ?? record.risk),
+        risco_base: normalizeRisk(record.risco_base ?? record.base_risk ?? record.risco ?? record.risk),
+        confianca: normalizeConfidence(record.confianca ?? record.confidence),
         artigo_lgpd: stringValue(record.artigo_lgpd, record.lgpd_article, record.artigo) ?? '',
         evidencia_segura: evidenciaSegura,
         recomendacao: stringValue(record.recomendacao, record.recommendation)
     };
+}
+
+function normalizeConfidence(value: unknown): Confidence {
+    const normalized = stringValue(value)?.toUpperCase();
+    return normalized === 'MEDIA' || normalized === 'BAIXA' ? normalized : 'ALTA';
 }
 
 function normalizeRiskCounts(value: unknown): RiskCounts {
@@ -243,6 +306,19 @@ export function normalizeAnalysisResponse(value: unknown): AnalysisResponse {
         resumo,
         escopo: normalizeScope(record.escopo ?? record.scope ?? record, status),
         message: stringValue(record.message, record.mensagem, record.error)
+        ,perfil_analise: normalizeProfileMetadata(record.perfil_analise ?? record.analysis_profile)
+    };
+}
+
+function normalizeProfileMetadata(value: unknown): AnalysisProfileMetadata | undefined {
+    const record = asRecord(value);
+    if (!record) {
+        return undefined;
+    }
+    return {
+        preset: stringValue(record.preset, record.name),
+        origem: stringValue(record.origem, record.source),
+        hash: stringValue(record.hash, record.config_hash)
     };
 }
 
@@ -293,6 +369,10 @@ export function validateBackendHealth(value: unknown): BackendHealth {
     const knownServices = new Set(['privacyscanner', 'privacyscannerlgpd']);
     if (!knownServices.has(normalizedServiceName(service))) {
         return { valid: false, reason: `Servico inesperado na porta configurada: ${service}.`, service };
+    }
+
+    if (numberValue(record.api_version, record.apiVersion) !== 1) {
+        return { valid: false, reason: 'Versao de protocolo da API incompativel.', service };
     }
 
     const version = stringValue(record.version, record.versao);

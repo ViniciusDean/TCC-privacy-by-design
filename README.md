@@ -341,6 +341,14 @@ usar os campos canônicos.
 
 ## Configurações da Extensão
 
+### Perfis de análise v1.1
+
+A versão 1.1 aceita `.privacy-scanner.json` por pasta de workspace, com presets
+`conservador`, `equilibrado` e `completo`. O perfil controla categorias, limiar
+de confiança e severidade exibida sem apagar a severidade-base auditável. A
+extensão valida o arquivo, registra seu hash nos resultados e bloqueia análises
+quando a configuração é inválida.
+
 Exemplo em `settings.json`:
 
 ```json

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+from types import SimpleNamespace
 
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "evaluation" / "real_projects" / "run_real_projects.py"
@@ -11,6 +12,20 @@ SPEC = importlib.util.spec_from_file_location("real_projects_runner", MODULE_PAT
 assert SPEC and SPEC.loader
 runner = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(runner)
+
+
+def test_holdout_v1_1_is_pinned_and_disabled_before_freeze():
+    holdout = [
+        project for project in runner.load_projects()
+        if project.get("evaluation_role") == "holdout_v1_1"
+    ]
+    assert {project["id"] for project in holdout} == {
+        "django_oscar_v1_1",
+        "spring_petclinic_v1_1",
+        "northwind_sqlite_v1_1",
+    }
+    assert all(project.get("enabled") is False for project in holdout)
+    assert all(project.get("commit") not in {"", "PENDING_FREEZE"} for project in holdout)
 
 
 def configure_results_dir(monkeypatch, tmp_path):
@@ -56,6 +71,23 @@ def test_database_false_negative_ids_accept_column_discriminator():
     )
 
     assert first != second
+
+
+def test_verify_project_commit_accepts_safe_abbreviation(monkeypatch, tmp_path):
+    (tmp_path / ".git").mkdir()
+    monkeypatch.setattr(
+        runner.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(
+            stdout="7503f50c8d785f1ef60a557a4cb780d004108f3a\n"
+        ),
+    )
+
+    actual = runner.verify_project_commit(
+        {"id": "sample", "commit": "7503f50"}, tmp_path
+    )
+
+    assert actual == "7503f50c8d785f1ef60a557a4cb780d004108f3a"
 
 
 def test_safe_evidence_never_falls_back_to_raw_source_text():

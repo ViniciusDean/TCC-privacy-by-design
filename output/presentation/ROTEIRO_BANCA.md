@@ -27,6 +27,7 @@ Duração-alvo: **13 minutos**, com margem para chegar a 12–15 minutos sem ace
 
 5. **Escopo da afirmação — 1 min**
    - Explicar um achado: categoria, local, artigo relacionado, descrição, recomendação e evidência.
+   - Mostrar confiança, severidade-base e o perfil conservador versionado da versão 1.1.
    - O indicador ordena prioridade; não decide base legal nem contexto de negócio.
 
 6. **Benchmark controlado — 1 min**

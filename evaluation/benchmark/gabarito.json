@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "methodology": "Presenca de categoria por caso",
+  "version": 2,
+  "methodology": "Presenca de categoria por caso com contexto estrutural explicito; benchmark 1 preservado na tag v1.0.4",
   "cases": [
     {
       "id": "py_hardcoded_log",

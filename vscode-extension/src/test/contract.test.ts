@@ -1,6 +1,7 @@
 import * as assert from 'assert';
 import {
     LatestRequestGate,
+    aggregateAnalysisResponses,
     normalizeAnalysisResponse,
     validateBackendHealth
 } from '../contract';
@@ -117,16 +118,44 @@ run('valida identidade e versao do backend', () => {
     assert.strictEqual(validateBackendHealth({
         status: 'ok',
         service: 'privacy-scanner',
-        version: '1.0.4'
+        version: '1.1.0',
+        api_version: 1
     }).valid, true);
     assert.strictEqual(validateBackendHealth({
         status: 'ok',
         service: 'outro-servico',
-        version: '1.0.4'
+        version: '1.1.0',
+        api_version: 1
     }).valid, false);
     assert.strictEqual(validateBackendHealth({
         status: 'ok',
         service: 'privacy-scanner',
-        version: '2.0.0'
+        version: '2.0.0',
+        api_version: 1
     }).valid, false);
+    assert.strictEqual(validateBackendHealth({
+        status: 'ok', service: 'privacy-scanner', version: '1.1.0', api_version: 2
+    }).valid, false);
+});
+
+run('multi-root preserva estado parcial e soma escopos', () => {
+    const result = aggregateAnalysisResponses([
+        {
+            success: true,
+            status: 'complete',
+            achados: [],
+            resumo: { total: 0, por_risco: { ALTO: 0, MEDIO: 0, BAIXO: 0 }, indicador_tecnico: 100 },
+            escopo: { status: 'complete', arquivos_analisados: 2, arquivos_falhos: 0 }
+        },
+        {
+            success: false,
+            status: 'partial',
+            achados: [],
+            escopo: { status: 'partial', arquivos_analisados: 1, arquivos_falhos: 1 }
+        }
+    ]);
+
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.status, 'partial');
+    assert.strictEqual(result.escopo?.arquivos_analisados, 3);
 });

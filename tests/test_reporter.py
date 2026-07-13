@@ -7,7 +7,8 @@ import json
 import os
 import subprocess
 import sys
-from reporter import Reporter, RECOMENDACOES, ORDEM_RISCO
+from types import SimpleNamespace
+from reporter import Reporter, RECOMENDACOES, ORDEM_RISCO, serializar_achado
 from code_analyzer import Vulnerability
 
 
@@ -421,6 +422,60 @@ class TestSafePublicContract:
         assert "JSON gerado:" in process.stdout
         assert output.exists()
         assert "SENTINEL_CLI" not in output.read_text(encoding="utf-8")
+
+
+def test_finding_id_is_stable_across_severity_overrides(tmp_path):
+    common = dict(
+        arquivo=str(tmp_path / "src" / "model.py"),
+        linha=7,
+        categoria="DADO_EM_LOG",
+        artigo_lgpd="Art. 46",
+        confianca="ALTA",
+        trecho="logger.info(email)",
+    )
+    high = SimpleNamespace(**common, risco="ALTO", descricao="high")
+    low = SimpleNamespace(**common, risco="BAIXO", risco_base="ALTO", descricao="low")
+
+    assert serializar_achado(high, str(tmp_path))["finding_id"] == serializar_achado(
+        low, str(tmp_path)
+    )["finding_id"]
+
+
+def test_database_findings_do_not_collide(tmp_path):
+    common = dict(
+        arquivo=str(tmp_path / "dados.db"),
+        linha=0,
+        categoria="CAMPO_SEM_HASH",
+        risco="ALTO",
+        artigo_lgpd="Art. 46",
+        confianca="ALTA",
+    )
+    first = SimpleNamespace(**common, trecho="usuarios.cpf : TEXT", descricao="cpf")
+    second = SimpleNamespace(**common, trecho="clientes.email : TEXT", descricao="email")
+
+    assert serializar_achado(first, str(tmp_path))["finding_id"] != serializar_achado(
+        second, str(tmp_path)
+    )["finding_id"]
+
+
+def test_finding_id_uses_relative_path_across_machines():
+    def finding(root):
+        return SimpleNamespace(
+            arquivo=os.path.join(root, "src", "model.py"),
+            linha=9,
+            categoria="DADO_EM_LOG",
+            risco="ALTO",
+            artigo_lgpd="Art. 46",
+            confianca="ALTA",
+            trecho="logging.info(cpf)",
+            descricao="log",
+        )
+
+    assert serializar_achado(finding("C:/usuario-a/projeto"), "C:/usuario-a/projeto")[
+        "finding_id"
+    ] == serializar_achado(finding("D:/usuario-b/projeto"), "D:/usuario-b/projeto")[
+        "finding_id"
+    ]
 
 
 class TestPDFExport:

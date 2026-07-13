@@ -6,6 +6,21 @@ import os
 import pytest
 import sqlite3
 from db_analyzer import DBAnalyzer, analisar_banco, analisar_banco_com_escopo
+from analysis_profile import apply_profile, parse_profile
+
+
+def test_sqlite_presets_filter_contextual_medium_confidence(tmp_path):
+    database = tmp_path / "profile.db"
+    connection = sqlite3.connect(database)
+    connection.execute("CREATE TABLE usuarios (id INTEGER, cidade TEXT)")
+    connection.commit()
+    connection.close()
+    raw = analisar_banco(str(database))
+    medium = [item for item in raw if item.confianca == "MEDIA"]
+
+    assert medium
+    assert not apply_profile(medium, parse_profile())
+    assert apply_profile(medium, parse_profile({"preset": "equilibrado"}))
 
 
 class TestDBAnalyzerBasic:
@@ -445,3 +460,25 @@ class TestIntegration:
         
         # Todos devem ter artigos LGPD
         assert all(v.artigo_lgpd for v in results)
+
+
+def test_generic_name_requires_personal_table_context(tmp_path):
+    database = tmp_path / "context.db"
+    connection = sqlite3.connect(database)
+    connection.executescript(
+        """
+        CREATE TABLE Artist (ArtistId INTEGER PRIMARY KEY, Name TEXT);
+        CREATE TABLE Customer (
+            CustomerId INTEGER PRIMARY KEY,
+            Name TEXT,
+            Address TEXT,
+            Email TEXT
+        );
+        """
+    )
+    connection.close()
+
+    results = analisar_banco(str(database))
+    descriptions = [item.descricao for item in results]
+    assert not any("Artist" in description for description in descriptions)
+    assert any("Customer" in description for description in descriptions)

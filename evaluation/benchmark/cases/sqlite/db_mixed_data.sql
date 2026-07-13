@@ -1,4 +1,4 @@
-CREATE TABLE cadastro_completo (
+CREATE TABLE usuarios_cadastro_completo (
     id INTEGER PRIMARY KEY,
     email TEXT,
     cpf TEXT,

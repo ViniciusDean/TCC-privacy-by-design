@@ -32,6 +32,42 @@
       "repository_url": "https://github.com/lerocha/chinook-database",
       "commit": "7f67772503d71ba90f19283c38e93923addb43fa",
       "description": "Esquema externo de loja digital com clientes, enderecos, telefones e e-mails ficticios."
+    },
+    {
+      "id": "django_oscar_v1_1",
+      "name": "Django Oscar",
+      "type": "source",
+      "evaluation_role": "holdout_v1_1",
+      "enabled": false,
+      "fn_review_complete": false,
+      "path": "evaluation/real_projects/workspaces/django-oscar/src/oscar",
+      "repository_url": "https://github.com/django-oscar/django-oscar",
+      "commit": "8bbd588298ae139edc0e8114e9b567b3973fd397",
+      "description": "Corpus Python reservado para a validacao final da versao 1.1; nao analisar antes do congelamento."
+    },
+    {
+      "id": "spring_petclinic_v1_1",
+      "name": "Spring PetClinic",
+      "type": "source",
+      "evaluation_role": "holdout_v1_1",
+      "enabled": false,
+      "fn_review_complete": false,
+      "path": "evaluation/real_projects/workspaces/spring-petclinic/src/main/java",
+      "repository_url": "https://github.com/spring-projects/spring-petclinic",
+      "commit": "51045d1648dad955df586150c1a1a6e22ef400c2",
+      "description": "Corpus Java reservado para a validacao final da versao 1.1; nao analisar antes do congelamento."
+    },
+    {
+      "id": "northwind_sqlite_v1_1",
+      "name": "Northwind SQLite",
+      "type": "sqlite",
+      "evaluation_role": "holdout_v1_1",
+      "enabled": false,
+      "fn_review_complete": false,
+      "path": "evaluation/real_projects/workspaces/northwind-SQLite3/dist/northwind.db",
+      "repository_url": "https://github.com/jpwhite3/northwind-SQLite3",
+      "commit": "4f56e7f5906dfd23b25244c5bfe8fb5da6402efd",
+      "description": "Corpus SQLite reservado para a validacao final da versao 1.1; nao analisar antes do congelamento."
     }
   ]
 }

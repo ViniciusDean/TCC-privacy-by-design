@@ -4,6 +4,20 @@ Tests for code_analyzer.py — detects privacy vulnerabilities in Python code.
 
 import pytest
 from code_analyzer import CodeAnalyzer, analisar_arquivo, analisar_diretorio
+from analysis_profile import apply_profile, parse_profile
+
+
+def test_python_presets_filter_medium_confidence(tmp_path):
+    source = tmp_path / "form.py"
+    source.write_text(
+        "def cadastrar(nome, email, cpf, telefone, endereco):\n    pass\n",
+        encoding="utf-8",
+    )
+    raw = analisar_arquivo(str(source))
+
+    assert any(item.confianca == "MEDIA" for item in raw)
+    assert not apply_profile(raw, parse_profile())
+    assert apply_profile(raw, parse_profile({"preset": "equilibrado"}))
 
 
 class TestCodeAnalyzerBasic:
@@ -115,7 +129,7 @@ class Usuario:
     def test_detects_missing_deletion_method(self, temp_py_file):
         """Should detect class with sensitive data but no delete method."""
         code = '''
-class Usuario:
+class Usuario(Model):
     nome = "João"
     email = "joao@test.com"
     cpf = "123.456.789-00"
@@ -177,10 +191,11 @@ class TestWordBoundary:
         
         assert len(results) == 0
 
+
     def test_constructor_parameter_assignment_no_alert(self, temp_py_file):
         """Should not flag model fields assigned from constructor parameters."""
         code = '''
-class Usuario:
+class Usuario(Model):
     nome = ""
     email = ""
     cpf = ""
@@ -589,3 +604,53 @@ class TestIntegration:
         
         # All should have descriptions
         assert all(v.descricao for v in results)
+
+
+def test_form_and_config_are_not_persistent_models(tmp_path):
+    source = tmp_path / "forms.py"
+    source.write_text(
+        """
+class LoginForm(FlaskForm):
+    email = StringField()
+    password = PasswordField()
+
+class Config:
+    MAIL_PASSWORD = 'env'
+""",
+        encoding="utf-8",
+    )
+    results = analisar_arquivo(str(source))
+    assert "AUSENCIA_EXCLUSAO" not in {item.categoria for item in results}
+
+
+def test_persistent_model_still_requires_deletion_flow(tmp_path):
+    source = tmp_path / "models.py"
+    source.write_text(
+        """
+class User(db.Model):
+    email = db.Column(String)
+    name = db.Column(String)
+""",
+        encoding="utf-8",
+    )
+    results = analisar_arquivo(str(source))
+    assert "AUSENCIA_EXCLUSAO" in {item.categoria for item in results}
+
+
+def test_password_hash_setter_is_recognized(tmp_path):
+    source = tmp_path / "models.py"
+    source.write_text(
+        """
+class User(db.Model):
+    password_hash = db.Column(String)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def delete(self):
+        pass
+""",
+        encoding="utf-8",
+    )
+    results = analisar_arquivo(str(source))
+    assert "DADO_SEM_CRIPTOGRAFIA" not in {item.categoria for item in results}

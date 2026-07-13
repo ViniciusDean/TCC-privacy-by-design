@@ -14,6 +14,7 @@ scripts/**
 **/*.map
 **/*.ts
 **/.github/**
+node_modules/**
 **/__pycache__/**
 **/*.pyc
 *.vsix

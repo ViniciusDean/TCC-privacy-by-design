@@ -1,6 +1,7 @@
 {
-  "benchmark_version": 1,
-  "generated_at": "2026-07-10T02:35:05.911713+00:00",
+  "benchmark_version": 2,
+  "scanner_version": "1.1.0",
+  "generated_at": "2026-07-13T03:56:42.273208+00:00",
   "evaluation_unit": "caso-categoria",
   "case_count": 18,
   "decision_count": 120,

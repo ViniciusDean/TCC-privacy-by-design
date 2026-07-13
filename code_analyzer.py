@@ -25,6 +25,8 @@ class Vulnerability:
     risco:      str          # "ALTO" | "MEDIO" | "BAIXO"
     artigo_lgpd: str         # ex: "Art. 46 — Segurança"
     trecho:     Optional[str] = None   # linha do código original
+    confianca:  str = "ALTA"
+    risco_base: Optional[str] = None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -196,6 +198,7 @@ FUNCOES_LOG = [
 # Funções/padrões indicativos de criptografia (presença = OK)
 FUNCOES_CRIPTOGRAFIA = [
     "hashlib", "bcrypt", "argon2", "pbkdf2",
+    "generate_password_hash", "set_password", "make_password",
     "sha256", "sha512", "md5",   # md5 é fraco, vai gerar aviso separado
     "encrypt", "cifrar", "AES", "RSA", "fernet",
     "make_password", "check_password",
@@ -255,7 +258,7 @@ class CodeAnalyzer(ast.NodeVisitor):
             return self.linhas[linha - 1].strip()[:120]
         return ""
 
-    def _adicionar(self, linha, categoria, descricao, risco, artigo):
+    def _adicionar(self, linha, categoria, descricao, risco, artigo, confianca="ALTA"):
         self.resultados.append(Vulnerability(
             arquivo=self.caminho,
             linha=linha,
@@ -264,6 +267,7 @@ class CodeAnalyzer(ast.NodeVisitor):
             risco=risco,
             artigo_lgpd=artigo,
             trecho=self._trecho(linha),
+            confianca=confianca,
         ))
 
     def _nome_contem_campo_sensivel(self, nome: str) -> Optional[str]:
@@ -443,6 +447,7 @@ class CodeAnalyzer(ast.NodeVisitor):
                     f"de criptografia ou hash.",
                     "MEDIO",
                     "Art. 46 — Segurança e prevenção",
+                    "MEDIA",
                 )
 
     def visit_Assign(self, node: ast.Assign):
@@ -560,7 +565,8 @@ class CodeAnalyzer(ast.NodeVisitor):
                 f"sensíveis ({', '.join(campos_encontrados)}). Verifique se todos "
                 f"são estritamente necessários para a finalidade.",
                 "MEDIO",
-                "Art. 6º, III — Necessidade | Art. 6º, I — Finalidade"
+                "Art. 6º, III — Necessidade | Art. 6º, I — Finalidade",
+                "MEDIA",
             )
 
         self.generic_visit(node)
@@ -578,6 +584,41 @@ class CodeAnalyzer(ast.NodeVisitor):
         Em classes que parecem modelos de dados (contêm campos sensíveis),
         verifica se há algum método de exclusão/anonimização definido.
         """
+        # Regras de ausencia de exclusao so fazem sentido para estruturas que
+        # representam persistencia. Formularios e classes de configuracao eram
+        # a principal fonte de falsos positivos na validacao externa.
+        nome_lower = node.name.lower()
+        if nome_lower == "config" or nome_lower.endswith(("form", "schema", "serializer")):
+            self.generic_visit(node)
+            return
+
+        bases = {
+            self._nome_expr(base).lower()
+            for base in node.bases
+            if self._nome_expr(base)
+        }
+        marcadores_persistencia = {"model", "document", "entity", "basemodel"}
+        herda_persistencia = any(
+            base.split(".")[-1] in marcadores_persistencia
+            or base.endswith((".model", ".document", ".entity"))
+            for base in bases
+        )
+        declara_campo_persistente = any(
+            isinstance(item, (ast.Assign, ast.AnnAssign))
+            and isinstance(
+                item.value if isinstance(item, ast.Assign) else item.value,
+                ast.Call,
+            )
+            and self._nome_call(
+                item.value if isinstance(item, ast.Assign) else item.value
+            ).lower().split(".")[-1]
+            in {"column", "field", "relationship", "mapped_column"}
+            for item in node.body
+        )
+        if not (herda_persistencia or declara_campo_persistente):
+            self.generic_visit(node)
+            return
+
         campos_na_classe = []
         metodos = []
 
@@ -632,6 +673,15 @@ class CodeAnalyzer(ast.NodeVisitor):
             if isinstance(atual, ast.Name):
                 partes.append(atual.id)
             return ".".join(reversed(partes))
+        return ""
+
+    def _nome_expr(self, node: ast.expr) -> str:
+        """Retorna nome pontuado de uma expressao simples."""
+        if isinstance(node, ast.Name):
+            return node.id
+        if isinstance(node, ast.Attribute):
+            prefix = self._nome_expr(node.value)
+            return f"{prefix}.{node.attr}" if prefix else node.attr
         return ""
 
     def _extrair_nomes(self, node: ast.AST) -> list[str]:

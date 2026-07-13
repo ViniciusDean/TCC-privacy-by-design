@@ -3,6 +3,7 @@ import java.security.MessageDigest;
 import java.util.logging.Logger;
 import org.springframework.web.client.RestTemplate;
 
+@Entity
 public class ExemploVulneravel {
     private static final Logger logger =
         Logger.getLogger(ExemploVulneravel.class.getName());

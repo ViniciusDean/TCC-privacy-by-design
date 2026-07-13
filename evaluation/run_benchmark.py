@@ -152,6 +152,7 @@ def evaluate(gabarito: dict) -> dict:
 
     return {
         "benchmark_version": gabarito["version"],
+        "scanner_version": (ROOT / "VERSION").read_text(encoding="utf-8").strip(),
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "evaluation_unit": "caso-categoria",
         "case_count": len(case_results),
@@ -183,6 +184,7 @@ def render_markdown(results: dict) -> str:
         "# Benchmark controlado de regressão",
         "",
         f"Gerado em: `{results['generated_at']}`",
+        f"Versão do scanner: `{results['scanner_version']}`",
         "",
         f"Casos avaliados: **{results['case_count']}**; decisões `{results['evaluation_unit']}`: **{results['decision_count']}**.",
         "",

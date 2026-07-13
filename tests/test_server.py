@@ -68,7 +68,8 @@ def test_health_exposes_backend_identity():
     assert response.get_json() == {
         "status": "ok",
         "service": "privacy-scanner",
-        "version": "1.0.4",
+        "version": "1.1.0",
+        "api_version": 1,
     }
 
 
@@ -195,3 +196,36 @@ def test_export_json_is_sanitized(tmp_path):
     exported = json.loads(data["content"])
     assert exported["achados"] == exported["vulnerabilities"]
     assert exported["achados"][0]["trecho"] == exported["achados"][0]["evidencia_segura"]
+
+
+def test_analysis_applies_profile_and_exposes_audit_metadata(tmp_path):
+    source = tmp_path / "entrada.py"
+    source.write_text('senha = "segredo"\n', encoding="utf-8")
+    response = app.test_client().post(
+        "/api/analyze-file",
+        json={
+            "filepath": str(source),
+            "profile": {
+                "schemaVersion": 1,
+                "preset": "conservador",
+                "categories": {"DADO_HARDCODED": {"severity": "BAIXO"}},
+            },
+        },
+    )
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["perfil_analise"]["preset"] == "conservador"
+    assert data["achados"][0]["risco"] == "BAIXO"
+    assert data["achados"][0]["risco_base"] == "ALTO"
+    assert data["achados"][0]["confianca"] == "ALTA"
+
+
+def test_invalid_profile_blocks_analysis(tmp_path):
+    source = tmp_path / "entrada.py"
+    source.write_text('senha = "segredo"\n', encoding="utf-8")
+    response = app.test_client().post(
+        "/api/analyze-file",
+        json={"filepath": str(source), "profile": {"preset": "desconhecido"}},
+    )
+    assert response.status_code == 400
+    assert response.get_json()["error"]["codigo"] == "PERFIL_INVALIDO"

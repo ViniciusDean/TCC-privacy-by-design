@@ -32,10 +32,21 @@
 ## Estado de validação
 
 - A versão 1.0.4 permanece como baseline histórica na tag `v1.0.4`.
-- 160 testes Python e 29 verificações TypeScript passam localmente.
+- 164 testes Python e 29 verificações TypeScript passam localmente.
 - O benchmark controlado 2 permanece em 100% de aderência ao gabarito; o benchmark 1 está preservado na tag `v1.0.4`.
 - O Extension Host executa reinícios, conflito real com serviço incompatível e uma análise real; o VSIX é instalado em diretório isolado.
-- Os novos projetos externos ainda não foram executados nem adjudicados.
-- Nenhuma métrica da versão 1.1 deve ser publicada antes da revisão manual.
+- O `holdout_v1_1` foi executado uma única vez no run
+  `20260715T221415Z-3302b677`, sobre o commit de configuração `f1eed20`, com
+  origem limpa e os três commits externos pré-registrados. Os escopos foram
+  desabilitados novamente após o run para impedir repetição acidental.
+- A revisão primária classificou todos os 22 achados exibidos e concluiu a
+  inspeção de falsos negativos dos três projetos.
+- A amostra estratificada de dupla revisão contém 7 itens. O arquivo cego do
+  revisor B está pronto, mas nenhuma classificação independente foi importada.
+- As métricas primárias permanecem apenas em
+  `evaluation/real_projects/results/latest_review_summary.md` e não devem ser
+  publicadas na dissertação antes da conclusão da revisão independente.
+- A prova de 39 páginas com placeholders foi recompilada e revisada visualmente
+  página a página; o VSIX 1.1.0 foi reempacotado e instalado em ambiente isolado.
 
 `STATUS.md` descreve a antiga fase MVP e é mantido apenas como histórico.

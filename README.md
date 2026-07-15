@@ -425,10 +425,12 @@ Implementado:
 - validação externa adjudicada em PEAK, Flasky e Chinook SQLite;
 - apresentação e roteiro de defesa em `output/presentation/`.
 
-### Artefatos da versão 1.0.4
+### Artefatos das versões 1.0.4 e 1.1
 
-- `output/release/privacy-scanner-lgpd-1.0.4.vsix`: extensão instalável com o
-  backend Python incluído.
+- `output/release/privacy-scanner-lgpd-1.1.0.vsix`: extensão 1.1 instalável com
+  o backend Python incluído.
+- `output/release/privacy-scanner-lgpd-1.0.4.vsix`: baseline histórica da
+  extensão preservada na tag `v1.0.4`.
 - `output/presentation/TCC_Privacy_by_Design_Banca.pptx`: apresentação de 10
   slides, acompanhada de roteiro para 12–15 minutos.
 - `output/pdf/TCC_Privacy_by_Design_2026_PROVA_COM_PLACEHOLDERS.pdf`: somente
@@ -441,7 +443,7 @@ Implementado:
 cd vscode-extension
 npm install
 npm run package
-code --install-extension .\privacy-scanner-lgpd-1.0.4.vsix --force
+code --install-extension .\privacy-scanner-lgpd-1.1.0.vsix --force
 ```
 
 O VSIX inclui o backend Python e funciona sem manter o repositório do TCC

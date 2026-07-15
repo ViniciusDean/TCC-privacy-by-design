@@ -7,14 +7,29 @@ from pathlib import Path
 from types import SimpleNamespace
 
 
-MODULE_PATH = Path(__file__).resolve().parents[1] / "evaluation" / "real_projects" / "run_real_projects.py"
+REAL_PROJECTS_DIR = Path(__file__).resolve().parents[1] / "evaluation" / "real_projects"
+MODULE_PATH = REAL_PROJECTS_DIR / "run_real_projects.py"
 SPEC = importlib.util.spec_from_file_location("real_projects_runner", MODULE_PATH)
 assert SPEC and SPEC.loader
 runner = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(runner)
 
+REVIEW_SPEC = importlib.util.spec_from_file_location(
+    "frozen_run_reviewer", REAL_PROJECTS_DIR / "review_frozen_run.py"
+)
+assert REVIEW_SPEC and REVIEW_SPEC.loader
+reviewer = importlib.util.module_from_spec(REVIEW_SPEC)
+REVIEW_SPEC.loader.exec_module(reviewer)
 
-def test_holdout_v1_1_is_pinned_and_disabled_before_freeze():
+BLIND_SPEC = importlib.util.spec_from_file_location(
+    "blind_review", REAL_PROJECTS_DIR / "double_review_blind.py"
+)
+assert BLIND_SPEC and BLIND_SPEC.loader
+blind_review = importlib.util.module_from_spec(BLIND_SPEC)
+BLIND_SPEC.loader.exec_module(blind_review)
+
+
+def test_holdout_v1_1_is_pinned_reviewed_and_disabled_after_one_shot_run():
     holdout = [
         project for project in runner.load_projects()
         if project.get("evaluation_role") == "holdout_v1_1"
@@ -25,7 +40,67 @@ def test_holdout_v1_1_is_pinned_and_disabled_before_freeze():
         "northwind_sqlite_v1_1",
     }
     assert all(project.get("enabled") is False for project in holdout)
+    assert all(project.get("fn_review_complete") is True for project in holdout)
     assert all(project.get("commit") not in {"", "PENDING_FREEZE"} for project in holdout)
+
+
+def test_incomplete_double_review_does_not_release_publication():
+    result = reviewer.agreement_from_rows([
+        {"reviewer_a": "TP", "reviewer_b": "TP"},
+        {"reviewer_a": "FP", "reviewer_b": ""},
+    ])
+
+    assert result["sample_size"] == 2
+    assert result["completed_pairs"] == 1
+    assert result["ready"] is False
+    assert result["cohen_kappa"] is None
+
+
+def test_complete_double_review_calculates_observed_agreement_and_kappa():
+    result = reviewer.agreement_from_rows([
+        {"reviewer_a": "TP", "reviewer_b": "TP"},
+        {"reviewer_a": "TP", "reviewer_b": "FP"},
+        {"reviewer_a": "FP", "reviewer_b": "FP"},
+        {"reviewer_a": "FP", "reviewer_b": "FP"},
+    ])
+
+    assert result["ready"] is True
+    assert result["observed_agreement"] == 0.75
+    assert result["cohen_kappa"] == 0.5
+
+
+def test_blind_review_hides_primary_labels_and_merges_second_reviewer():
+    fields = ["finding_id", "manual_classification", "reviewer_a", "reviewer_b"]
+    canonical = [
+        {"finding_id": "a", "manual_classification": "TP", "reviewer_a": "TP", "reviewer_b": ""},
+        {"finding_id": "b", "manual_classification": "FP", "reviewer_a": "FP", "reviewer_b": ""},
+    ]
+
+    blind_fields, blind_rows = blind_review.blind_rows(fields, canonical)
+
+    assert "manual_classification" not in blind_fields
+    assert "reviewer_a" not in blind_fields
+    assert all(row["reviewer_b"] == "" for row in blind_rows)
+
+    completed = [
+        {**row, "reviewer_b": label}
+        for row, label in zip(blind_rows, ("TP", "FP"), strict=True)
+    ]
+    merged = blind_review.merge_reviewer_b(canonical, completed)
+    assert [row["reviewer_b"] for row in merged] == ["TP", "FP"]
+
+
+def test_blind_review_rejects_incomplete_labels():
+    canonical = [{"finding_id": "a", "reviewer_a": "TP", "reviewer_b": ""}]
+
+    try:
+        blind_review.merge_reviewer_b(
+            canonical, [{"finding_id": "a", "reviewer_b": ""}]
+        )
+    except ValueError as exc:
+        assert "TP ou FP" in str(exc)
+    else:
+        raise AssertionError("Planilha incompleta deveria ser rejeitada.")
 
 
 def configure_results_dir(monkeypatch, tmp_path):

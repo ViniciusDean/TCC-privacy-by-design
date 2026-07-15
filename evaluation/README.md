@@ -77,16 +77,26 @@ essa amostra e não certificam desempenho geral ou conformidade jurídica.
 
 ## Protocolo da versão 1.1
 
-Django Oscar, Spring PetClinic e Northwind SQLite estão cadastrados como
-`holdout_v1_1`, inicialmente com `enabled: false`. Eles só podem ser habilitados,
-fixados por commit e executados depois do congelamento das regras da versão 1.1.
-Depois da primeira execução, os resultados não podem orientar novas heurísticas.
+Django Oscar, Spring PetClinic e Northwind SQLite foram cadastrados como
+`holdout_v1_1`, inicialmente com `enabled: false`. Eles foram habilitados somente
+depois do congelamento das regras da versão 1.1 e executados pela primeira e
+única vez no run `20260715T221415Z-3302b677`. Os resultados não podem orientar
+novas heurísticas da versão 1.1. Após essa execução, os três escopos foram
+desabilitados novamente para impedir uma repetição acidental.
 
 ```powershell
-python evaluation\real_projects\run_real_projects.py --role holdout_v1_1
+# Histórico do comando já executado; não executar novamente:
+# python evaluation\real_projects\run_real_projects.py --role holdout_v1_1
 python evaluation\real_projects\create_double_review_sample.py
+python evaluation\real_projects\double_review_blind.py export
+# O segundo revisor preenche apenas reviewer_b no CSV exportado.
+python evaluation\real_projects\double_review_blind.py import --input evaluation\real_projects\results\double_review_reviewer_b.csv
 python evaluation\real_projects\calculate_agreement.py
+python evaluation\real_projects\review_frozen_run.py --run-id ID_DA_EXECUCAO
 ```
 
 A amostra dupla usa 25% de cada estrato projeto/categoria/risco e semente fixa.
-As colunas `confidence` e `base_risk` preservam a justificativa do perfil aplicado.
+O arquivo exportado omite os rótulos do primeiro revisor para preservar a
+independência. As colunas `confidence` e `base_risk` preservam a justificativa
+do perfil aplicado. A recomposição da revisão não executa novamente os
+analisadores e mantém intactos os arquivos originais do run congelado.

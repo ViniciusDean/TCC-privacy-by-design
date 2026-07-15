@@ -1,6 +1,14 @@
 # Privacy Scanner LGPD — estado da versão 1.1
 
-Última validação local: 13 de julho de 2026.
+Última validação local: 15 de julho de 2026.
+
+## Congelamento das regras
+
+- Commit congelado: `5a891e8da2da4d16e381247162427242c1293a78`.
+- CI inicial: execução `29454538863`, aprovada em Linux e Windows com VS Code
+  `1.85.2` e `1.128.0`.
+- A partir desse commit, resultados do `holdout_v1_1` não podem orientar novas
+  heurísticas da versão 1.1; eventuais correções ficam para a versão 1.2.
 
 ## Implementado
 
@@ -19,7 +27,7 @@
 - Estado de achados/exclusões, diagnósticos, HTTP, processo e coordenação extraídos em módulos testáveis.
 - Testes unitários Python/TypeScript e teste real no Extension Host.
 - CI em Windows e Linux.
-- Corpus `holdout_v1_1` registrado, mas desabilitado até o congelamento.
+- Corpus `holdout_v1_1` registrado e habilitado somente após o congelamento.
 
 ## Estado de validação
 

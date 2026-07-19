@@ -68,7 +68,7 @@ def test_health_exposes_backend_identity():
     assert response.get_json() == {
         "status": "ok",
         "service": "privacy-scanner",
-        "version": "1.1.0",
+        "version": "1.2.0",
         "api_version": 1,
     }
 
@@ -229,3 +229,23 @@ def test_invalid_profile_blocks_analysis(tmp_path):
     )
     assert response.status_code == 400
     assert response.get_json()["error"]["codigo"] == "PERFIL_INVALIDO"
+
+
+def test_profile_summary_distinguishes_raw_and_displayed_findings(tmp_path):
+    source = tmp_path / "fixture.py"
+    source.write_text('email = "fixture"\n', encoding="utf-8")
+
+    response = app.test_client().post(
+        "/api/analyze-file",
+        json={"filepath": str(source), "profile": {"preset": "conservador"}},
+    )
+    data = response.get_json()
+
+    assert response.status_code == 200
+    assert data["resumo"]["total_bruto"] == 1
+    assert data["resumo"]["total_exibido"] == 0
+    assert data["resumo"]["ocultos_por_perfil"] == 1
+    assert data["resumo"]["indicador_tecnico_bruto"] == 90
+    assert data["resumo"]["indicador_tecnico_exibido"] == 100
+    assert data["indicador_tecnico"] == 100
+    assert data["achados"] == []

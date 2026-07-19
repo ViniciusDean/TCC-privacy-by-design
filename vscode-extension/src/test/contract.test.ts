@@ -21,9 +21,11 @@ run('normaliza o contrato canonico sem recalcular o indicador', () => {
         success: true,
         achados: [{
             finding_id: 'abc',
+            suppression_id: 'stable-suppression',
             arquivo: '/tmp/exemplo.py',
             linha: 7,
             categoria: 'DADO_SENSIVEL',
+            categoria_publica: 'Dado pessoal identificado',
             risco: 'ALTO',
             evidencia_segura: 'Campo sensivel identificado',
             trecho: 'nao deve prevalecer'
@@ -32,6 +34,10 @@ run('normaliza o contrato canonico sem recalcular o indicador', () => {
             total: 18,
             por_risco: { ALTO: 2, MEDIO: 3, BAIXO: 13 },
             indicador_tecnico: 61,
+            total_bruto: 20,
+            total_exibido: 18,
+            ocultos_por_perfil: 2,
+            indicador_tecnico_bruto: 55,
             criterio_indicador: 'criterio do backend'
         }
     });
@@ -40,6 +46,21 @@ run('normaliza o contrato canonico sem recalcular o indicador', () => {
     assert.strictEqual(result.achados[0].evidencia_segura, 'Campo sensivel identificado');
     assert.strictEqual(result.resumo?.indicador_tecnico, 61);
     assert.strictEqual(result.resumo?.total, 18);
+    assert.strictEqual(result.resumo?.total_bruto, 20);
+    assert.strictEqual(result.resumo?.ocultos_por_perfil, 2);
+    assert.strictEqual(result.achados[0].suppression_id, 'stable-suppression');
+    assert.strictEqual(result.achados[0].categoria_publica, 'Dado pessoal identificado');
+});
+
+run('preserva codigo e mensagem de erro estruturado', () => {
+    const result = normalizeAnalysisResponse({
+        success: false,
+        status: 'invalid',
+        error: { codigo: 'PERFIL_INVALIDO', mensagem: 'Perfil precisa de correcao.' }
+    });
+
+    assert.strictEqual(result.error?.codigo, 'PERFIL_INVALIDO');
+    assert.strictEqual(result.message, 'Perfil precisa de correcao.');
 });
 
 run('aceita aliases legados sem substituir campos canonicos', () => {

@@ -537,3 +537,34 @@ class TestIntegration:
         assert "DADO_HARDCODED" in html
         assert "CRIPTOGRAFIA_FRACA" in html
         assert "COLETA_EXCESSIVA" in html
+
+
+def test_suppression_id_is_exposed_and_stable(tmp_path):
+    finding = Vulnerability(
+        arquivo=str(tmp_path / "app.py"),
+        linha=3,
+        categoria="DADO_HARDCODED",
+        descricao="interno",
+        risco="ALTO",
+        artigo_lgpd="Art. 46",
+        trecho="email",
+    )
+
+    first = serializar_achado(finding, str(tmp_path))
+    second = serializar_achado(finding, str(tmp_path))
+
+    assert first["suppression_id"] == second["suppression_id"]
+    assert len(first["suppression_id"]) == 24
+
+
+def test_reporter_collection_is_idempotent(tmp_path):
+    source = tmp_path / "app.py"
+    source.write_text('senha = "segredo"\n', encoding="utf-8")
+    reporter = Reporter(alvo_codigo=str(source))
+
+    reporter.coletar()
+    first = reporter.dados_publicos()["resumo"]["total"]
+    reporter.coletar()
+    second = reporter.dados_publicos()["resumo"]["total"]
+
+    assert first == second == 1

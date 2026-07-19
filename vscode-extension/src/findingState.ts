@@ -13,6 +13,9 @@ export class FindingStateStore {
     }
 
     key(finding: Finding): string {
+        if (finding.suppression_id) {
+            return `suppression:${finding.suppression_id}`;
+        }
         if (finding.finding_id) {
             return `finding:${finding.finding_id}`;
         }

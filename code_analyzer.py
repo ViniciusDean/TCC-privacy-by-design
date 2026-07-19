@@ -27,6 +27,7 @@ class Vulnerability:
     trecho:     Optional[str] = None   # linha do código original
     confianca:  str = "ALTA"
     risco_base: Optional[str] = None
+    localizador_interno: Optional[str] = None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -59,6 +60,19 @@ CAMPOS_PROTEGIDOS = {
     "cipher", "cifrado", "criptografado", "anonimizado", "anon",
     "mask", "masked", "mascar", "mascarado", "mascarada", "redact", "redacted",
 }
+TOKENS_FINALIDADE_TECNICA = {
+    "template", "templates", "file", "filename", "path", "subject", "body",
+    "event", "evento", "code", "codigo", "status", "type", "tipo", "label",
+    "slug", "module", "modulo",
+}
+TOKENS_CONFIGURACAO_TECNICA = {
+    "default", "defaults", "config", "configuration", "sender", "remetente",
+    "from", "system", "sistema",
+}
+TOKENS_CONTEXTO_TESTE = {
+    "test", "tests", "teste", "testes", "fixture", "fixtures", "factory",
+    "factories", "mock", "mocks", "seed", "seeder",
+}
 METODOS_EXCLUSAO_ANONIMIZACAO = (
     "delete", "delet", "remov", "exclu", "anonimiz", "anonymiz", "purge",
 )
@@ -68,6 +82,9 @@ DIRETORIOS_IGNORADOS = {
     ".ruff_cache", ".tox", ".venv", ".vscode", "__pycache__", "build",
     "coverage", "dist", "env", "htmlcov", "node_modules", "out",
     "python_backend", "site-packages", "third_party", "vendor", "venv",
+}
+PADROES_DIRETORIOS_IGNORADOS = {
+    ".pytest-tmp-*", ".test-tmp-*", ".tmp-*", "pytest-*", "tmp-*",
 }
 ARQUIVO_IGNORADOS = ".privacyignore"
 EXTENSOES_CODIGO = (".py", ".java")
@@ -157,7 +174,7 @@ def carregar_padroes_ignorados(diretorio: str) -> list[str]:
     caminho = os.path.join(diretorio, ARQUIVO_IGNORADOS)
     if not os.path.isfile(caminho):
         return []
-    with open(caminho, encoding="utf-8") as arquivo:
+    with open(caminho, encoding="utf-8-sig") as arquivo:
         return [
             linha.strip().replace("\\", "/")
             for linha in arquivo
@@ -234,6 +251,7 @@ class CodeAnalyzer(ast.NodeVisitor):
         self.resultados: list[Vulnerability] = []
         self._pilha_funcoes: list[ast.FunctionDef | ast.AsyncFunctionDef] = []
         self._pilha_classes: list[ast.ClassDef] = []
+        self._chaves_adicionadas: set[tuple[int, str, str]] = set()
 
     def visit(self, node):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -258,7 +276,20 @@ class CodeAnalyzer(ast.NodeVisitor):
             return self.linhas[linha - 1].strip()[:120]
         return ""
 
-    def _adicionar(self, linha, categoria, descricao, risco, artigo, confianca="ALTA"):
+    def _adicionar(
+        self,
+        linha,
+        categoria,
+        descricao,
+        risco,
+        artigo,
+        confianca="ALTA",
+        localizador_interno="",
+    ):
+        chave = (int(linha or 0), str(categoria), str(localizador_interno))
+        if chave in self._chaves_adicionadas:
+            return
+        self._chaves_adicionadas.add(chave)
         self.resultados.append(Vulnerability(
             arquivo=self.caminho,
             linha=linha,
@@ -268,7 +299,86 @@ class CodeAnalyzer(ast.NodeVisitor):
             artigo_lgpd=artigo,
             trecho=self._trecho(linha),
             confianca=confianca,
+            localizador_interno=localizador_interno or None,
         ))
+
+    def _nome_tem_finalidade_tecnica(self, nome: str) -> bool:
+        return any(
+            token in TOKENS_FINALIDADE_TECNICA
+            for token in self._tokens_nome(nome)
+        )
+
+    def _arquivo_em_contexto_de_teste(self) -> bool:
+        partes = [
+            parte.lower()
+            for parte in re.split(r"[\\/]+", os.path.abspath(self.caminho))
+            if parte
+        ]
+        nome = os.path.basename(self.caminho).lower()
+        return (
+            any(parte in {"test", "tests", "fixture", "fixtures"} for parte in partes)
+            or nome.startswith(("test_", "fixture_"))
+        )
+
+    def _classe_atual_e_configuracao(self) -> bool:
+        if not self._pilha_classes:
+            return False
+        classe = self._pilha_classes[-1]
+        tokens = self._tokens_nome(classe.name)
+        if tokens and tokens[-1] in {"config", "configuration", "settings"}:
+            return True
+        bases = {self._nome_expr(base).lower() for base in classe.bases}
+        return any(
+            base.endswith(("appconfig", "config", "configuration"))
+            for base in bases
+        )
+
+    @staticmethod
+    def _literal_parece_identificador_tecnico(valor: str) -> bool:
+        texto = valor.strip()
+        return bool(
+            re.fullmatch(r"[A-Z][A-Z0-9_:-]{2,}", texto)
+            or re.fullmatch(
+                r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.%{}-]+)+",
+                texto,
+            )
+        )
+
+    def _confianca_literal_pessoal(
+        self,
+        nome: str,
+        campo: str,
+        valor: str,
+    ) -> str | None:
+        tokens = self._tokens_nome(nome)
+        texto = valor.strip()
+        if not texto or self._nome_tem_finalidade_tecnica(nome):
+            return None
+        if self._classe_atual_e_configuracao() and campo in CAMPOS_AMBIGUOS:
+            return None
+        if campo in CAMPOS_AMBIGUOS and self._literal_parece_identificador_tecnico(texto):
+            return None
+
+        if set(tokens) & TOKENS_CONFIGURACAO_TECNICA:
+            return "MEDIA"
+        if self._arquivo_em_contexto_de_teste():
+            return "MEDIA"
+        if campo in {
+            "senha", "password", "passwd", "pwd", "secret", "token",
+            "api_key", "apikey",
+        }:
+            return "ALTA"
+        if campo in {"cpf", "rg", "cnpj", "passaporte"}:
+            return "ALTA" if sum(char.isdigit() for char in texto) >= 7 else "MEDIA"
+        if campo in {"email", "e_mail"}:
+            return "ALTA" if re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", texto) else "MEDIA"
+        if campo in {"telefone", "celular", "phone"}:
+            return "ALTA" if sum(char.isdigit() for char in texto) >= 8 else "MEDIA"
+        if campo in {"cartao", "card", "credit", "credito"}:
+            return "ALTA" if sum(char.isdigit() for char in texto) >= 12 else None
+        if campo in CAMPOS_AMBIGUOS:
+            return "ALTA" if self._contexto_atual_pessoal() else "MEDIA"
+        return "MEDIA"
 
     def _nome_contem_campo_sensivel(self, nome: str) -> Optional[str]:
         """Verifica se um nome de variável/atributo contém campo sensível.
@@ -276,6 +386,8 @@ class CodeAnalyzer(ast.NodeVisitor):
         """
         nome_lower = nome.lower()
         if nome_lower in CAMPOS_TECNICOS:
+            return None
+        if self._nome_tem_finalidade_tecnica(nome):
             return None
 
         tokens = self._tokens_nome(nome)
@@ -413,7 +525,8 @@ class CodeAnalyzer(ast.NodeVisitor):
             # Valor literal não vazio é o caso de maior risco. O conteúdo não
             # é publicado pelos relatórios; apenas a categoria e a localização.
             if isinstance(valor, ast.Constant) and isinstance(valor.value, str):
-                if valor.value:
+                confianca = self._confianca_literal_pessoal(nome, campo, valor.value)
+                if confianca:
                     self._adicionar(
                         linha,
                         "DADO_HARDCODED",
@@ -421,6 +534,8 @@ class CodeAnalyzer(ast.NodeVisitor):
                         f"(dado pessoal fixo no código).",
                         "ALTO",
                         "Art. 46 — Segurança e prevenção",
+                        confianca,
+                        f"atribuicao:{nome}",
                     )
                 continue
 
@@ -491,8 +606,16 @@ class CodeAnalyzer(ast.NodeVisitor):
         nome_chamada = self._nome_call(node)
 
         # ── 3a: dado sensível passado diretamente para log ──
-        if any(nome_chamada.startswith(log) for log in FUNCOES_LOG):
+        partes_chamada = nome_chamada.lower().split(".")
+        eh_log = nome_chamada == "print" or (
+            len(partes_chamada) >= 2
+            and partes_chamada[-1]
+            in {"debug", "info", "warning", "warn", "error", "critical"}
+            and partes_chamada[-2] in {"logging", "logger"}
+        )
+        if eh_log:
             argumentos_log = [*node.args, *(kw.value for kw in node.keywords)]
+            campos_log: set[str] = set()
             for arg in argumentos_log:
                 variaveis = self._extrair_nomes(arg)
                 for var in variaveis:
@@ -501,37 +624,52 @@ class CodeAnalyzer(ast.NodeVisitor):
                         campo not in CAMPOS_AMBIGUOS
                         or self._campo_ambiguo_tem_contexto(var)
                     ):
-                        self._adicionar(
-                            node.lineno,
-                            "DADO_EM_LOG",
-                            f"Dado pessoal '{campo}' registrado em log/print. "
-                            f"Logs com dados identificáveis violam o princípio "
-                            f"da minimização.",
-                            "ALTO",
-                            "Art. 46 — Segurança | Art. 6º, III — Necessidade"
-                        )
-                        break  # um aviso por chamada é suficiente
+                        campos_log.add(campo)
+            if campos_log:
+                campos_texto = ", ".join(sorted(campos_log))
+                self._adicionar(
+                    node.lineno,
+                    "DADO_EM_LOG",
+                    f"Dados pessoais ({campos_texto}) registrados em log/print. "
+                    f"Logs com dados identificáveis violam o princípio "
+                    f"da minimização.",
+                    "ALTO",
+                    "Art. 46 — Segurança | Art. 6º, III — Necessidade",
+                    localizador_interno=(
+                        f"chamada-log:{node.lineno}:{node.col_offset}"
+                    ),
+                )
 
         # ── 3b: transferência de dados para serviço externo ──
-        if any(nome_chamada.startswith(svc) for svc in SERVICOS_TERCEIROS):
+        eh_servico = any(
+            nome_chamada == svc or nome_chamada.startswith(f"{svc}.")
+            for svc in SERVICOS_TERCEIROS
+        )
+        if eh_servico:
             # Verifica se há campos sensíveis nos kwargs (json=, data=, params=)
+            campos_transferidos: set[str] = set()
             for kw in node.keywords:
                 if kw.arg in ("json", "data", "params", "body"):
                     variaveis = self._extrair_nomes(kw.value)
                     for var in variaveis:
                         campo = self._nome_contem_campo_sensivel(var)
                         if campo:
-                            self._adicionar(
-                                node.lineno,
-                                "TRANSFERENCIA_SEM_BASE_LEGAL",
-                                f"Campo '{campo}' enviado para serviço externo "
-                                f"({nome_chamada}). Verifique se há base legal "
-                                f"documentada para esta transferência.",
-                                "ALTO",
-                                "Art. 7º — Hipóteses de tratamento | "
-                                "Art. 33 — Transferência internacional"
-                            )
-                            break
+                            campos_transferidos.add(campo)
+            if campos_transferidos:
+                campos_texto = ", ".join(sorted(campos_transferidos))
+                self._adicionar(
+                    node.lineno,
+                    "TRANSFERENCIA_SEM_BASE_LEGAL",
+                    f"Campos ({campos_texto}) enviados para serviço externo "
+                    f"({nome_chamada}). Verifique se há base legal "
+                    f"documentada para esta transferência.",
+                    "ALTO",
+                    "Art. 7º — Hipóteses de tratamento | "
+                    "Art. 33 — Transferência internacional",
+                    localizador_interno=(
+                        f"chamada-transferencia:{node.lineno}:{node.col_offset}"
+                    ),
+                )
 
         self.generic_visit(node)
 
@@ -588,7 +726,10 @@ class CodeAnalyzer(ast.NodeVisitor):
         # representam persistencia. Formularios e classes de configuracao eram
         # a principal fonte de falsos positivos na validacao externa.
         nome_lower = node.name.lower()
-        if nome_lower == "config" or nome_lower.endswith(("form", "schema", "serializer")):
+        if nome_lower == "config" or nome_lower.endswith((
+            "form", "schema", "serializer", "table", "config",
+            "configuration", "seeder",
+        )):
             self.generic_visit(node)
             return
 
@@ -603,6 +744,13 @@ class CodeAnalyzer(ast.NodeVisitor):
             or base.endswith((".model", ".document", ".entity"))
             for base in bases
         )
+        chamadas_persistentes = {
+            "column", "mapped_column", "relationship",
+            "models.field", "models.charfield", "models.textfield",
+            "models.emailfield", "models.datefield", "models.datetimefield",
+            "models.foreignkey", "models.onetoonefield", "models.manytomanyfield",
+            "db.column", "db.relationship",
+        }
         declara_campo_persistente = any(
             isinstance(item, (ast.Assign, ast.AnnAssign))
             and isinstance(
@@ -611,8 +759,7 @@ class CodeAnalyzer(ast.NodeVisitor):
             )
             and self._nome_call(
                 item.value if isinstance(item, ast.Assign) else item.value
-            ).lower().split(".")[-1]
-            in {"column", "field", "relationship", "mapped_column"}
+            ).lower() in chamadas_persistentes
             for item in node.body
         )
         if not (herda_persistencia or declara_campo_persistente):
@@ -641,11 +788,32 @@ class CodeAnalyzer(ast.NodeVisitor):
             if not campos_fortes and not self._contexto_atual_pessoal():
                 self.generic_visit(node)
                 return
+            verbos_exclusao = {
+                "delete", "remove", "remover", "excluir", "anonimizar",
+                "anonymize", "purge",
+            }
+            alvos_exclusao = {
+                "user", "usuario", "account", "conta", "profile", "perfil",
+                "data", "dados", "personal", "pessoal", "record", "registro",
+            }
             tem_exclusao = any(
-                p in m for m in metodos
-                for p in ["delete", "remov", "exclu", "anonimiz", "anonymiz", "purge"]
+                tokens
+                and tokens[0] in verbos_exclusao
+                and (len(tokens) == 1 or tokens[1] in alvos_exclusao)
+                for metodo in metodos
+                if (tokens := self._tokens_nome(metodo))
             )
-            if not tem_exclusao:
+            tem_cascata = any(
+                isinstance(item, (ast.Assign, ast.AnnAssign))
+                and isinstance(item.value, ast.Call)
+                and any(
+                    kw.arg == "on_delete"
+                    and self._nome_expr(kw.value).lower().endswith("cascade")
+                    for kw in item.value.keywords
+                )
+                for item in node.body
+            )
+            if not tem_exclusao and not tem_cascata:
                 self._adicionar(
                     node.lineno,
                     "AUSENCIA_EXCLUSAO",
@@ -653,7 +821,9 @@ class CodeAnalyzer(ast.NodeVisitor):
                     f"({', '.join(campos_na_classe[:3])}) mas não define "
                     f"método de exclusão ou anonimização.",
                     "MEDIO",
-                    "Art. 18, IV — Direito à eliminação dos dados"
+                    "Art. 18, IV — Direito à eliminação dos dados",
+                    "ALTA" if herda_persistencia else "MEDIA",
+                    f"classe:{node.name}:ausencia-exclusao",
                 )
 
         self.generic_visit(node)
@@ -749,10 +919,10 @@ def analisar_arquivo_com_escopo(caminho: str) -> tuple[list[Vulnerability], dict
 
     escopo = novo_escopo_varredura(caminho, "arquivo")
     escopo["arquivos_elegiveis"] = 1
-    if os.path.getsize(caminho) == 0:
-        return [], finalizar_escopo_varredura(escopo)
-
     try:
+        if os.path.getsize(caminho) == 0:
+            registrar_erro_escopo(escopo, caminho, ValueError("arquivo vazio"))
+            return [], finalizar_escopo_varredura(escopo)
         resultados = analisar_arquivo(caminho)
     except (OSError, SyntaxError, UnicodeDecodeError, ValueError) as erro:
         registrar_erro_escopo(escopo, caminho, erro)
@@ -774,17 +944,31 @@ def analisar_diretorio_com_escopo(diretorio: str) -> tuple[list[Vulnerability], 
         raise FileNotFoundError(f"Diretório não encontrado: {diretorio}")
 
     todos: list[Vulnerability] = []
-    diretorio_raiz = os.path.abspath(diretorio)
+    diretorio_raiz = os.path.realpath(os.path.abspath(diretorio))
     escopo = novo_escopo_varredura(diretorio_raiz, "diretorio")
     padroes_ignorados = carregar_padroes_ignorados(diretorio_raiz)
 
-    for raiz, diretorios, arquivos in os.walk(diretorio_raiz):
+    def registrar_erro_walk(erro: OSError) -> None:
+        registrar_erro_escopo(
+            escopo,
+            getattr(erro, "filename", None) or diretorio_raiz,
+            erro,
+        )
+
+    for raiz, diretorios, arquivos in os.walk(
+        diretorio_raiz,
+        onerror=registrar_erro_walk,
+    ):
         diretorios_mantidos = []
         for nome in diretorios:
             caminho_diretorio = os.path.join(raiz, nome)
             relativo = os.path.relpath(caminho_diretorio, diretorio_raiz)
             ignorado = (
                 nome.lower() in DIRETORIOS_IGNORADOS
+                or any(
+                    fnmatch.fnmatch(nome.lower(), padrao)
+                    for padrao in PADROES_DIRETORIOS_IGNORADOS
+                )
                 or caminho_deve_ser_ignorado(relativo, padroes_ignorados, diretorio=True)
             )
             if ignorado:
@@ -805,11 +989,20 @@ def analisar_diretorio_com_escopo(diretorio: str) -> tuple[list[Vulnerability], 
                 escopo["arquivos_ignorados"] += 1
                 continue
 
-            escopo["arquivos_elegiveis"] += 1
-            if os.path.getsize(caminho) == 0:
-                registrar_erro_escopo(escopo, caminho, ValueError("arquivo vazio"))
-                continue
             try:
+                caminho_real = os.path.realpath(caminho)
+                raiz_comum = os.path.commonpath([diretorio_raiz, caminho_real])
+                if os.path.normcase(raiz_comum) != os.path.normcase(diretorio_raiz):
+                    escopo["arquivos_ignorados"] += 1
+                    continue
+                escopo["arquivos_elegiveis"] += 1
+                if os.path.getsize(caminho) == 0:
+                    registrar_erro_escopo(
+                        escopo,
+                        caminho,
+                        ValueError("arquivo vazio"),
+                    )
+                    continue
                 todos.extend(analisar_arquivo(caminho))
             except (OSError, SyntaxError, UnicodeDecodeError, ValueError) as erro:
                 registrar_erro_escopo(escopo, caminho, erro)

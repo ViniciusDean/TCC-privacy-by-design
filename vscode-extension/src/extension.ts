@@ -11,9 +11,19 @@ import {
 } from './backendEndpoint';
 import { resolvePythonCommand, runProcess } from './processUtils';
 import { postWithSingleRecovery } from './httpClient';
-import { AnalysisCoordinator, CoordinatedAnalysisSession } from './analysisCoordinator';
+import {
+    AnalysisCoordinator,
+    CanonicalAnalysisOrigin,
+    CoordinatedAnalysisSession,
+    shouldPreserveCanonicalWorkspaceState
+} from './analysisCoordinator';
 import { FindingStateStore } from './findingState';
 import { buildDiagnostics } from './diagnostics';
+import {
+    QuickActionsProvider,
+    QuickActionsState,
+    shouldShowQuickActionsOnboarding
+} from './quickActions';
 import {
     AnalysisResponse,
     AnalysisSummary,
@@ -31,6 +41,15 @@ import {
     profileFilePath,
     serializeProfile
 } from './profile';
+import {
+    changeDraftPreset,
+    countProfileCustomizations,
+    createProfileDraft,
+    formatProfileSummary,
+    invalidProfileBackupPath,
+    normalizeProfileDraft
+} from './profileDraft';
+import { showProfileWizard } from './profileWizard';
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -63,23 +82,92 @@ const findingState = new FindingStateStore();
 let canonicalSummary: AnalysisSummary | undefined;
 let currentScope: ScopeMetadata | undefined;
 let currentScopeNotice: string | undefined;
+let canonicalAnalysisOrigin: CanonicalAnalysisOrigin | undefined;
 let sidebarEnabled: boolean = true;
 let diagnosticsEnabled: boolean = true;
 const analysisCoordinator = new AnalysisCoordinator();
 
-const ANALYSIS_TIMEOUT_MS = 15000;
 const HEALTH_TIMEOUT_MS = 2000;
+
+function analysisTimeoutMs(): number {
+    return vscode.workspace.getConfiguration('privacy-scanner')
+        .get('analysisTimeoutMs', 60000);
+}
 
 // Mapa global de achados: filePath -> Vulnerability[]
 const allVulnerabilities = findingState.byFile;
 let vulnerabilitiesProvider: VulnerabilitiesProvider;
 let summaryProvider: SummaryProvider;
+let quickActionsProvider: QuickActionsProvider;
 
 const IGNORED_FINDINGS_KEY = 'privacy-scanner.ignoredFindings.v2';
 const LEGACY_IGNORED_VULNERABILITIES_KEY = 'privacy-scanner.ignoredVulnerabilities';
+const QUICK_ACTIONS_ONBOARDING_KEY = 'privacy-scanner.quickActionsOnboarding.1.1.1';
+const INTERNAL_PROFILE_WRITE_TTL_MS = 10000;
+
+interface InternalProfileWrite {
+    readonly content: string;
+    readonly expiresAt: number;
+}
+
+const internalProfileWrites = new Map<string, InternalProfileWrite>();
 
 function log(message: string): void {
     outputChannel?.appendLine(`[${new Date().toISOString()}] ${message}`);
+}
+
+function profileWriteKey(filePath: string): string {
+    const resolved = path.resolve(filePath);
+    return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
+}
+
+function writeProfile(root: string, profile: AnalysisProfile): string {
+    const targetPath = profileFilePath(root);
+    const content = serializeProfile(profile);
+    const key = profileWriteKey(targetPath);
+    const pending: InternalProfileWrite = {
+        content,
+        expiresAt: Date.now() + INTERNAL_PROFILE_WRITE_TTL_MS
+    };
+    internalProfileWrites.set(key, pending);
+    fs.writeFileSync(targetPath, content, 'utf8');
+    setTimeout(() => {
+        if (internalProfileWrites.get(key) === pending) {
+            internalProfileWrites.delete(key);
+        }
+    }, INTERNAL_PROFILE_WRITE_TTL_MS);
+    return targetPath;
+}
+
+function isInternalProfileChange(filePath: string): boolean {
+    const key = profileWriteKey(filePath);
+    const pending = internalProfileWrites.get(key);
+    if (!pending) {
+        return false;
+    }
+    if (pending.expiresAt < Date.now()) {
+        internalProfileWrites.delete(key);
+        return false;
+    }
+    try {
+        return fs.readFileSync(filePath, 'utf8') === pending.content;
+    } catch {
+        return false;
+    }
+}
+
+function backupInvalidProfile(filePath: string): string | undefined {
+    if (!fs.existsSync(filePath)) {
+        return undefined;
+    }
+    let backupPath = invalidProfileBackupPath(filePath);
+    let suffix = 2;
+    while (fs.existsSync(backupPath)) {
+        backupPath = invalidProfileBackupPath(filePath).replace(/\.bak$/, `-${suffix}.bak`);
+        suffix += 1;
+    }
+    fs.copyFileSync(filePath, backupPath);
+    return backupPath;
 }
 
 function workspaceRootForUri(uri?: vscode.Uri): string | undefined {
@@ -87,6 +175,205 @@ function workspaceRootForUri(uri?: vscode.Uri): string | undefined {
         return vscode.workspace.getWorkspaceFolder(uri)?.uri.fsPath;
     }
     return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+}
+
+async function selectWorkspaceRoot(uri?: vscode.Uri): Promise<string | undefined> {
+    const resource = uri ?? vscode.window.activeTextEditor?.document.uri;
+    if (resource) {
+        const directRoot = workspaceRootForUri(resource);
+        if (directRoot) {
+            return directRoot;
+        }
+    }
+
+    const folders = vscode.workspace.workspaceFolders ?? [];
+    if (folders.length === 0) {
+        return undefined;
+    }
+    if (folders.length === 1) {
+        return folders[0].uri.fsPath;
+    }
+
+    const selected = await vscode.window.showQuickPick(
+        folders.map(folder => ({
+            label: folder.name,
+            description: folder.uri.fsPath,
+            folder
+        })),
+        { title: 'Selecionar pasta do perfil' }
+    );
+    return selected?.folder.uri.fsPath;
+}
+
+function workspaceLabelForRoot(root: string): string {
+    const key = profileWriteKey(root);
+    const folder = (vscode.workspace.workspaceFolders ?? []).find(
+        candidate => profileWriteKey(candidate.uri.fsPath) === key
+    );
+    return folder?.name || path.basename(root);
+}
+
+async function offerProfileReanalysis(
+    root: string,
+    profile: AnalysisProfile,
+    backupPath?: string
+): Promise<void> {
+    const summary = formatProfileSummary(createProfileDraft(profile));
+    const backupNotice = backupPath
+        ? ` O perfil inválido anterior foi preservado em ${path.basename(backupPath)}.`
+        : '';
+    const choice = await vscode.window.showInformationMessage(
+        `Perfil ${summary} salvo para ${workspaceLabelForRoot(root)}.${backupNotice}`,
+        'Reanalisar agora'
+    );
+    if (choice === 'Reanalisar agora') {
+        await analyzeWorkspace(root);
+    }
+}
+
+async function configureProfileCommand(
+    target?: vscode.Uri,
+    recreateInvalidProfile: boolean = false
+): Promise<void> {
+    const root = await selectWorkspaceRoot(target);
+    if (!root) {
+        vscode.window.showWarningMessage('Abra uma pasta para configurar o perfil.');
+        return;
+    }
+
+    const targetPath = profileFilePath(root);
+    let initialProfile: AnalysisProfile;
+    let replaceInvalidProfile = false;
+    try {
+        initialProfile = loadProfile(root);
+    } catch (error) {
+        const message = error instanceof ProfileError ? error.message : String(error);
+        log(`Perfil invalido antes do assistente: ${message}`);
+        if (!recreateInvalidProfile) {
+            const choice = await vscode.window.showErrorMessage(
+                `Perfil do Privacy Scanner inválido: ${message}`,
+                'Recriar com assistente',
+                'Abrir JSON (avançado)'
+            );
+            if (choice === 'Abrir JSON (avançado)') {
+                await vscode.commands.executeCommand(
+                    'privacy-scanner.createProfile',
+                    vscode.Uri.file(root)
+                );
+                return;
+            }
+            if (choice !== 'Recriar com assistente') {
+                return;
+            }
+        }
+        initialProfile = DEFAULT_PROFILE;
+        replaceInvalidProfile = fs.existsSync(targetPath);
+    }
+
+    let backupPath: string | undefined;
+    let savedProfile: AnalysisProfile | undefined;
+    try {
+        savedProfile = await showProfileWizard({
+            initialProfile,
+            scopeLabel: workspaceLabelForRoot(root),
+            onSave: async profile => {
+                if (replaceInvalidProfile) {
+                    backupPath = backupInvalidProfile(targetPath);
+                }
+                writeProfile(root, profile);
+                refreshViews();
+            }
+        });
+    } catch (error) {
+        log(`Falha ao salvar perfil pelo assistente: ${error instanceof Error ? error.name : 'erro desconhecido'}.`);
+        const choice = await vscode.window.showErrorMessage(
+            'Não foi possível salvar o perfil. Consulte os logs para detalhes.',
+            'Abrir logs'
+        );
+        await handleRecoveryChoice(choice);
+        return;
+    }
+    if (!savedProfile) {
+        return;
+    }
+    await offerProfileReanalysis(root, savedProfile, backupPath);
+}
+
+function commandUris(
+    target?: vscode.Uri | readonly vscode.Uri[],
+    selected?: readonly vscode.Uri[]
+): vscode.Uri[] {
+    if (selected && selected.length > 0) {
+        return [...selected];
+    }
+    if (target instanceof vscode.Uri) {
+        return [target];
+    }
+    if (Array.isArray(target)) {
+        return [...target] as vscode.Uri[];
+    }
+    return [];
+}
+
+async function analyzeDatabaseCommand(
+    target?: vscode.Uri | vscode.Uri[],
+    selected?: vscode.Uri[]
+): Promise<void> {
+    const targets = commandUris(target, selected);
+    await analyzeDatabaseFromPicker(targets.length > 0 ? targets : undefined);
+}
+
+async function openPrivacyScannerSettings(): Promise<void> {
+    await vscode.commands.executeCommand(
+        'workbench.action.openSettings',
+        '@ext:fatec-tcc.privacy-scanner-lgpd'
+    );
+}
+
+async function handleRecoveryChoice(choice: string | undefined): Promise<void> {
+    switch (choice) {
+        case 'Configurar agora':
+            if (backendStartPromise) {
+                setTimeout(() => {
+                    void vscode.commands.executeCommand('privacy-scanner.setupBackend');
+                }, 0);
+            } else {
+                await vscode.commands.executeCommand('privacy-scanner.setupBackend');
+            }
+            break;
+        case 'Reiniciar':
+            if (backendStartPromise) {
+                setTimeout(() => {
+                    void vscode.commands.executeCommand('privacy-scanner.restartBackend');
+                }, 0);
+            } else {
+                await vscode.commands.executeCommand('privacy-scanner.restartBackend');
+            }
+            break;
+        case 'Abrir logs':
+            await vscode.commands.executeCommand('privacy-scanner.showLogs');
+            break;
+        case 'Abrir configurações':
+            await openPrivacyScannerSettings();
+            break;
+    }
+}
+
+function dispatchRecoveryChoice(choice: string | undefined): void {
+    void handleRecoveryChoice(choice).catch(error => {
+        log(`Falha ao executar ação de recuperação: ${error instanceof Error ? error.name : 'erro desconhecido'}.`);
+        outputChannel?.show(true);
+    });
+}
+
+async function showBackendRecovery(
+    message: string,
+    severity: 'warning' | 'error' = 'warning'
+): Promise<void> {
+    const choice = severity === 'error'
+        ? await vscode.window.showErrorMessage(message, 'Reiniciar', 'Abrir logs')
+        : await vscode.window.showWarningMessage(message, 'Reiniciar', 'Abrir logs');
+    dispatchRecoveryChoice(choice);
 }
 
 function profileForRoot(root?: string): AnalysisProfile | undefined {
@@ -97,7 +384,31 @@ function profileForRoot(root?: string): AnalysisProfile | undefined {
     } catch (error) {
         const message = error instanceof ProfileError ? error.message : String(error);
         log(`Perfil invalido: ${message}`);
-        vscode.window.showErrorMessage(`Perfil do Privacy Scanner invalido: ${message}`);
+        void vscode.window.showErrorMessage(
+            `Perfil do Privacy Scanner inválido: ${message}`,
+            'Recriar com assistente',
+            'Abrir JSON (avançado)'
+        ).then(choice => {
+            if (choice === 'Recriar com assistente' && root) {
+                void configureProfileCommand(vscode.Uri.file(root), true)
+                    .then(undefined, configureError => {
+                        log(`Falha ao corrigir perfil: ${configureError instanceof Error ? configureError.name : 'erro desconhecido'}.`);
+                        outputChannel?.show(true);
+                    });
+                return;
+            }
+            if (choice === 'Abrir JSON (avançado)' && root) {
+                void vscode.commands.executeCommand(
+                    'privacy-scanner.createProfile',
+                    vscode.Uri.file(root)
+                ).then(undefined, openError => {
+                    log(`Falha ao abrir perfil: ${openError instanceof Error ? openError.name : 'erro desconhecido'}.`);
+                    outputChannel?.show(true);
+                });
+                return;
+            }
+            dispatchRecoveryChoice(choice);
+        });
         return undefined;
     }
 }
@@ -105,6 +416,11 @@ function profileForRoot(root?: string): AnalysisProfile | undefined {
 function isDatabaseUri(uri: vscode.Uri): boolean {
     const filePath = uri.fsPath.toLowerCase();
     return filePath.endsWith('.db') || filePath.endsWith('.sqlite') || filePath.endsWith('.sqlite3');
+}
+
+function isSupportedCodeUri(uri: vscode.Uri): boolean {
+    const filePath = uri.fsPath.toLowerCase();
+    return filePath.endsWith('.py') || filePath.endsWith('.java');
 }
 
 function isSupportedCodeDocument(document: vscode.TextDocument): boolean {
@@ -125,6 +441,57 @@ function visibleVulnerabilities(): Vulnerability[] {
     return findingState.visible();
 }
 
+function currentQuickActionsState(): QuickActionsState {
+    const activeResource = vscode.window.activeTextEditor?.document.uri;
+    const folders = vscode.workspace.workspaceFolders ?? [];
+    const activeRoot = activeResource ? workspaceRootForUri(activeResource) : undefined;
+    const roots = activeRoot
+        ? [activeRoot]
+        : folders.map(folder => folder.uri.fsPath);
+    let profilePreset: string | undefined;
+    let profileCustomizationCount: number | undefined;
+    let profileValid = true;
+    const presets = new Set<string>();
+    const invalidProfileRoots: string[] = [];
+    let customizationTotal = 0;
+
+    for (const root of roots) {
+        try {
+            const profile = loadProfile(root);
+            presets.add(profile.preset);
+            customizationTotal += countProfileCustomizations(createProfileDraft(profile));
+        } catch {
+            profileValid = false;
+            invalidProfileRoots.push(workspaceLabelForRoot(root));
+        }
+    }
+    if (roots.length === 1 && presets.size === 1) {
+        profilePreset = Array.from(presets)[0];
+    } else if (roots.length > 1) {
+        profilePreset = 'múltiplos perfis';
+    }
+    if (roots.length > 0) {
+        profileCustomizationCount = customizationTotal;
+    }
+
+    return {
+        activeResource,
+        activeFileName: activeResource?.fsPath ? path.basename(activeResource.fsPath) : undefined,
+        activeFileSupported: Boolean(activeResource && isSupportedCodeUri(activeResource)),
+        hasWorkspace: folders.length > 0,
+        profilePreset,
+        profileCustomizationCount,
+        invalidProfileRoots,
+        profileValid,
+        backendStatus: backendStartPromise
+            ? 'starting'
+            : serverRunning
+                ? 'ready'
+                : 'unavailable',
+        ignoredCount: activeIgnoredCount()
+    };
+}
+
 function activeIgnoredCount(): number {
     return findingState.ignoredCount();
 }
@@ -142,6 +509,9 @@ function refreshAllDiagnostics(): void {
 }
 
 function refreshViews(): void {
+    if (quickActionsProvider) {
+        quickActionsProvider.refresh();
+    }
     if (vulnerabilitiesProvider) {
         vulnerabilitiesProvider.refresh();
     }
@@ -160,12 +530,15 @@ function setAnalyzing(value: boolean, message: string = 'Analisando...'): void {
 
 type AnalysisSession = CoordinatedAnalysisSession;
 
-function beginAnalysis(message: string): AnalysisSession {
+function beginAnalysis(message: string, preserveCanonicalState: boolean = false): AnalysisSession {
     // Nenhum indicador de uma varredura anterior deve sobreviver enquanto o
     // novo escopo ainda não foi validado pelo backend.
-    canonicalSummary = undefined;
-    currentScope = undefined;
-    currentScopeNotice = undefined;
+    if (!preserveCanonicalState) {
+        canonicalSummary = undefined;
+        currentScope = undefined;
+        currentScopeNotice = undefined;
+        canonicalAnalysisOrigin = undefined;
+    }
     const session = analysisCoordinator.begin(message);
     setAnalyzing(true, message);
     return session;
@@ -201,7 +574,20 @@ function responseFromAxiosError(error: unknown): AnalysisResponse | undefined {
     return undefined;
 }
 
+function showStructuredAnalysisFailure(result: AnalysisResponse, fallback: string): void {
+    const code = result.error?.codigo;
+    const message = result.error?.mensagem || result.message || fallback;
+    const prefix = code ? `[${code}] ` : '';
+    void vscode.window.showWarningMessage(`${prefix}${message}`, 'Abrir logs')
+        .then(choice => choice === 'Abrir logs' && outputChannel?.show(true));
+}
+
 function applyViewConfiguration(): void {
+    void vscode.commands.executeCommand(
+        'setContext',
+        'privacy-scanner:showActions',
+        sidebarEnabled
+    );
     void vscode.commands.executeCommand(
         'setContext',
         'privacy-scanner:showVulnerabilities',
@@ -216,10 +602,14 @@ function applyViewConfiguration(): void {
     refreshViews();
 }
 
-function updateCanonicalState(result: AnalysisResponse): void {
+function updateCanonicalState(
+    result: AnalysisResponse,
+    origin: CanonicalAnalysisOrigin = 'single'
+): void {
     canonicalSummary = result.resumo;
     currentScope = result.escopo;
     currentScopeNotice = result.aviso_escopo;
+    canonicalAnalysisOrigin = origin;
 }
 
 function updateFailedScopeState(result: AnalysisResponse): void {
@@ -238,9 +628,12 @@ async function ensureBackendRunning(): Promise<boolean> {
     if (serverRunning) {
         return true;
     }
-    vscode.window.showWarningMessage(
-        'O backend compatível do Privacy Scanner não está disponível. Verifique a inicialização e a porta configurada.'
-    );
+    void vscode.window.showWarningMessage(
+        'O backend compatível do Privacy Scanner não está disponível.',
+        'Configurar agora',
+        'Reiniciar',
+        'Abrir logs'
+    ).then(dispatchRecoveryChoice);
     return false;
 }
 
@@ -249,6 +642,7 @@ async function stopBackend(): Promise<void> {
     backendGeneration += 1;
     flaskProcess = undefined;
     serverRunning = false;
+    refreshViews();
     if (!processToStop || processToStop.killed || processToStop.exitCode !== null) {
         return;
     }
@@ -295,12 +689,30 @@ async function postBackend<T>(
 // Inicialização da extensão
 // ─────────────────────────────────────────────────────────────────────────────
 
+async function showQuickActionsOnboarding(context: vscode.ExtensionContext): Promise<void> {
+    if (!shouldShowQuickActionsOnboarding(
+        sidebarEnabled,
+        context.globalState.get<boolean>(QUICK_ACTIONS_ONBOARDING_KEY, false)
+    )) {
+        return;
+    }
+
+    await context.globalState.update(QUICK_ACTIONS_ONBOARDING_KEY, true);
+    const choice = await vscode.window.showInformationMessage(
+        'As ações principais do Privacy Scanner agora estão reunidas na barra lateral.',
+        'Abrir painel'
+    );
+    if (choice === 'Abrir painel') {
+        await vscode.commands.executeCommand('privacy-scanner.showSidebar');
+    }
+}
+
 export async function activate(context: vscode.ExtensionContext) {
     console.log('🔒 Privacy Scanner LGPD ativado');
     extensionContext = context;
     outputChannel = vscode.window.createOutputChannel('Privacy Scanner');
     context.subscriptions.push(outputChannel);
-    log('Extensao v1.1.0 ativada. Logs nao incluem codigo-fonte.');
+    log('Extensao v1.2.0 ativada. Logs nao incluem codigo-fonte.');
     // A chave anterior podia conter o trecho usado como identificador. Ela é
     // removida na migração para não manter código-fonte bruto no estado local.
     await context.workspaceState.update(LEGACY_IGNORED_VULNERABILITIES_KEY, undefined);
@@ -310,7 +722,13 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Status bar
     statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-    statusBar.command = 'privacy-scanner.analyze';
+    statusBar.command = 'privacy-scanner.showSidebar';
+    statusBar.name = 'Privacy Scanner';
+    statusBar.tooltip = 'Abrir o Privacy Scanner e escolher uma ação';
+    statusBar.accessibilityInformation = {
+        label: 'Abrir o painel do Privacy Scanner',
+        role: 'button'
+    };
     updateStatusBar('Iniciando...', 'loading');
     isAnalyzing = true;
     context.subscriptions.push(statusBar);
@@ -331,10 +749,13 @@ export async function activate(context: vscode.ExtensionContext) {
     );
 
     // Tree View Providers
+    quickActionsProvider = new QuickActionsProvider(currentQuickActionsState);
     vulnerabilitiesProvider = new VulnerabilitiesProvider();
     summaryProvider = new SummaryProvider();
     
     context.subscriptions.push(
+        quickActionsProvider,
+        vscode.window.registerTreeDataProvider('privacy-scanner-actions', quickActionsProvider),
         vscode.window.registerTreeDataProvider('privacy-scanner-vulnerabilities', vulnerabilitiesProvider),
         vscode.window.registerTreeDataProvider('privacy-scanner-summary', summaryProvider)
     );
@@ -342,14 +763,18 @@ export async function activate(context: vscode.ExtensionContext) {
     // Carregar configurações
     loadConfig();
 
+    // Registrar comandos antes da inicialização para que mensagens de falha
+    // possam oferecer ações clicáveis de recuperação.
+    registerCommands(context);
+    void showQuickActionsOnboarding(context).catch(error => {
+        log(`Falha ao exibir apresentação da nova UX: ${error instanceof Error ? error.name : 'erro desconhecido'}.`);
+    });
+
     // Iniciar servidor Flask
     await startFlaskServer(context);
     if (!serverRunning) {
         setAnalyzing(false);
     }
-
-    // Registrar comandos
-    registerCommands(context);
 
     // Listeners
     registerListeners(context);
@@ -390,42 +815,57 @@ function registerCommands(context: vscode.ExtensionContext) {
     );
 
     context.subscriptions.push(
-        vscode.commands.registerCommand('privacy-scanner.createProfile', async () => {
-            const root = workspaceRootForUri(vscode.window.activeTextEditor?.document.uri);
+        vscode.commands.registerCommand(
+            'privacy-scanner.configureProfile',
+            configureProfileCommand
+        ),
+        vscode.commands.registerCommand('privacy-scanner.createProfile', async (targetUri?: vscode.Uri) => {
+            const root = await selectWorkspaceRoot(targetUri);
             if (!root) {
                 vscode.window.showWarningMessage('Abra uma pasta para criar o perfil.');
                 return;
             }
-            const target = profileFilePath(root);
-            if (!fs.existsSync(target)) {
-                fs.writeFileSync(target, serializeProfile(DEFAULT_PROFILE), 'utf8');
+            const targetPath = profileFilePath(root);
+            if (!fs.existsSync(targetPath)) {
+                writeProfile(root, DEFAULT_PROFILE);
             }
-            const document = await vscode.workspace.openTextDocument(vscode.Uri.file(target));
+            const document = await vscode.workspace.openTextDocument(vscode.Uri.file(targetPath));
             await vscode.window.showTextDocument(document);
         }),
-        vscode.commands.registerCommand('privacy-scanner.selectProfile', async () => {
+        vscode.commands.registerCommand('privacy-scanner.selectProfile', async (target?: vscode.Uri) => {
+            const root = await selectWorkspaceRoot(target);
+            if (!root) {
+                vscode.window.showWarningMessage('Abra uma pasta para selecionar o perfil.');
+                return;
+            }
             const selectedPreset = await vscode.window.showQuickPick(
                 ['conservador', 'equilibrado', 'completo'],
                 { title: 'Selecionar perfil de analise' }
             );
             const preset = selectedPreset as Preset | undefined;
-            const root = workspaceRootForUri(vscode.window.activeTextEditor?.document.uri);
-            if (!preset || !root) {
+            if (!preset) {
                 return;
             }
             const current = profileForRoot(root);
             if (!current) {
                 return;
             }
-            fs.writeFileSync(
-                profileFilePath(root),
-                serializeProfile({ ...current, preset }),
-                'utf8'
+            const updatedProfile = normalizeProfileDraft(
+                changeDraftPreset(createProfileDraft(current), preset)
             );
-            vscode.window.showInformationMessage(`Perfil ${preset} selecionado.`);
+            writeProfile(
+                root,
+                updatedProfile
+            );
+            refreshViews();
+            await offerProfileReanalysis(root, updatedProfile);
         }),
-        vscode.commands.registerCommand('privacy-scanner.validateProfile', async () => {
-            const root = workspaceRootForUri(vscode.window.activeTextEditor?.document.uri);
+        vscode.commands.registerCommand('privacy-scanner.validateProfile', async (target?: vscode.Uri) => {
+            const root = await selectWorkspaceRoot(target);
+            if (!root) {
+                vscode.window.showWarningMessage('Abra uma pasta para validar o perfil.');
+                return;
+            }
             if (profileForRoot(root)) {
                 vscode.window.showInformationMessage('Perfil do Privacy Scanner valido.');
             }
@@ -435,6 +875,14 @@ function registerCommands(context: vscode.ExtensionContext) {
             await setupBackendEnvironment();
         }),
         vscode.commands.registerCommand('privacy-scanner.restartBackend', async () => {
+            const pendingStart = backendStartPromise;
+            if (pendingStart) {
+                try {
+                    await pendingStart;
+                } catch (error) {
+                    log(`Inicialização anterior falhou antes do reinício: ${error instanceof Error ? error.name : 'erro desconhecido'}.`);
+                }
+            }
             await stopBackend();
             await startFlaskServer(extensionContext);
             vscode.window.showInformationMessage(
@@ -445,13 +893,19 @@ function registerCommands(context: vscode.ExtensionContext) {
 
     // Analisar arquivo atual
     context.subscriptions.push(
-        vscode.commands.registerCommand('privacy-scanner.analyze', async () => {
-            const editor = vscode.window.activeTextEditor;
-            if (!editor) {
+        vscode.commands.registerCommand('privacy-scanner.analyze', async (target?: vscode.Uri) => {
+            const uri = target instanceof vscode.Uri
+                ? target
+                : vscode.window.activeTextEditor?.document.uri;
+            if (!uri) {
                 vscode.window.showWarningMessage('Nenhum arquivo aberto');
                 return;
             }
-            await analyzeFile(editor.document.uri);
+            if (!isSupportedCodeUri(uri) && !isDatabaseUri(uri)) {
+                vscode.window.showWarningMessage('Selecione um arquivo Python, Java ou SQLite para analisar.');
+                return;
+            }
+            await analyzeFile(uri);
         })
     );
 
@@ -464,9 +918,7 @@ function registerCommands(context: vscode.ExtensionContext) {
 
     // Analisar banco SQLite
     context.subscriptions.push(
-        vscode.commands.registerCommand('privacy-scanner.analyzeDatabase', async () => {
-            await analyzeDatabaseFromPicker();
-        })
+        vscode.commands.registerCommand('privacy-scanner.analyzeDatabase', analyzeDatabaseCommand)
     );
 
     // Limpar resultados
@@ -477,6 +929,7 @@ function registerCommands(context: vscode.ExtensionContext) {
             canonicalSummary = undefined;
             currentScope = undefined;
             currentScopeNotice = undefined;
+            canonicalAnalysisOrigin = undefined;
             diagnosticCollection.clear();
             refreshViews();
             updateStatusBar('Resultados limpos', 'pass');
@@ -602,13 +1055,31 @@ function registerCommands(context: vscode.ExtensionContext) {
 // Análise de arquivos
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function analyzeFile(uri: vscode.Uri): Promise<void> {
+async function analyzeFile(
+    uri: vscode.Uri,
+    automaticFileAnalysis: boolean = false
+): Promise<void> {
     const isCode = uri.path.toLowerCase().endsWith('.py') || uri.path.toLowerCase().endsWith('.java');
     const isDB = isDatabaseUri(uri);
     const filePath = uri.fsPath;
 
     if (!isCode && !isDB) {
         return;
+    }
+    if (!automaticFileAnalysis && isCode) {
+        const document = vscode.workspace.textDocuments.find(
+            item => profileWriteKey(item.uri.fsPath) === profileWriteKey(filePath)
+        );
+        if (document?.isDirty) {
+            const choice = await vscode.window.showWarningMessage(
+                'O arquivo possui alteracoes nao salvas. Salve antes de analisar para evitar resultado desatualizado.',
+                { modal: true },
+                'Salvar e analisar'
+            );
+            if (choice !== 'Salvar e analisar' || !await document.save()) {
+                return;
+            }
+        }
     }
     if (!await ensureBackendRunning()) {
         return;
@@ -618,7 +1089,11 @@ async function analyzeFile(uri: vscode.Uri): Promise<void> {
         return;
     }
 
-    const session = beginAnalysis('Analisando arquivo...');
+    const preserveWorkspaceState = shouldPreserveCanonicalWorkspaceState(
+        canonicalAnalysisOrigin,
+        automaticFileAnalysis
+    );
+    const session = beginAnalysis('Analisando arquivo...', preserveWorkspaceState);
     try {
         const endpoint = isCode ? '/api/analyze-file' : '/api/analyze-database';
         const payload = isCode ? { filepath: filePath, profile } : { database: filePath, profile };
@@ -626,7 +1101,7 @@ async function analyzeFile(uri: vscode.Uri): Promise<void> {
         const response = await postBackend<unknown>(
             endpoint,
             payload,
-            { timeout: ANALYSIS_TIMEOUT_MS, signal: session.controller.signal }
+            { timeout: analysisTimeoutMs(), signal: session.controller.signal }
         );
         if (!isCurrentSession(session)) {
             return;
@@ -638,8 +1113,10 @@ async function analyzeFile(uri: vscode.Uri): Promise<void> {
             if (isCode) {
                 diagnosticCollection.delete(uri);
             }
-            updateFailedScopeState(result);
-            vscode.window.showWarningMessage('O backend não concluiu a análise do arquivo.');
+            if (!preserveWorkspaceState) {
+                updateFailedScopeState(result);
+            }
+            showStructuredAnalysisFailure(result, 'A análise do arquivo não foi concluída.');
             updateStatusBar('Análise não concluída', 'error');
             return;
         }
@@ -655,11 +1132,18 @@ async function analyzeFile(uri: vscode.Uri): Promise<void> {
             allVulnerabilities.delete(filePath);
         }
 
-        updateCanonicalState(result);
-        const rawTotal = result.resumo?.total ?? result.achados.length;
+        if (!preserveWorkspaceState) {
+            updateCanonicalState(result);
+        } else {
+            log('Arquivo atualizado automaticamente; resumo da ultima varredura do workspace preservado.');
+        }
+        const rawTotal = result.resumo?.total_exibido ?? result.resumo?.total ?? result.achados.length;
+        const displayedTotal = preserveWorkspaceState
+            ? canonicalSummary?.total ?? rawTotal
+            : rawTotal;
         updateStatusBar(
-            `${rawTotal} achados técnicos`,
-            rawTotal === 0 ? 'pass' : 'alert'
+            `${displayedTotal} achados técnicos`,
+            displayedTotal === 0 ? 'pass' : 'alert'
         );
     } catch (error) {
         if (!isCurrentSession(session) || isCancellation(error)) {
@@ -671,14 +1155,19 @@ async function analyzeFile(uri: vscode.Uri): Promise<void> {
             if (isCode) {
                 diagnosticCollection.delete(uri);
             }
-            updateFailedScopeState(backendFailure);
-            vscode.window.showWarningMessage('O backend recusou a análise do arquivo.');
+            if (!preserveWorkspaceState) {
+                updateFailedScopeState(backendFailure);
+            }
+            showStructuredAnalysisFailure(backendFailure, 'A análise do arquivo foi recusada.');
             updateStatusBar('Análise não concluída', 'error');
             return;
         }
         console.error('Erro ao analisar arquivo:', error);
         log(`Falha na analise de arquivo: ${error instanceof Error ? error.name : 'erro desconhecido'}.`);
-        vscode.window.showErrorMessage('Erro ao analisar arquivo. Verifique o backend e tente novamente.');
+        void showBackendRecovery(
+            'Erro ao analisar arquivo. Verifique o backend e tente novamente.',
+            'error'
+        );
         updateStatusBar('Erro na análise', 'error');
     } finally {
         finishAnalysis(session);
@@ -697,7 +1186,11 @@ async function setupBackendEnvironment(): Promise<void> {
     const configured = vscode.workspace.getConfiguration('privacy-scanner').get('pythonPath', 'python');
     const python = resolvePythonCommand(configured);
     if (!python) {
-        vscode.window.showErrorMessage('Python 3 nao encontrado. Instale o Python ou configure privacy-scanner.pythonPath.');
+        const choice = await vscode.window.showErrorMessage(
+            'Python 3 não encontrado. Instale o Python ou configure privacy-scanner.pythonPath.',
+            'Abrir configurações'
+        );
+        await handleRecoveryChoice(choice);
         return;
     }
     const storagePath = extensionContext.globalStorageUri.fsPath;
@@ -745,7 +1238,11 @@ async function setupBackendEnvironment(): Promise<void> {
         );
     } catch (error) {
         log(`Falha ao configurar backend: ${error instanceof Error ? error.name : 'erro desconhecido'}.`);
-        vscode.window.showErrorMessage('Nao foi possivel configurar o backend. Abra os logs para detalhes.');
+        const choice = await vscode.window.showErrorMessage(
+            'Não foi possível configurar o backend.',
+            'Abrir logs'
+        );
+        await handleRecoveryChoice(choice);
     }
 }
 
@@ -840,18 +1337,23 @@ class PrivacyCodeActionProvider implements vscode.CodeActionProvider {
     }
 }
 
-async function analyzeDatabaseFromPicker() {
-    const files = await vscode.window.showOpenDialog({
-        canSelectFiles: true,
-        canSelectFolders: false,
-        canSelectMany: true,
-        filters: {
-            'SQLite databases': ['db', 'sqlite', 'sqlite3']
-        },
-        title: 'Selecionar banco SQLite para análise LGPD'
-    });
+async function analyzeDatabaseFromPicker(preselected?: readonly vscode.Uri[]) {
+    const files = preselected
+        ? preselected.filter(isDatabaseUri)
+        : await vscode.window.showOpenDialog({
+            canSelectFiles: true,
+            canSelectFolders: false,
+            canSelectMany: true,
+            filters: {
+                'SQLite databases': ['db', 'sqlite', 'sqlite3']
+            },
+            title: 'Selecionar banco SQLite para análise LGPD'
+        });
 
     if (!files || files.length === 0) {
+        if (preselected && preselected.length > 0) {
+            vscode.window.showWarningMessage('Selecione um arquivo .db, .sqlite ou .sqlite3.');
+        }
         return;
     }
     if (!await ensureBackendRunning()) {
@@ -861,6 +1363,8 @@ async function analyzeDatabaseFromPicker() {
     const session = beginAnalysis('Analisando banco SQLite...');
     let total = 0;
     let failures = 0;
+    let backendFailures = 0;
+    const responses: AnalysisResponse[] = [];
     try {
         for (const file of files) {
             if (!isCurrentSession(session)) {
@@ -874,16 +1378,23 @@ async function analyzeDatabaseFromPicker() {
                 }
                 if (!result.success) {
                     failures += 1;
-                    updateFailedScopeState(result);
+                    responses.push(result);
+                    showStructuredAnalysisFailure(
+                        result,
+                        `O banco ${path.basename(file.fsPath)} não foi analisado.`
+                    );
                     continue;
                 }
                 total += result.resumo?.total ?? result.achados.length;
-                updateCanonicalState(result);
+                responses.push(result);
             } catch (error) {
                 if (isCancellation(error) || !isCurrentSession(session)) {
                     return;
                 }
                 failures += 1;
+                if (!(error instanceof ProfileError)) {
+                    backendFailures += 1;
+                }
                 console.error(`Erro ao analisar banco ${file.fsPath}:`, error);
                 log(`Falha na analise de banco: ${error instanceof Error ? error.name : 'erro desconhecido'}.`);
             }
@@ -892,11 +1403,28 @@ async function analyzeDatabaseFromPicker() {
         if (!isCurrentSession(session)) {
             return;
         }
+        if (responses.length > 0) {
+            const aggregate = aggregateAnalysisResponses(responses);
+            if (aggregate.success) {
+                updateCanonicalState(aggregate);
+            } else {
+                updateFailedScopeState(aggregate);
+            }
+        }
         const suffix = failures > 0 ? ` (${failures} banco(s) não analisado(s))` : '';
         vscode.window.showInformationMessage(
             `Análise de banco concluída: ${total} achados técnicos encontrados${suffix}`
         );
-        updateStatusBar(`${total} achados técnicos`, total === 0 ? 'pass' : 'alert');
+        if (failures > 0) {
+            updateStatusBar('Análise não concluída', 'error');
+            if (backendFailures > 0) {
+                void showBackendRecovery(
+                    `${backendFailures} banco(s) não puderam ser analisados pelo backend.`
+                );
+            }
+        } else {
+            updateStatusBar(`${total} achados técnicos`, total === 0 ? 'pass' : 'alert');
+        }
     } finally {
         finishAnalysis(session);
     }
@@ -913,7 +1441,7 @@ async function analyzeDatabaseUri(uri: vscode.Uri, session: AnalysisSession): Pr
         response = await postBackend<unknown>(
             '/api/analyze-database',
             { database: filePath, profile },
-            { timeout: ANALYSIS_TIMEOUT_MS, signal: session.controller.signal }
+            { timeout: analysisTimeoutMs(), signal: session.controller.signal }
         );
     } catch (error) {
         const backendFailure = responseFromAxiosError(error);
@@ -942,38 +1470,64 @@ async function analyzeDatabaseUri(uri: vscode.Uri, session: AnalysisSession): Pr
     return result;
 }
 
-async function analyzeWorkspace(): Promise<void> {
+async function analyzeWorkspace(targetRoot?: string): Promise<void> {
     if (!await ensureBackendRunning()) {
         return;
     }
-    const session = beginAnalysis('Analisando projeto...');
+    const workspaceFolders = vscode.workspace.workspaceFolders ?? [];
+    if (workspaceFolders.length === 0) {
+        vscode.window.showWarningMessage('Nenhuma pasta de trabalho aberta');
+        return;
+    }
+    const folders = targetRoot
+        ? workspaceFolders.filter(folder => (
+            profileWriteKey(folder.uri.fsPath) === profileWriteKey(targetRoot)
+        ))
+        : workspaceFolders;
+    if (folders.length === 0) {
+        vscode.window.showWarningMessage('A pasta selecionada não pertence ao workspace atual.');
+        return;
+    }
+    const scopedFolder = targetRoot && folders.length === 1 ? folders[0] : undefined;
+    const session = beginAnalysis(
+        scopedFolder ? `Analisando ${scopedFolder.name}...` : 'Analisando projeto...'
+    );
     try {
-        if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
-            vscode.window.showWarningMessage('Nenhuma pasta de trabalho aberta');
-            return;
-        }
 
         allVulnerabilities.clear();
         diagnosticCollection.clear();
         const responses: AnalysisResponse[] = [];
-        for (const folder of vscode.workspace.workspaceFolders) {
+        for (const folder of folders) {
             const profile = profileForRoot(folder.uri.fsPath);
             if (!profile) {
                 return;
             }
-            const response = await postBackend<unknown>(
-                '/api/analyze-directory',
-                { directory: folder.uri.fsPath, profile },
-                { timeout: ANALYSIS_TIMEOUT_MS, signal: session.controller.signal }
-            );
+            let normalized: AnalysisResponse;
+            try {
+                const response = await postBackend<unknown>(
+                    '/api/analyze-directory',
+                    { directory: folder.uri.fsPath, profile },
+                    { timeout: analysisTimeoutMs(), signal: session.controller.signal }
+                );
+                normalized = normalizeAnalysisResponse(response.data);
+            } catch (error) {
+                if (!isCurrentSession(session) || isCancellation(error)) {
+                    return;
+                }
+                normalized = responseFromAxiosError(error) ?? {
+                    success: false,
+                    status: 'failed',
+                    achados: [],
+                    message: `Falha ao analisar a raiz ${folder.name}.`,
+                    escopo: { status: 'failed', arquivos_falhos: 1 }
+                };
+                log(`Raiz ${folder.name} falhou; as demais raizes continuarao sendo analisadas.`);
+            }
             if (!isCurrentSession(session)) {
                 return;
             }
-            const normalized = normalizeAnalysisResponse(response.data);
             if (!normalized.success) {
-                vscode.window.showWarningMessage(
-                    `O backend não concluiu a análise de ${folder.name}.`
-                );
+                log(`O backend não concluiu a análise de ${folder.name}.`);
                 updateStatusBar('Análise não concluída', 'error');
             }
             responses.push(normalized);
@@ -982,6 +1536,7 @@ async function analyzeWorkspace(): Promise<void> {
         if (!result.success) {
             updateFailedScopeState(result);
             updateStatusBar('Analise nao concluida', 'error');
+            showStructuredAnalysisFailure(result, 'A análise do projeto não foi concluída.');
             return;
         }
 
@@ -1005,10 +1560,12 @@ async function analyzeWorkspace(): Promise<void> {
             }
         }
 
-        updateCanonicalState(result);
-        const rawTotal = result.resumo?.total ?? result.achados.length;
+        updateCanonicalState(result, 'workspace');
+        const rawTotal = result.resumo?.total_exibido ?? result.resumo?.total ?? result.achados.length;
         vscode.window.showInformationMessage(
-            `Análise concluída: ${rawTotal} achados técnicos encontrados`
+            scopedFolder
+                ? `Análise de ${scopedFolder.name} concluída: ${rawTotal} achados técnicos encontrados`
+                : `Análise concluída: ${rawTotal} achados técnicos encontrados`
         );
         updateStatusBar(`${rawTotal} achados técnicos`, rawTotal === 0 ? 'pass' : 'alert');
     } catch (error) {
@@ -1020,13 +1577,16 @@ async function analyzeWorkspace(): Promise<void> {
             allVulnerabilities.clear();
             diagnosticCollection.clear();
             updateFailedScopeState(backendFailure);
-            vscode.window.showWarningMessage('O backend recusou a análise do projeto.');
+            showStructuredAnalysisFailure(backendFailure, 'A análise do projeto foi recusada.');
             updateStatusBar('Análise não concluída', 'error');
             return;
         }
         console.error('Erro ao analisar projeto:', error);
         log(`Falha na analise de projeto: ${error instanceof Error ? error.name : 'erro desconhecido'}.`);
-        vscode.window.showErrorMessage('Erro ao analisar projeto. Verifique o backend e tente novamente.');
+        void showBackendRecovery(
+            'Erro ao analisar projeto. Verifique o backend e tente novamente.',
+            'error'
+        );
         updateStatusBar('Erro na análise', 'error');
     } finally {
         finishAnalysis(session);
@@ -1054,27 +1614,58 @@ function registerListeners(context: vscode.ExtensionContext) {
         .getConfiguration('privacy-scanner')
         .get('autoAnalyzeOnSave', true);
 
-    const analyzeDocumentIfEnabled = async (document: vscode.TextDocument): Promise<void> => {
-        if (isAnalyzing) {
-            log('Analise automatica adiada porque outra analise esta em andamento.');
-            return;
+    const pendingAutomatic = new Map<string, vscode.Uri>();
+    let automaticTimer: NodeJS.Timeout | undefined;
+    const scheduleAutomaticDrain = (): void => {
+        if (automaticTimer) {
+            clearTimeout(automaticTimer);
         }
+        const delay = vscode.workspace.getConfiguration('privacy-scanner')
+            .get('autoAnalyzeDelayMs', 500);
+        automaticTimer = setTimeout(async () => {
+            automaticTimer = undefined;
+            if (!autoAnalyzeEnabled() || pendingAutomatic.size === 0) {
+                pendingAutomatic.clear();
+                return;
+            }
+            if (isAnalyzing) {
+                log('Analise automatica mantida na fila enquanto outra analise esta em andamento.');
+                scheduleAutomaticDrain();
+                return;
+            }
+            const next = pendingAutomatic.entries().next().value as [string, vscode.Uri] | undefined;
+            if (!next) {
+                return;
+            }
+            pendingAutomatic.delete(next[0]);
+            await analyzeFile(next[1], true);
+            if (pendingAutomatic.size > 0) {
+                scheduleAutomaticDrain();
+            }
+        }, delay);
+    };
+    const analyzeDocumentIfEnabled = async (document: vscode.TextDocument): Promise<void> => {
         if (
             autoAnalyzeEnabled()
+            && !document.isUntitled
             && (isSupportedCodeDocument(document) || isDatabaseUri(document.uri))
         ) {
-            await analyzeFile(document.uri);
+            pendingAutomatic.set(profileWriteKey(document.uri.fsPath), document.uri);
+            scheduleAutomaticDrain();
         }
     };
 
     context.subscriptions.push(
+        { dispose: () => automaticTimer && clearTimeout(automaticTimer) },
         vscode.workspace.onDidSaveTextDocument(analyzeDocumentIfEnabled),
         vscode.workspace.onDidOpenTextDocument(analyzeDocumentIfEnabled),
         vscode.window.onDidChangeActiveTextEditor(async (editor) => {
+            refreshViews();
             if (editor) {
                 await analyzeDocumentIfEnabled(editor.document);
             }
         }),
+        vscode.workspace.onDidChangeWorkspaceFolders(() => refreshViews()),
         vscode.workspace.onDidChangeConfiguration(event => {
             if (
                 event.affectsConfiguration('privacy-scanner.enableSidebar')
@@ -1092,8 +1683,14 @@ function registerListeners(context: vscode.ExtensionContext) {
 
     const profileWatcher = vscode.workspace.createFileSystemWatcher('**/.privacy-scanner.json');
     const profileChanged = async (uri: vscode.Uri): Promise<void> => {
+        if (isInternalProfileChange(uri.fsPath)) {
+            log('Alteracao interna do perfil aplicada; notificacao duplicada suprimida.');
+            refreshViews();
+            return;
+        }
         const profile = profileForRoot(path.dirname(uri.fsPath));
         log('Arquivo de perfil alterado.');
+        refreshViews();
         if (!profile) {
             return;
         }
@@ -1102,7 +1699,7 @@ function registerListeners(context: vscode.ExtensionContext) {
             'Reanalisar'
         );
         if (choice === 'Reanalisar') {
-            await analyzeWorkspace();
+            await analyzeWorkspace(path.dirname(uri.fsPath));
         }
     };
     context.subscriptions.push(
@@ -1126,10 +1723,12 @@ async function startFlaskServer(context: vscode.ExtensionContext): Promise<void>
         return backendStartPromise;
     }
     backendStartPromise = startFlaskServerInternal(context);
+    refreshViews();
     try {
         await backendStartPromise;
     } finally {
         backendStartPromise = undefined;
+        refreshViews();
     }
 }
 
@@ -1144,9 +1743,10 @@ async function startFlaskServerInternal(context: vscode.ExtensionContext): Promi
 
     if (!fs.existsSync(serverScript)) {
         console.warn(`Arquivo do servidor não encontrado: ${serverScript}`);
-        vscode.window.showErrorMessage(
-            'Backend do Privacy Scanner não encontrado. Reinstale a extensão ou gere novamente o pacote VSIX.'
-        );
+        void vscode.window.showErrorMessage(
+            'Backend do Privacy Scanner não encontrado. Reinstale a extensão ou gere novamente o pacote VSIX.',
+            'Abrir logs'
+        ).then(dispatchRecoveryChoice);
         return;
     }
 
@@ -1163,9 +1763,10 @@ async function startFlaskServerInternal(context: vscode.ExtensionContext): Promi
     let stderrOutput = '';
     const python = resolvePythonCommand(pythonPath);
     if (!python) {
-        vscode.window.showErrorMessage(
-            'Python 3 nao encontrado. Configure privacy-scanner.pythonPath.'
-        );
+        void vscode.window.showErrorMessage(
+            'Python 3 não encontrado. Configure privacy-scanner.pythonPath.',
+            'Abrir configurações'
+        ).then(dispatchRecoveryChoice);
         return;
     }
     log(`Interpretador Python validado; porta ${serverPort}.`);
@@ -1189,6 +1790,7 @@ async function startFlaskServerInternal(context: vscode.ExtensionContext): Promi
         if (generation === backendGeneration && flaskProcess === startedProcess) {
             serverRunning = false;
         }
+        refreshViews();
         console.error(`Erro ao iniciar servidor Flask: ${error}`);
     });
     startedProcess.on('exit', code => {
@@ -1196,6 +1798,7 @@ async function startFlaskServerInternal(context: vscode.ExtensionContext): Promi
             serverRunning = false;
             flaskProcess = undefined;
         }
+        refreshViews();
         if (code !== 0 && code !== null) {
             console.error(`Servidor Flask encerrado com código ${code}`);
         }
@@ -1211,9 +1814,11 @@ async function startFlaskServerInternal(context: vscode.ExtensionContext): Promi
         }
         if (health.reachable && !health.valid) {
             startedProcess.kill();
-            vscode.window.showErrorMessage(
-                `O serviço iniciado na porta ${serverPort} não é um backend compatível. ${health.reason || ''}`
-            );
+            void vscode.window.showErrorMessage(
+                `O serviço iniciado na porta ${serverPort} não é um backend compatível. ${health.reason || ''}`,
+                'Reiniciar',
+                'Abrir logs'
+            ).then(dispatchRecoveryChoice);
             return;
         }
     }
@@ -1226,14 +1831,18 @@ async function startFlaskServerInternal(context: vscode.ExtensionContext): Promi
         stderrOutput.includes('ModuleNotFoundError')
         || stderrOutput.includes('No module named')
     ) {
-        vscode.window.showErrorMessage(
-            'Dependencias Python ausentes. Execute "Privacy Scanner: Configurar dependencias do backend".'
-        );
+        void vscode.window.showErrorMessage(
+            'Dependências Python ausentes para iniciar o backend.',
+            'Configurar agora',
+            'Abrir logs'
+        ).then(dispatchRecoveryChoice);
         return;
     }
-    vscode.window.showErrorMessage(
-        `Não foi possível iniciar o Privacy Scanner na porta ${serverPort}. Consulte o console "Extension Host".`
-    );
+    void vscode.window.showErrorMessage(
+        `Não foi possível iniciar o Privacy Scanner na porta ${serverPort}.`,
+        'Reiniciar',
+        'Abrir logs'
+    ).then(dispatchRecoveryChoice);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1252,8 +1861,14 @@ async function exportReportFromPicker() {
             {
                 label: 'PDF',
                 description: 'Relatorio formal',
-                detail: 'Gera um relatorio PDF estatico para entrega/compliance',
+                detail: 'Gera um relatorio PDF estatico para registro da revisao tecnica',
                 format: 'pdf' as const
+            },
+            {
+                label: 'JSON',
+                description: 'Dados estruturados',
+                detail: 'Gera os achados e metadados em formato JSON',
+                format: 'json' as const
             }
         ],
         {
@@ -1271,7 +1886,9 @@ async function exportReportFromPicker() {
         defaultUri: getDefaultReportUri(choice.format),
         filters: choice.format === 'html'
             ? { 'Relatorio HTML': ['html', 'htm'] }
-            : { 'Relatorio PDF': ['pdf'] },
+            : choice.format === 'pdf'
+                ? { 'Relatorio PDF': ['pdf'] }
+                : { 'Relatorio JSON': ['json'] },
         saveLabel: 'Exportar'
     });
 
@@ -1353,7 +1970,7 @@ async function exportReport(format: 'html' | 'json' | 'pdf', targetUri?: vscode.
         const response = await postBackend<any>(
             '/api/export',
             { directory: workspacePath, format, profile },
-            { timeout: ANALYSIS_TIMEOUT_MS }
+            { timeout: analysisTimeoutMs() }
         );
 
         if (response.data.content) {
@@ -1373,7 +1990,7 @@ async function exportReport(format: 'html' | 'json' | 'pdf', targetUri?: vscode.
     } catch (error) {
         console.error('Erro ao exportar relatório:', error);
         log(`Falha na exportacao: ${error instanceof Error ? error.name : 'erro desconhecido'}.`);
-        vscode.window.showErrorMessage('Erro ao exportar relatório');
+        void showBackendRecovery('Erro ao exportar relatório.', 'error');
     }
 }
 
@@ -1434,7 +2051,8 @@ class VulnerabilityTreeItem extends vscode.TreeItem {
             );
             this.description = data.linha > 0 ? `Linha ${data.linha}` : path.basename(data.arquivo);
             this.tooltip = [
-                `Categoria: ${data.categoria}`,
+                `Categoria: ${data.categoria_publica || data.categoria}`,
+                data.categoria_publica ? `Regra interna: ${data.categoria}` : undefined,
                 `Confiança: ${data.confianca || 'ALTA'}`,
                 data.risco_base && data.risco_base !== data.risco
                     ? `Severidade base: ${data.risco_base}`
@@ -1528,7 +2146,12 @@ class VulnerabilitiesProvider implements vscode.TreeDataProvider<VulnerabilityTr
                 .sort((a, b) => a.linha - b.linha || a.categoria.localeCompare(b.categoria));
 
             return Promise.resolve(vulns.map(v => 
-                new VulnerabilityTreeItem(v.categoria, vscode.TreeItemCollapsibleState.None, 'vulnerability', v)
+                new VulnerabilityTreeItem(
+                    v.categoria_publica || v.categoria,
+                    vscode.TreeItemCollapsibleState.None,
+                    'vulnerability',
+                    v
+                )
             ));
         }
         return Promise.resolve([]);
@@ -1563,7 +2186,7 @@ class SummaryProvider implements vscode.TreeDataProvider<VulnerabilityTreeItem> 
         const displayMetric = (value: number | null | undefined): string => value === null || value === undefined
             ? 'não informado'
             : String(value);
-        const indicator = summary?.indicador_tecnico;
+        const indicator = summary?.indicador_tecnico_exibido ?? summary?.indicador_tecnico;
         const items = [
             new VulnerabilityTreeItem(
                 indicator === null || indicator === undefined
@@ -1580,10 +2203,22 @@ class SummaryProvider implements vscode.TreeDataProvider<VulnerabilityTreeItem> 
                 { icon: 'info' }
             ),
             new VulnerabilityTreeItem(
-                `Total bruto do backend: ${displayMetric(summary?.total)} achados`,
+                `Achados exibidos pelo perfil: ${displayMetric(summary?.total_exibido ?? summary?.total)}`,
                 vscode.TreeItemCollapsibleState.None,
                 'summary',
                 { icon: 'search' }
+            ),
+            new VulnerabilityTreeItem(
+                `Achados brutos: ${displayMetric(summary?.total_bruto ?? summary?.total)}`,
+                vscode.TreeItemCollapsibleState.None,
+                'summary',
+                { icon: 'list-unordered' }
+            ),
+            new VulnerabilityTreeItem(
+                `Ocultos pelo perfil: ${displayMetric(summary?.ocultos_por_perfil ?? 0)}`,
+                vscode.TreeItemCollapsibleState.None,
+                'summary',
+                { icon: 'filter' }
             ),
             new VulnerabilityTreeItem(
                 `Risco ALTO (backend): ${displayMetric(summary?.por_risco.ALTO)}`,
@@ -1642,6 +2277,13 @@ class SummaryProvider implements vscode.TreeDataProvider<VulnerabilityTreeItem> 
             ['Arquivos ignorados', currentScope?.arquivos_ignorados, 'eye-closed'],
             ['Arquivos com falha', currentScope?.arquivos_falhos, 'warning']
         ];
+        if (canonicalAnalysisOrigin === 'workspace') {
+            scopeCounters.splice(2, 0, [
+                'Arquivos com achados',
+                allVulnerabilities.size,
+                'search'
+            ]);
+        }
         for (const [label, value, icon] of scopeCounters) {
             if (value !== undefined) {
                 items.push(new VulnerabilityTreeItem(

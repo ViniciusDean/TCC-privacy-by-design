@@ -547,3 +547,74 @@ def test_variavel_intermediaria_protegida_nao_gera_alerta(tmp_path):
         """,
     )
     assert "DADO_SEM_CRIPTOGRAFIA" not in categorias(resultados)
+
+
+def test_parentheses_inside_string_do_not_hide_following_instruction(tmp_path):
+    source = tmp_path / "LogCase.java"
+    source.write_text(
+        """
+class LogCase {
+    void run(String cpf) {
+        String banner = "(";
+        logger.info("cpf={}", cpf);
+    }
+}
+""",
+        encoding="utf-8",
+    )
+
+    results = analisar_arquivo(str(source))
+
+    assert "DADO_EM_LOG" in categorias(results)
+
+
+def test_non_human_entity_birthdate_is_not_personal_deletion_signal(tmp_path):
+    source = tmp_path / "Pet.java"
+    source.write_text(
+        """
+@Entity
+class Pet {
+    private LocalDate birthDate;
+}
+""",
+        encoding="utf-8",
+    )
+
+    results = analisar_arquivo(str(source))
+
+    assert "AUSENCIA_EXCLUSAO" not in categorias(results)
+
+
+def test_human_base_class_propagates_personal_context(tmp_path):
+    source = tmp_path / "Vet.java"
+    source.write_text(
+        """
+@Entity
+class Vet extends Person {
+    private Set<Specialty> specialties;
+}
+""",
+        encoding="utf-8",
+    )
+
+    results = analisar_arquivo(str(source))
+
+    assert "AUSENCIA_EXCLUSAO" in categorias(results)
+
+
+def test_delete_cache_does_not_satisfy_deletion_rule(tmp_path):
+    source = tmp_path / "Owner.java"
+    source.write_text(
+        """
+@Entity
+class Owner {
+    private String email;
+    void deleteCache() {}
+}
+""",
+        encoding="utf-8",
+    )
+
+    results = analisar_arquivo(str(source))
+
+    assert "AUSENCIA_EXCLUSAO" in categorias(results)

@@ -1,10 +1,14 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+.pytest-tmp-*/
+.test-tmp-*/
 htmlcov/
 .coverage
 node_modules/
 vscode-extension/out/
+vscode-extension/*.vsix
+output/release/archive/
 vscode-extension/src/*.js
 vscode-extension/src/*.js.map
 vscode-extension/src/*.d.ts

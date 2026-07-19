@@ -1,5 +1,8 @@
 import * as assert from 'assert';
-import { AnalysisCoordinator } from '../analysisCoordinator';
+import {
+    AnalysisCoordinator,
+    shouldPreserveCanonicalWorkspaceState
+} from '../analysisCoordinator';
 
 const coordinator = new AnalysisCoordinator();
 const first = coordinator.begin('primeira');
@@ -11,4 +14,9 @@ assert.strictEqual(coordinator.isCurrent(second), true);
 assert.strictEqual(coordinator.finish(second), true);
 assert.strictEqual(coordinator.isActive, false);
 
-console.log('ok - coordenador cancela respostas fora de ordem');
+assert.strictEqual(shouldPreserveCanonicalWorkspaceState('workspace', true), true);
+assert.strictEqual(shouldPreserveCanonicalWorkspaceState('workspace', false), false);
+assert.strictEqual(shouldPreserveCanonicalWorkspaceState('single', true), false);
+assert.strictEqual(shouldPreserveCanonicalWorkspaceState(undefined, true), false);
+
+console.log('ok - coordenador protege ordem e preserva resumo do workspace');

@@ -7,6 +7,7 @@ escopo auditáveis.
 """
 
 import base64
+import fnmatch
 import json
 import os
 import sys
@@ -23,12 +24,14 @@ from analysis_profile import (
 
 from code_analyzer import (
     DIRETORIOS_IGNORADOS,
+    PADROES_DIRETORIOS_IGNORADOS,
     analisar_arquivo_com_escopo,
     analisar_diretorio_com_escopo,
     caminho_deve_ser_ignorado,
     carregar_padroes_ignorados,
     finalizar_escopo_varredura,
     novo_escopo_varredura,
+    registrar_erro_escopo,
 )
 from db_analyzer import analisar_banco_com_escopo
 from reporter import (
@@ -38,6 +41,8 @@ from reporter import (
     VERSAO_FERRAMENTA,
     combinar_escopos,
     construir_resumo,
+    deduplicar_achados,
+    enriquecer_resumo_exibido,
     serializar_achados,
 )
 
@@ -81,11 +86,12 @@ def _envelope(
 ) -> dict:
     """Monta um único contrato para todos os endpoints de análise."""
     profile = profile or parse_profile()
-    resultados = apply_profile(resultados, profile)
-    resumo = construir_resumo(
-        resultados,
-        indicador_disponivel=_indicador_disponivel(escopo),
-    )
+    resultados_brutos = deduplicar_achados(resultados)
+    resultados = deduplicar_achados(apply_profile(resultados_brutos, profile))
+    indicador_disponivel = _indicador_disponivel(escopo)
+    resumo_exibido = construir_resumo(resultados, indicador_disponivel)
+    resumo_bruto = construir_resumo(resultados_brutos, indicador_disponivel)
+    resumo = enriquecer_resumo_exibido(resumo_exibido, resumo_bruto)
     alvo = escopo.get("alvo")
     scope_root = (
         alvo if alvo and os.path.isdir(alvo)
@@ -105,6 +111,7 @@ def _envelope(
         "escopo": escopo,
         "achados": achados,
         "resumo": resumo,
+        "resumo_bruto": resumo_bruto,
         # Aliases de transição para consumidores anteriores.
         "vulnerabilities": achados,
         "vulnerabilidades": achados,
@@ -112,6 +119,7 @@ def _envelope(
         "sumario": resumo,
         "count": len(achados),
         "indicador_tecnico": resumo["indicador_tecnico"],
+        "indicador_tecnico_bruto": resumo["indicador_tecnico_bruto"],
         "score_conformidade": resumo["score_conformidade"],
     }
     if error is not None:
@@ -190,18 +198,25 @@ def _contar_bancos(diretorio: str) -> int:
 
 def analisar_bancos_diretorio_com_escopo(directory: str) -> tuple[list, dict]:
     """Analisa SQLite por arquivo e mantém resultados válidos em falhas parciais."""
-    raiz = os.path.abspath(directory)
+    raiz = os.path.realpath(os.path.abspath(directory))
     escopo = novo_escopo_varredura(raiz, "diretorio")
     resultados = []
     padroes_ignorados = carregar_padroes_ignorados(raiz)
 
-    for root, dirs, files in os.walk(raiz):
+    def registrar_erro_walk(erro: OSError) -> None:
+        registrar_erro_escopo(escopo, erro.filename or raiz, erro)
+
+    for root, dirs, files in os.walk(raiz, onerror=registrar_erro_walk):
         dirs_mantidos = []
         for nome in dirs:
             caminho_dir = os.path.join(root, nome)
             relativo = os.path.relpath(caminho_dir, raiz)
             ignorado = (
                 nome.lower() in DIRETORIOS_IGNORADOS
+                or any(
+                    fnmatch.fnmatch(nome.lower(), padrao)
+                    for padrao in PADROES_DIRETORIOS_IGNORADOS
+                )
                 or caminho_deve_ser_ignorado(relativo, padroes_ignorados, diretorio=True)
             )
             if ignorado:
@@ -214,6 +229,14 @@ def analisar_bancos_diretorio_com_escopo(directory: str) -> tuple[list, dict]:
             if not nome.lower().endswith(DB_EXTENSIONS):
                 continue
             caminho = os.path.join(root, nome)
+            caminho_real = os.path.realpath(caminho)
+            try:
+                if os.path.commonpath([raiz, caminho_real]) != raiz:
+                    escopo["arquivos_ignorados"] += 1
+                    continue
+            except ValueError:
+                escopo["arquivos_ignorados"] += 1
+                continue
             relativo = os.path.relpath(caminho, raiz)
             if caminho_deve_ser_ignorado(relativo, padroes_ignorados):
                 escopo["arquivos_ignorados"] += 1
@@ -346,10 +369,12 @@ def export_report():
     if escopo["status"] not in {"complete", "partial"}:
         return _resposta_varredura(resultados, escopo, profile)
 
-    resultados = apply_profile(resultados, profile)
+    resultados_brutos = deduplicar_achados(resultados)
+    resultados = deduplicar_achados(apply_profile(resultados_brutos, profile))
 
     reporter = Reporter(alvo_codigo=directory)
     reporter.resultados = resultados
+    reporter.resultados_brutos = resultados_brutos
     reporter.escopo = escopo
     reporter.perfil_analise = profile.public_metadata()
     reporter.resultados.sort(key=lambda v: (v.risco, v.arquivo, v.linha))

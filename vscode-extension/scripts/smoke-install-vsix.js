@@ -17,8 +17,15 @@ async function main() {
     const executable = await downloadAndUnzipVSCode(version);
     const cli = resolveCliPathFromVSCodeExecutablePath(executable);
     const extensionsDir = path.join(root, '.vscode-test', 'smoke-extensions');
+    const userDataDir = path.join(root, '.vscode-test', 'smoke-user-data');
     fs.rmSync(extensionsDir, { recursive: true, force: true });
-    const cliArgs = ['--install-extension', path.join(root, vsix), '--force', '--extensions-dir', extensionsDir];
+    fs.rmSync(userDataDir, { recursive: true, force: true });
+    const cliArgs = [
+        '--install-extension', path.join(root, vsix),
+        '--force',
+        '--extensions-dir', extensionsDir,
+        '--user-data-dir', userDataDir
+    ];
     const result = spawnSync(cli, cliArgs, {
         encoding: 'utf8',
         // code.cmd exige shell no Windows; todos os argumentos sao caminhos

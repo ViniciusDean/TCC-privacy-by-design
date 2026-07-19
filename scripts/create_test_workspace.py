@@ -26,6 +26,13 @@ def copy_examples(target: Path) -> None:
     ):
         shutil.copy2(PROJECT_ROOT / filename, target / filename)
 
+    vulnerable_examples = target / "novos_exemplos_vulneraveis"
+    shutil.copytree(
+        PROJECT_ROOT / "examples" / "vulnerable",
+        vulnerable_examples,
+        dirs_exist_ok=True,
+    )
+
 
 def create_vulnerable_database(target: Path) -> None:
     db_path = target / "banco_vulneravel.db"
@@ -78,6 +85,8 @@ Arquivos:
 - `exemplo_parcial.py`: deve gerar achados intermediarios.
 - `exemplo_vulneravel.java`: exemplo Java cobrindo as sete categorias.
 - `exemplo_correto.java`: exemplo Java sem alertas esperados.
+- `novos_exemplos_vulneraveis/`: cenarios adicionais de cadastro de clientes,
+  folha de pagamento e prontuario Java.
 - `banco_vulneravel.db`: banco SQLite com schema propositalmente vulneravel.
 
 Comandos no VS Code:

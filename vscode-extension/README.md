@@ -11,7 +11,7 @@ A extensão conversa com o servidor Flask do projeto e exibe os resultados dentr
 - Análise de projeto inteiro.
 - Análise de banco SQLite (`.db`, `.sqlite`, `.sqlite3`).
 - Diagnósticos no editor e no painel `Problems`.
-- Sidebar com achados técnicos agrupados por risco.
+- Sidebar com ações rápidas e achados técnicos agrupados por risco.
 - Sidebar com indicador técnico e resumo canônico fornecido pelo backend.
 - Estado de carregamento durante a análise.
 - Cancelamento de requisições antigas, timeout e proteção contra respostas fora de ordem.
@@ -24,6 +24,8 @@ A extensão conversa com o servidor Flask do projeto e exibe os resultados dentr
 - Inicialização automática do servidor Flask.
 - Reutilização do servidor Flask caso ele já esteja ativo na porta configurada.
 - Opção de ocultar uma ocorrência na interface sem removê-la dos relatórios.
+- Botão no título do editor e menus de contexto para Python, Java e SQLite.
+- Recuperação clicável para falhas de Python, dependências, backend e perfil.
 
 ## Pré-requisitos
 
@@ -53,7 +55,8 @@ npm run compile
 2. Pressione `F5`.
 3. Aguarde abrir a janela `[Extension Development Host]`.
 4. Na nova janela, abra uma pasta de teste ou um arquivo Python.
-5. Use a sidebar `Privacy Scanner`.
+5. Clique no ícone `Privacy Scanner` da barra de atividades e use
+   `Ações rápidas`.
 
 Se quiser recriar o workspace externo de teste:
 
@@ -61,19 +64,54 @@ Se quiser recriar o workspace externo de teste:
 python scripts/create_test_workspace.py
 ```
 
-## Comandos
+## Fluxo Clicável
 
-Na Paleta de Comandos (`Ctrl+Shift+P`):
+Abra a sidebar `Privacy Scanner`. Em `Ações rápidas`, estão disponíveis:
+
+- `Analisar arquivo atual`, mostrando o nome do arquivo ativo;
+- `Analisar projeto inteiro`;
+- `Selecionar e analisar banco SQLite`;
+- `Exportar relatório`, para HTML, PDF ou JSON;
+- `Configurar perfil`, mostrando o preset ativo;
+- `Configuração e suporte`, grupo recolhido que mostra o estado do backend.
+
+O grupo de suporte contém as ações para limpar resultados, restaurar achados
+ocultados, configurar dependências, reiniciar o backend, abrir logs e abrir
+configurações.
+
+Outros pontos de acesso:
+
+- botão no título e menu de contexto do editor para Python e Java;
+- menu de contexto do Explorer para arquivos `.py`, `.java`, `.db`, `.sqlite`
+  e `.sqlite3`;
+- item da barra de status, que abre a sidebar.
+
+Na primeira ativação após a introdução da sidebar na 1.1.1, uma única
+notificação oferece `Abrir painel`. A atualização para 1.2.0 não repete esse
+aviso para quem já o recebeu.
+Ela não abre a sidebar automaticamente e não aparece quando
+`privacy-scanner.enableSidebar` está desativado.
+
+Erros conhecidos oferecem a próxima ação no próprio aviso: abrir configurações
+para Python ausente; `Configurar agora` e `Abrir logs` para
+dependências ausentes; `Reiniciar` e `Abrir logs` para backend indisponível; e
+`Abrir perfil` para configuração de perfil inválida.
+
+## Paleta de Comandos
+
+A Paleta (`Ctrl+Shift+P`) continua como alternativa com os IDs existentes:
 
 - `Privacy Scanner: Analisar agora`
-- `Privacy Scanner: Analisar arquivo atual`
+- `Privacy Scanner: Analisar arquivo`
 - `Privacy Scanner: Analisar projeto inteiro`
 - `Privacy Scanner: Analisar banco SQLite`
 - `Privacy Scanner: Limpar resultados`
 - `Privacy Scanner: Exportar relatorio`
 - `Privacy Scanner: Exportar relatório HTML`
 - `Privacy Scanner: Exportar relatório JSON`
-- `Privacy Scanner: Mostrar achados`
+- `Privacy Scanner: Configurar perfil`
+- `Privacy Scanner: Editar perfil JSON (avançado)`
+- `Privacy Scanner: Abrir painel`
 
 ## Comportamento de Análise
 
@@ -92,9 +130,18 @@ Quando `privacy-scanner.autoAnalyzeOnSave` está ativado, arquivos Python, Java 
 - trocar de aba;
 - salvar arquivo.
 
+Após uma análise do projeto inteiro, essas atualizações automáticas preservam
+os contadores e o resumo da última varredura do workspace. A árvore de achados
+mostra apenas os arquivos que produziram indícios técnicos.
+
 ## Sidebar
 
-A sidebar `Privacy Scanner` possui duas visões:
+A sidebar `Privacy Scanner` possui três visões:
+
+### Ações rápidas
+
+Centraliza os fluxos principais e o suporte. A árvore se atualiza quando o
+editor, o perfil, o backend ou os resultados mudam.
 
 ### Achados técnicos
 
@@ -111,10 +158,11 @@ não exibe nem persiste a linha bruta do código-fonte.
 
 ### Resumo
 
-Mostra o indicador técnico, o total e as contagens por risco **recebidos no
-`resumo` do backend**. A extensão não recalcula o indicador a partir dos itens
-visíveis. Quando o backend não puder calcular o indicador para aquele escopo,
-ela mostra “não disponível”.
+Mostra lado a lado o indicador e o total **exibidos pelo perfil** e os valores
+**brutos recebidos do backend**, inclusive quantos achados o perfil ocultou. A
+extensão não recalcula esses valores a partir dos itens da árvore. Quando o
+backend não puder calcular o indicador para aquele escopo, ela mostra “não
+disponível”.
 
 O total de achados visíveis é apenas um estado da interface e fica separado do
 resumo bruto. Assim, ocultar um achado não muda o indicador técnico, as métricas
@@ -145,28 +193,22 @@ permanecem iguais, e o achado continua aparecendo nos relatórios HTML, JSON e P
 Na atualização para 1.0.3, ocultações antigas são redefinidas para remover chaves
 locais que podiam conter trechos de código.
 
-Para mostrar tudo novamente, execute:
-
-```text
-Privacy Scanner: Restaurar achados ocultados
-```
+Para mostrar tudo novamente, expanda `Configuração e suporte` e clique em
+`Restaurar achados ocultados`.
 
 ## Exportação
 
-Use:
-
-```text
-Privacy Scanner: Exportar relatorio
-```
+Clique em `Exportar relatório` nas `Ações rápidas`.
 
 Depois escolha:
 
 - `HTML`;
-- `PDF`.
+- `PDF`;
+- `JSON`.
 
 O VS Code abrirá a janela do Windows para escolher o destino e o nome do arquivo.
 
-Também existem comandos diretos:
+Também existem comandos diretos na Paleta:
 
 - `Privacy Scanner: Exportar relatório HTML`;
 - `Privacy Scanner: Exportar relatório JSON`.
@@ -179,6 +221,32 @@ Cada pasta pode conter `.privacy-scanner.json`. O preset `conservador` é o
 padrão; `equilibrado` inclui confiança média e `completo` inclui também baixa.
 Categorias podem ser desativadas ou receber limiar de confiança e severidade
 próprios. O arquivo possui validação e autocomplete no VS Code.
+
+#### Assistente recomendado
+
+Clique em `Configurar perfil` nas `Ações rápidas`. Em workspaces com mais de
+uma raiz, a extensão usa a pasta do arquivo ativo ou solicita a raiz quando ela
+não puder ser determinada. O menu `Configurar perfil — <pasta>` oferece:
+
+- `Preset base`: Conservador (confiança alta), Equilibrado (alta e média) ou
+  Completo (todas as faixas); trocar o preset preserva as personalizações;
+- `Regras ativas`: seleção das 13 regras, separadas entre Código e SQLite;
+- `Ajustar uma regra`: confiança mínima, severidade técnica ou limpeza dos
+  ajustes daquela regra;
+- `Limpar personalizações` e `Restaurar padrão conservador`;
+- `Salvar perfil` e `Cancelar sem salvar`.
+
+Somente `Salvar perfil` persiste as alterações; `Esc` e o cancelamento não
+escrevem. A severidade personalizada altera agrupamentos, totais e o indicador
+técnico, mas não produz conclusão jurídica. O resumo da sidebar mostra preset e
+quantidade de personalizações. Se o perfil atual estiver inválido, a ação
+aparece como `Corrigir perfil`.
+
+#### Edição JSON avançada
+
+O arquivo bruto não é necessário no fluxo comum. Para editar limites e
+categorias diretamente, abra a Paleta e use
+`Privacy Scanner: Editar perfil JSON (avançado)`. Exemplo:
 
 ```json
 {
@@ -194,9 +262,10 @@ próprios. O arquivo possui validação e autocomplete no VS Code.
 }
 ```
 
-Comandos adicionais permitem criar, selecionar e validar o perfil, reiniciar o
-backend e abrir logs seguros. Configuração inválida bloqueia a análise sem
-fallback silencioso. Workspaces com várias pastas aplicam o perfil de cada raiz.
+Os comandos antigos de seleção e validação permanecem compatíveis, mas o
+assistente é a interface recomendada. Configuração inválida bloqueia a análise
+sem fallback silencioso. Workspaces com várias pastas aplicam o perfil de cada
+raiz.
 
 Em `settings.json`:
 
@@ -210,7 +279,7 @@ Em `settings.json`:
 }
 ```
 
-- `enableSidebar`: mostra ou oculta as duas visões da sidebar imediatamente.
+- `enableSidebar`: mostra ou oculta as três visões da sidebar imediatamente.
 - `showDiagnostics`: mostra ou remove os diagnósticos do painel `Problems` imediatamente.
 
 ## Arquitetura
@@ -289,12 +358,12 @@ O comando:
 
 1. copia o backend Python necessário para dentro do pacote;
 2. compila o TypeScript;
-3. gera `privacy-scanner-lgpd-1.1.0.vsix`.
+3. gera `privacy-scanner-lgpd-1.2.0.vsix`.
 
 Para instalar pelo terminal:
 
 ```powershell
-code --install-extension .\privacy-scanner-lgpd-1.1.0.vsix --force
+code --install-extension .\privacy-scanner-lgpd-1.2.0.vsix --force
 ```
 
 Também é possível abrir a área de extensões do VS Code, clicar em `...`,
@@ -331,7 +400,7 @@ tests/fixtures/
 exemplo_vulneravel.py
 ```
 
-A exclusão não impede o comando `Analisar arquivo atual`.
+A exclusão não impede o comando `Analisar arquivo`.
 
 ## Troubleshooting
 

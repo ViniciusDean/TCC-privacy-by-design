@@ -23,7 +23,7 @@ cd ..
 Resultado esperado da compilação:
 
 ```text
-privacy-scanner-lgpd@1.0.4 compile
+privacy-scanner-lgpd@1.2.0 compile
 tsc -p ./
 ```
 
@@ -38,7 +38,7 @@ python -m pytest -q
 Resultado esperado:
 
 ```text
-135 passed
+181 passed
 ```
 
 Compilar a extensão:
@@ -79,50 +79,74 @@ C:\Users\deanv\OneDrive\Documents\privacy-scanner-testes
 
 ## 4. Fluxo de Uso na Extensão
 
-Na janela `[Extension Development Host]`, use a sidebar `Privacy Scanner`.
+Na janela `[Extension Development Host]`, clique no ícone `Privacy Scanner` da
+barra de atividades. A seção `Ações rápidas` oferece:
 
-Comandos principais na Paleta de Comandos (`Ctrl+Shift+P`):
+- `Analisar arquivo atual`, com o nome do editor ativo;
+- `Analisar projeto inteiro`;
+- `Selecionar e analisar banco SQLite`;
+- `Exportar relatório`, com opções HTML, PDF e JSON;
+- `Configurar perfil`, com o preset ativo;
+- `Configuração e suporte`, grupo recolhido com o estado do backend e ações
+  de limpeza, dependências, reinício, logs e configurações.
 
-- `Privacy Scanner: Analisar agora`
-- `Privacy Scanner: Analisar arquivo atual`
-- `Privacy Scanner: Analisar projeto inteiro`
-- `Privacy Scanner: Analisar banco SQLite`
-- `Privacy Scanner: Limpar resultados`
-- `Privacy Scanner: Exportar relatorio`
+Arquivos Python e Java também possuem um botão de análise no título do editor
+e uma ação no menu de contexto. No Explorer, clique com o botão direito em
+`.py`/`.java` para analisar o arquivo ou em `.db`/`.sqlite`/`.sqlite3` para
+analisar diretamente o banco selecionado. O item da barra de status abre o
+painel.
 
-O comando `Analisar agora` usa este comportamento:
+A Paleta de Comandos (`Ctrl+Shift+P`) permanece disponível como alternativa.
+O comando `Privacy Scanner: Analisar agora` continua analisando o workspace
+quando houver uma pasta aberta e, caso contrário, o arquivo atual.
 
-- se houver workspace aberto, analisa o projeto inteiro;
-- se não houver workspace, analisa o arquivo atual.
+### Configurar o perfil sem editar JSON
+
+1. Clique em `Configurar perfil` nas `Ações rápidas`.
+2. Em workspace multirraiz, ative um arquivo da pasta desejada; se a raiz não
+   puder ser identificada, escolha-a quando o assistente solicitar.
+3. Em `Preset base`, escolha `Conservador` (confiança alta), `Equilibrado`
+   (alta e média) ou `Completo` (todas as faixas).
+4. Se necessário, use `Regras ativas` ou `Ajustar uma regra` para personalizar
+   confiança mínima e severidade técnica.
+5. Clique em `Salvar perfil` e confirme que o resumo da sidebar foi atualizado.
+
+`Cancelar sem salvar` e `Esc` encerram o assistente sem escrever no arquivo. A
+severidade escolhida afeta agrupamentos, totais e o indicador técnico, mas não
+é uma conclusão jurídica sobre a LGPD.
+
+Quando houver configuração inválida, a ação muda para `Corrigir perfil`.
+Somente usuários que precisarem editar campos avançados devem abrir a Paleta e
+usar `Privacy Scanner: Editar perfil JSON (avançado)`.
 
 Arquivos Python e bancos SQLite também podem ser analisados automaticamente ao abrir, trocar de aba ou salvar, conforme a configuração `privacy-scanner.autoAnalyzeOnSave`.
 
 Arquivos Java (`.java`) também podem ser abertos, salvos e analisados pelo mesmo fluxo.
 
+Depois de `Analisar projeto inteiro`, o resumo mantém os contadores do workspace
+mesmo quando um arquivo é aberto ou ativado automaticamente. A árvore
+`ACHADOS` lista somente arquivos que produziram indícios; compare
+`Arquivos analisados` com `Arquivos com achados` para distinguir arquivos
+verificados sem ocorrências.
+
 ## 5. Teste Manual com Python
 
 ### Arquivo vulnerável
 
-Abra `exemplo_vulneravel.py` e execute:
-
-```text
-Privacy Scanner: Analisar arquivo atual
-```
+Abra `exemplo_vulneravel.py` e clique na ação `Analisar arquivo atual` da
+seção `Ações rápidas`. Como alternativa clicável, use o botão no título do
+editor ou o menu de contexto.
 
 Resultado esperado:
 
 - marcações no editor;
 - alertas no painel `Problems`;
 - achados técnicos agrupados por risco na sidebar;
-- indicador técnico calculado sobre todos os achados brutos.
+- indicadores técnicos bruto e exibido pelo perfil apresentados separadamente.
 
 ### Arquivo correto
 
-Abra `exemplo_correto.py` e execute:
-
-```text
-Privacy Scanner: Analisar arquivo atual
-```
+Abra `exemplo_correto.py` e clique em `Analisar arquivo atual`.
 
 Resultado esperado:
 
@@ -132,11 +156,7 @@ Resultado esperado:
 
 ### Exemplos Java
 
-Abra `exemplo_vulneravel.java` e execute:
-
-```text
-Privacy Scanner: Analisar arquivo atual
-```
+Abra `exemplo_vulneravel.java` e clique no botão de análise no título do editor.
 
 O exemplo demonstra:
 
@@ -152,13 +172,24 @@ Depois abra `exemplo_correto.java`. Esse arquivo usa SHA-256, log com
 identificador técnico, payload anonimizado e método de anonimização; portanto,
 não deve gerar achados.
 
+### Cenários vulneráveis adicionais
+
+O diretório `examples/vulnerable/` contém cenários fictícios de cadastro de
+clientes, folha de pagamento e prontuário Java. Eles podem ser abertos e
+analisados individualmente para variar a demonstração sem alterar as regras do
+scanner. Consulte `examples/vulnerable/README.md` para os comandos e categorias
+esperadas.
+
 ## 6. Teste Manual com Banco SQLite
 
 Na extensão:
 
-1. Execute `Privacy Scanner: Analisar banco SQLite`.
+1. Clique em `Selecionar e analisar banco SQLite` nas `Ações rápidas`.
 2. Selecione um arquivo `.db`, `.sqlite` ou `.sqlite3`.
 3. Verifique os achados na sidebar.
+
+Se o banco já estiver visível no Explorer, clique nele com o botão direito e
+escolha `Analisar banco SQLite`; nesse fluxo o seletor não é aberto.
 
 Categorias esperadas em banco vulnerável:
 
@@ -167,6 +198,7 @@ Categorias esperadas em banco vulnerável:
 - `AUSENCIA_RETENCAO`;
 - `AUSENCIA_CONSENTIMENTO`;
 - `DADO_SENSIVEL_COMO_PK`;
+- `DADO_SENSIVEL_COMO_INDICE_UNICO`;
 - `MISTURA_DADOS`.
 
 Observação: achados de banco geralmente aparecem com linha `0`, pois vêm do schema e não de uma linha específica de código.
@@ -177,16 +209,14 @@ Observação: achados de banco geralmente aparecem com linha `0`, pois vêm do s
 
 Na sidebar, clique com o botão direito em um achado e escolha `Ignorar risco na interface`. Também é possível usar a lâmpada/Quick Fix no editor.
 
-O achado deixa de aparecer na sidebar e no painel `Problems`, mas continua nos relatórios. O indicador técnico bruto não é alterado. Para desfazer, execute:
-
-```text
-Privacy Scanner: Restaurar riscos ignorados
-```
+O achado deixa de aparecer na sidebar e no painel `Problems`, mas continua nos
+relatórios. O indicador técnico bruto não é alterado. Para desfazer, expanda
+`Configuração e suporte` e clique em `Restaurar achados ocultados`.
 
 Na extensão:
 
-1. Execute `Privacy Scanner: Exportar relatorio`.
-2. Escolha `HTML` ou `PDF`.
+1. Clique em `Exportar relatório` nas `Ações rápidas`.
+2. Escolha `HTML`, `PDF` ou `JSON`.
 3. O VS Code abrirá a janela do Windows para escolher nome e destino.
 4. Após salvar, clique em `Abrir` se quiser visualizar.
 
@@ -287,7 +317,12 @@ curl -X POST http://localhost:5000/api/export `
 
 ### Flask não inicia
 
-Instale as dependências:
+Expanda `Configuração e suporte`. Se o backend aparecer como
+`indisponível`, tente `Configurar dependências` e depois `Reiniciar backend`.
+Use `Abrir logs` para consultar o diagnóstico sem sair do painel.
+
+Se o Python não for encontrado, use `Abrir configurações` na mensagem de erro
+e ajuste `privacy-scanner.pythonPath`. A instalação manual continua possível:
 
 ```powershell
 python -m pip install -r requirements.txt
@@ -319,13 +354,14 @@ python -m pip install -r requirements.txt
 
 ### Sumário da sidebar fica vazio
 
-Execute:
+Clique em `Analisar projeto inteiro` nas `Ações rápidas` ou abra um arquivo
+Python/Java e clique em `Analisar arquivo atual`.
 
-```text
-Privacy Scanner: Analisar agora
-```
+### Perfil inválido
 
-ou abra/salve um arquivo Python.
+Clique em `Abrir perfil` na mensagem de erro ou em `Corrigir perfil` nas
+`Ações rápidas`. Refaça a configuração no assistente antes de repetir a
+análise. A edição direta do JSON é uma alternativa avançada na Paleta.
 
 ## 11. Limitações Conhecidas
 

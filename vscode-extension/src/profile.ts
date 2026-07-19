@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { PROFILE_CATEGORY_IDS } from './profileCatalog';
 
 export type Confidence = 'ALTA' | 'MEDIA' | 'BAIXA';
 export type Preset = 'conservador' | 'equilibrado' | 'completo';
@@ -23,13 +24,7 @@ export const DEFAULT_PROFILE: AnalysisProfile = {
     categories: {}
 };
 
-const KNOWN_CATEGORIES = new Set([
-    'DADO_HARDCODED', 'DADO_SEM_CRIPTOGRAFIA', 'CRIPTOGRAFIA_FRACA',
-    'DADO_EM_LOG', 'TRANSFERENCIA_SEM_BASE_LEGAL', 'COLETA_EXCESSIVA',
-    'AUSENCIA_EXCLUSAO', 'CAMPO_SEM_HASH', 'AUSENCIA_SOFT_DELETE',
-    'AUSENCIA_RETENCAO', 'MISTURA_DADOS', 'AUSENCIA_CONSENTIMENTO',
-    'DADO_SENSIVEL_COMO_PK'
-]);
+const KNOWN_CATEGORIES = new Set<string>(PROFILE_CATEGORY_IDS);
 
 export class ProfileError extends Error {
     constructor(message: string, public readonly filePath?: string) {

@@ -35,7 +35,8 @@ Principais recursos:
 - Mapeamento automático para artigos da LGPD.
 - Indicador técnico de risco de 0 a 100.
 - Extensão VS Code com diagnósticos no editor.
-- Sidebar com resumo e agrupamento por risco.
+- Sidebar com ações rápidas, resumo e agrupamento por risco.
+- Ações no título do editor e nos menus de contexto do editor e Explorer.
 - Code Actions com recomendações LGPD.
 - Possibilidade de ocultar uma ocorrência somente na interface.
 - Exportação de relatório HTML interativo.
@@ -62,6 +63,7 @@ TCC/
 |-- exemplo_parcial.py            # Exemplo intermediário/realista
 |-- exemplo_vulneravel.java       # Exemplo Java vulnerável
 |-- exemplo_correto.java          # Exemplo Java sem alertas esperados
+|-- examples/vulnerable/          # Cenários vulneráveis adicionais e fictícios
 |
 |-- tests/
 |   |-- test_code_analyzer.py
@@ -108,8 +110,9 @@ npm test
 cd ..
 ```
 
-O resultado reproduzido para a versão 1.0.4 é **135 testes Python aprovados**,
-além do teste de contrato, lint e compilação TypeScript da extensão.
+O resultado reproduzido para a versão 1.2.0 é **181 testes Python aprovados**,
+além da suíte TypeScript, lint e compilação da extensão. A versão 1.0.4,
+com 135 testes Python, permanece como baseline histórica.
 
 ### 4. Testar a extensão no VS Code
 
@@ -117,7 +120,7 @@ além do teste de contrato, lint e compilação TypeScript da extensão.
 2. Pressione `F5`.
 3. Uma nova janela `[Extension Development Host]` será aberta.
 4. Abra a pasta de teste ou um arquivo Python.
-5. Use a sidebar `Privacy Scanner`.
+5. Clique no ícone `Privacy Scanner` da barra de atividades e use `Ações rápidas`.
 
 Se precisar recriar a pasta externa de testes:
 
@@ -159,16 +162,39 @@ python reporter.py --codigo . --html relatorio_projeto.html
 
 ## Uso pela Extensão VS Code
 
-Comandos disponíveis na Paleta de Comandos (`Ctrl+Shift+P`):
+O fluxo principal da versão 1.2.0 é clicável:
+
+1. Clique no ícone `Privacy Scanner` da barra de atividades.
+2. Em `Ações rápidas`, escolha uma das cinco ações principais: analisar o
+   arquivo atual, analisar o projeto inteiro, selecionar um banco SQLite,
+   exportar relatório ou configurar o perfil por um assistente.
+3. Expanda `Configuração e suporte` para limpar resultados, restaurar achados
+   ocultados, configurar dependências, reiniciar o backend, abrir logs ou abrir
+   as configurações.
+
+O nome do arquivo ativo, o preset selecionado e o estado do backend aparecem no
+próprio painel. Também é possível:
+
+- clicar no botão de análise no título de um editor Python ou Java;
+- clicar com o botão direito no editor ou em um arquivo `.py`/`.java` no
+  Explorer e escolher `Analisar arquivo`;
+- clicar com o botão direito em `.db`, `.sqlite` ou `.sqlite3` no Explorer e
+  escolher `Analisar banco SQLite`;
+- clicar no item da barra de status para abrir o painel.
+
+A Paleta de Comandos (`Ctrl+Shift+P`) continua disponível como alternativa. Os
+principais comandos são:
 
 - `Privacy Scanner: Analisar agora`
-- `Privacy Scanner: Analisar arquivo atual`
+- `Privacy Scanner: Analisar arquivo`
 - `Privacy Scanner: Analisar projeto inteiro`
 - `Privacy Scanner: Analisar banco SQLite`
 - `Privacy Scanner: Limpar resultados`
 - `Privacy Scanner: Exportar relatorio`
 - `Privacy Scanner: Exportar relatório HTML`
 - `Privacy Scanner: Exportar relatório JSON`
+- `Privacy Scanner: Configurar perfil`
+- `Privacy Scanner: Editar perfil JSON (avançado)`
 
 A extensão também analisa arquivos Python e Java automaticamente ao abrir, trocar de aba ou salvar.
 
@@ -176,7 +202,7 @@ Arquivos Java (`.java`) seguem o mesmo fluxo de análise e diagnostics.
 
 ## Sidebar da Extensão
 
-A sidebar mostra:
+A sidebar possui `Ações rápidas`, `Achados` e `Resumo`. Ela mostra:
 
 - achados técnicos agrupados por risco;
 - arquivos afetados;
@@ -186,6 +212,11 @@ A sidebar mostra:
 - quantidade de arquivos Python, arquivos Java e bancos SQLite com achados.
 
 Enquanto a análise está em andamento, a sidebar mostra estado de carregamento em vez de exibir `100/100` antes da hora.
+
+Falhas conhecidas oferecem ações diretas: abrir configurações quando o
+Python não é encontrado; configurar dependências ou abrir logs quando o
+runtime está incompleto; reiniciar o backend ou abrir logs quando o serviço
+está indisponível; e abrir o perfil quando sua configuração é inválida.
 
 ## Code Actions
 
@@ -282,6 +313,7 @@ achados devem ser revisados pelo desenvolvedor.
 | AUSENCIA_SOFT_DELETE | MÉDIO | Art. 18 | Evidência de exclusão lógica ou anonimização não identificada no schema |
 | AUSENCIA_CONSENTIMENTO | MÉDIO | Art. 7 / Art. 11 | Rótulo público: proteção/base legal não evidenciada; exige revisão humana |
 | DADO_SENSIVEL_COMO_PK | MÉDIO | Art. 46 | CPF/email usado como chave primária |
+| DADO_SENSIVEL_COMO_INDICE_UNICO | MÉDIO | Art. 46 | Identificador pessoal em índice único |
 | AUSENCIA_RETENCAO | BAIXO | Art. 15--16 | Evidência de retenção ou expurgo não identificada no schema |
 | MISTURA_DADOS | BAIXO | Art. 6 | Organização de dados que merece revisão de minimização e separação lógica |
 
@@ -348,6 +380,19 @@ A versão 1.1 aceita `.privacy-scanner.json` por pasta de workspace, com presets
 de confiança e severidade exibida sem apagar a severidade-base auditável. A
 extensão valida o arquivo, registra seu hash nos resultados e bloqueia análises
 quando a configuração é inválida.
+
+Na 1.2.0, clique em `Configurar perfil` nas `Ações rápidas`. O assistente
+abre `Configurar perfil — <pasta>` e permite escolher o preset base, marcar as
+regras ativas e personalizar confiança mínima ou severidade técnica por regra.
+Somente `Salvar perfil` grava o arquivo; `Cancelar sem salvar` e `Esc` preservam
+o estado anterior. Em workspaces multirraiz, o título identifica a pasta em
+edição. Se o perfil estiver inválido, a ação aparece como `Corrigir perfil`.
+
+A severidade personalizada afeta agrupamentos, totais e o indicador técnico;
+ela não representa conclusão jurídica de conformidade ou desconformidade.
+
+A edição manual de `.privacy-scanner.json` fica reservada ao fluxo avançado
+`Privacy Scanner: Editar perfil JSON (avançado)` na Paleta de Comandos.
 
 Exemplo em `settings.json`:
 
@@ -425,10 +470,15 @@ Implementado:
 - validação externa adjudicada em PEAK, Flasky e Chinook SQLite;
 - apresentação e roteiro de defesa em `output/presentation/`.
 
-### Artefatos das versões 1.0.4 e 1.1
+### Entrega 1.2.0 e artefatos históricos
 
-- `output/release/privacy-scanner-lgpd-1.1.0.vsix`: extensão 1.1 instalável com
-  o backend Python incluído.
+- `output/release/privacy-scanner-lgpd-1.2.0.vsix`: pacote atual, com redução
+  de falsos positivos, indicadores bruto/exibido, UX clicável e backend incluído.
+  SHA-256: `88A02458FE00E4F658BA723F4B6D40D9AF499F1B6CF59F058FE0D490C39F95C6`.
+- `output/release/privacy-scanner-lgpd-1.1.1.vsix`: pacote anterior da UX
+  clicável, preservado como histórico.
+- `output/release/privacy-scanner-lgpd-1.1.0.vsix`: release 1.1 anterior,
+  preservada como histórico.
 - `output/release/privacy-scanner-lgpd-1.0.4.vsix`: baseline histórica da
   extensão preservada na tag `v1.0.4`.
 - `output/presentation/TCC_Privacy_by_Design_Banca.pptx`: apresentação de 10
@@ -443,7 +493,7 @@ Implementado:
 cd vscode-extension
 npm install
 npm run package
-code --install-extension .\privacy-scanner-lgpd-1.1.0.vsix --force
+code --install-extension .\privacy-scanner-lgpd-1.2.0.vsix --force
 ```
 
 O VSIX inclui o backend Python e funciona sem manter o repositório do TCC

@@ -12,9 +12,11 @@ export type Confidence = 'ALTA' | 'MEDIA' | 'BAIXA';
 export interface Finding {
     finding_id?: string;
     finding_id_legacy?: string;
+    suppression_id?: string;
     arquivo: string;
     linha: number;
     categoria: string;
+    categoria_publica?: string;
     risco: Risk;
     risco_base?: Risk;
     confianca?: Confidence;
@@ -35,6 +37,13 @@ export interface AnalysisSummary {
     por_risco: RiskCounts;
     /** Nulo quando o backend nao pode calcular o indicador para o escopo. */
     indicador_tecnico: number | null;
+    total_bruto?: number | null;
+    total_exibido?: number | null;
+    ocultos_por_perfil?: number | null;
+    por_risco_bruto?: RiskCounts;
+    por_risco_exibido?: RiskCounts;
+    indicador_tecnico_bruto?: number | null;
+    indicador_tecnico_exibido?: number | null;
     criterio_indicador?: string;
     aviso_escopo?: string;
 }
@@ -56,6 +65,7 @@ export interface AnalysisResponse {
     resumo?: AnalysisSummary;
     escopo?: ScopeMetadata;
     message?: string;
+    error?: { codigo?: string; mensagem?: string };
     perfil_analise?: AnalysisProfileMetadata;
 }
 
@@ -98,6 +108,28 @@ export function aggregateAnalysisResponses(responses: AnalysisResponse[]): Analy
     );
     scope.status = partial ? 'partial' : 'complete';
     const findings = successful.flatMap(item => item.achados);
+    const rawRiskCounts = successful.reduce(
+        (acc, item) => {
+            const counts = item.resumo?.por_risco_bruto ?? item.resumo?.por_risco;
+            for (const risk of ['ALTO', 'MEDIO', 'BAIXO'] as const) {
+                acc[risk] += counts?.[risk] ?? 0;
+            }
+            return acc;
+        },
+        { ALTO: 0, MEDIO: 0, BAIXO: 0 }
+    );
+    const totalRaw = successful.reduce(
+        (total, item) => total + (item.resumo?.total_bruto ?? item.resumo?.total ?? item.achados.length),
+        0
+    );
+    const displayedIndicator = Math.max(
+        0,
+        100 - riskCounts.ALTO * 10 - riskCounts.MEDIO * 5 - riskCounts.BAIXO * 2
+    );
+    const rawIndicator = Math.max(
+        0,
+        100 - rawRiskCounts.ALTO * 10 - rawRiskCounts.MEDIO * 5 - rawRiskCounts.BAIXO * 2
+    );
     return {
         success: true,
         status: scope.status,
@@ -106,10 +138,14 @@ export function aggregateAnalysisResponses(responses: AnalysisResponse[]): Analy
         resumo: {
             total: findings.length,
             por_risco: riskCounts,
-            indicador_tecnico: Math.max(
-                0,
-                100 - riskCounts.ALTO * 10 - riskCounts.MEDIO * 5 - riskCounts.BAIXO * 2
-            )
+            indicador_tecnico: displayedIndicator,
+            total_exibido: findings.length,
+            total_bruto: totalRaw,
+            ocultos_por_perfil: Math.max(0, totalRaw - findings.length),
+            por_risco_exibido: riskCounts,
+            por_risco_bruto: rawRiskCounts,
+            indicador_tecnico_exibido: displayedIndicator,
+            indicador_tecnico_bruto: rawIndicator
         },
         escopo: scope,
         perfil_analise: successful.length === 1 ? successful[0].perfil_analise : undefined
@@ -203,9 +239,11 @@ export function normalizeFinding(value: unknown): Finding | undefined {
     return {
         finding_id: stringValue(record.finding_id, record.id),
         finding_id_legacy: stringValue(record.finding_id_legacy),
+        suppression_id: stringValue(record.suppression_id),
         arquivo,
         linha,
         categoria,
+        categoria_publica: stringValue(record.categoria_publica, record.public_category),
         risco: normalizeRisk(record.risco ?? record.risk),
         risco_base: normalizeRisk(record.risco_base ?? record.base_risk ?? record.risco ?? record.risk),
         confianca: normalizeConfidence(record.confianca ?? record.confidence),
@@ -239,6 +277,17 @@ export function normalizeSummary(value: unknown): AnalysisSummary | undefined {
         total: numberValue(record.total, record.total_achados, record.count) ?? null,
         por_risco: normalizeRiskCounts(record.por_risco ?? record.by_risk),
         indicador_tecnico: numberValue(
+            record.indicador_tecnico,
+            record.score_conformidade
+        ) ?? null,
+        total_bruto: numberValue(record.total_bruto, record.raw_total) ?? null,
+        total_exibido: numberValue(record.total_exibido, record.displayed_total) ?? null,
+        ocultos_por_perfil: numberValue(record.ocultos_por_perfil, record.hidden_by_profile) ?? null,
+        por_risco_bruto: normalizeRiskCounts(record.por_risco_bruto ?? record.raw_by_risk),
+        por_risco_exibido: normalizeRiskCounts(record.por_risco_exibido ?? record.por_risco),
+        indicador_tecnico_bruto: numberValue(record.indicador_tecnico_bruto, record.raw_indicator) ?? null,
+        indicador_tecnico_exibido: numberValue(
+            record.indicador_tecnico_exibido,
             record.indicador_tecnico,
             record.score_conformidade
         ) ?? null,
@@ -305,8 +354,25 @@ export function normalizeAnalysisResponse(value: unknown): AnalysisResponse {
             .filter((finding): finding is Finding => finding !== undefined),
         resumo,
         escopo: normalizeScope(record.escopo ?? record.scope ?? record, status),
-        message: stringValue(record.message, record.mensagem, record.error)
+        message: stringValue(
+            record.message,
+            record.mensagem,
+            asRecord(record.error)?.mensagem,
+            asRecord(record.error)?.message
+        ),
+        error: normalizeApiError(record.error)
         ,perfil_analise: normalizeProfileMetadata(record.perfil_analise ?? record.analysis_profile)
+    };
+}
+
+function normalizeApiError(value: unknown): { codigo?: string; mensagem?: string } | undefined {
+    const record = asRecord(value);
+    if (!record) {
+        return undefined;
+    }
+    return {
+        codigo: stringValue(record.codigo, record.code),
+        mensagem: stringValue(record.mensagem, record.message)
     };
 }
 

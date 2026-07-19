@@ -482,3 +482,54 @@ def test_generic_name_requires_personal_table_context(tmp_path):
     descriptions = [item.descricao for item in results]
     assert not any("Artist" in description for description in descriptions)
     assert any("Customer" in description for description in descriptions)
+
+
+def test_active_flag_does_not_prove_deletion_support(tmp_path):
+    database = tmp_path / "active.db"
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            "CREATE TABLE usuarios (id INTEGER PRIMARY KEY, email TEXT, active BOOLEAN)"
+        )
+
+    results = analisar_banco(str(database))
+
+    assert any(item.categoria == "AUSENCIA_SOFT_DELETE" for item in results)
+
+
+def test_username_does_not_count_as_distinct_user_and_name_fields(tmp_path):
+    database = tmp_path / "username.db"
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            "CREATE TABLE auditoria (id INTEGER PRIMARY KEY, username TEXT, event TEXT)"
+        )
+
+    results = analisar_banco(str(database))
+
+    assert not any(item.categoria == "AUSENCIA_CONSENTIMENTO" for item in results)
+
+
+def test_sensitive_unique_index_is_reported_but_regular_index_is_not(tmp_path):
+    database = tmp_path / "indices.db"
+    with sqlite3.connect(database) as connection:
+        connection.executescript(
+            """
+            CREATE TABLE usuarios (
+                id INTEGER PRIMARY KEY,
+                email TEXT,
+                cpf TEXT,
+                deleted_at TIMESTAMP,
+                expires_at TIMESTAMP,
+                base_legal TEXT
+            );
+            CREATE UNIQUE INDEX ux_usuarios_email ON usuarios(email);
+            CREATE INDEX ix_usuarios_cpf ON usuarios(cpf);
+            """
+        )
+
+    results = analisar_banco(str(database))
+    unique_findings = [
+        item for item in results
+        if item.categoria == "DADO_SENSIVEL_COMO_INDICE_UNICO"
+    ]
+
+    assert [item.trecho for item in unique_findings] == ["usuarios.email : UNIQUE"]

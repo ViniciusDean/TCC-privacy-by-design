@@ -11,7 +11,7 @@ Mostrar que a ferramenta consegue:
 - analisar banco SQLite;
 - exibir achados tecnicos no VS Code;
 - mostrar resumo por risco;
-- exportar relatório HTML e PDF.
+- exportar relatórios HTML, PDF e JSON.
 
 ## 1. Preparar Ambiente
 
@@ -55,12 +55,16 @@ suíte concluída sem falhas
 C:\Users\deanv\OneDrive\Documents\privacy-scanner-testes
 ```
 
+5. Clique no ícone `Privacy Scanner` da barra de atividades.
+6. Confirme que `Ações rápidas` aparece acima de `Achados` e `Resumo` e que
+   `Configuração e suporte` informa o estado do backend.
+
 ## 3. Demonstrar Análise de Código Vulnerável
 
 1. Abra `exemplo_vulneravel.py`.
-2. Execute `Ctrl+Shift+P`.
-3. Rode `Privacy Scanner: Analisar arquivo atual`.
-4. Mostre:
+2. Em `Ações rápidas`, clique em `Analisar arquivo atual` e confirme que o
+   nome de `exemplo_vulneravel.py` aparece na ação.
+3. Mostre:
 
 - marcações no editor;
 - painel `Problems`;
@@ -77,7 +81,7 @@ A ferramenta faz análise estática. Ela não executa o código; ela percorre a 
 ## 4. Demonstrar Arquivo Correto
 
 1. Abra `exemplo_correto.py`.
-2. Rode `Privacy Scanner: Analisar arquivo atual`.
+2. Clique no botão de análise no título do editor.
 3. Mostre que o número de achados é menor ou inexistente.
 
 Falar durante a apresentação:
@@ -88,14 +92,20 @@ Este exemplo serve para verificar falsos positivos em boas práticas simples, co
 
 ## 5. Demonstrar Análise do Projeto Inteiro
 
-1. Execute `Ctrl+Shift+P`.
-2. Rode `Privacy Scanner: Analisar projeto inteiro`.
-3. Mostre:
+1. Clique em `Analisar projeto inteiro` nas `Ações rápidas`.
+2. Mostre:
 
 - arquivos Python analisados;
 - bancos SQLite encontrados;
 - total de achados técnicos;
 - contagem por risco.
+
+Clique em `Configurar perfil`, abra `Preset base`, escolha `Equilibrado` e use
+`Salvar perfil`. Mostre que o preset ativo é atualizado no painel sem editar
+JSON. Explique que `Regras ativas` e `Ajustar uma regra` permitem personalizar o
+perfil, mas que severidade técnica não é conclusão jurídica. Para a sequência
+reproduzível da demo, restaure o preset original e salve. A edição JSON
+avançada fica apenas na Paleta e não faz parte do fluxo principal.
 
 Falar durante a apresentação:
 
@@ -106,7 +116,8 @@ A análise de projeto agrega os resultados de código e banco em uma visão úni
 ## 6. Demonstrar Java
 
 1. Abra `exemplo_vulneravel.java`.
-2. Rode `Privacy Scanner: Analisar arquivo atual`.
+2. Clique com o botão direito no editor e escolha
+   `Privacy Scanner: Analisar arquivo`.
 3. Mostre os achados das sete categorias: hardcoded, criptografia fraca, log,
    transferência externa, coleta excessiva, ausência de exclusão e dado sem proteção.
 4. Abra `exemplo_correto.java` para demonstrar o cenário sem alertas esperados.
@@ -121,9 +132,10 @@ de dados entre métodos.
 
 ## 7. Demonstrar Banco SQLite
 
-1. Execute `Privacy Scanner: Analisar banco SQLite`.
-2. Selecione `banco_vulneravel.db` na pasta de teste.
-3. Mostre achados tecnicos de schema, como:
+1. No Explorer, clique com o botão direito em `banco_vulneravel.db`.
+2. Escolha `Privacy Scanner: Analisar banco SQLite`; o arquivo selecionado é
+   analisado sem abrir outro seletor.
+3. Mostre achados técnicos de schema, como:
 
 - `CAMPO_SEM_HASH`;
 - `AUSENCIA_SOFT_DELETE`;
@@ -156,7 +168,7 @@ Também demonstre `Ignorar este risco na interface`. Confirme que a ocorrência 
 
 ## 9. Exportar Relatório HTML
 
-1. Execute `Privacy Scanner: Exportar relatorio`.
+1. Clique em `Exportar relatório` nas `Ações rápidas`.
 2. Escolha `HTML`.
 3. Selecione nome e destino pela janela do Windows.
 4. Abra o arquivo gerado.
@@ -176,7 +188,7 @@ O HTML é o relatório interativo, útil para inspeção técnica durante a revi
 
 ## 10. Exportar Relatório PDF
 
-1. Execute `Privacy Scanner: Exportar relatorio`.
+1. Clique em `Exportar relatório` nas `Ações rápidas`.
 2. Escolha `PDF`.
 3. Selecione nome e destino pela janela do Windows.
 4. Abra o PDF.
@@ -187,7 +199,13 @@ Falar durante a apresentação:
 O PDF é uma versão formal e estática do relatório, pensada para anexar como evidência técnica de teste ou material de apoio à revisão de privacidade.
 ```
 
-## 11. Evidências para o TCC
+## 11. Exportar Relatório JSON
+
+1. Clique em `Exportar relatório` nas `Ações rápidas`.
+2. Escolha `JSON` e salve o arquivo.
+3. Mostre os metadados, o resumo e a lista estruturada de achados técnicos.
+
+## 12. Evidências para o TCC
 
 Durante a demo, vale tirar prints de:
 
@@ -197,6 +215,7 @@ Durante a demo, vale tirar prints de:
 - painel `Problems`;
 - relatório HTML;
 - relatório PDF;
+- relatório JSON;
 - terminal com a suíte concluída sem falhas.
 
 ## Resultado Esperado
@@ -206,8 +225,8 @@ Durante a demo, vale tirar prints de:
 - `exemplo_vulneravel.py` gera achados tecnicos.
 - `exemplo_correto.py` não gera os mesmos alertas.
 - `banco_vulneravel.db` gera alertas de schema.
-- HTML e PDF são exportados.
-- `pytest` passa com 89 testes.
+- HTML, PDF e JSON são exportados.
+- `pytest` passa com 164 testes.
 
 ## Limitações a Declarar
 
@@ -217,3 +236,7 @@ Durante a demo, vale tirar prints de:
 - A ferramenta não mede todos os requisitos da LGPD.
 - O suporte Java é heurístico e não compila o projeto.
 - O Java cobre sete categorias, mas não resolve tipos nem fluxo entre métodos.
+
+Se algum componente clicável não estiver disponível durante a demonstração,
+a Paleta de Comandos (`Ctrl+Shift+P`) permanece como alternativa com os mesmos
+IDs de comando. Ela não é o fluxo principal deste roteiro.

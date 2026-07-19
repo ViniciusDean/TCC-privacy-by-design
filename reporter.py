@@ -78,12 +78,16 @@ RECOMENDACOES = {
     ),
     "DADO_SENSIVEL_COMO_PK": (
         "Substitua a PK por ID técnico (INTEGER AUTOINCREMENT ou UUID). "
-        "Mantenha CPF/email como campo único (UNIQUE) mas não como PK."
+        "Evite expor o identificador pessoal como chave entre contextos."
+    ),
+    "DADO_SENSIVEL_COMO_INDICE_UNICO": (
+        "Avalie usar um ID técnico e proteger o identificador pessoal. "
+        "Se a unicidade for necessária, documente a finalidade e restrinja o acesso."
     ),
 }
 
 ORDEM_RISCO = {"ALTO": 0, "MEDIO": 1, "BAIXO": 2}
-VERSAO_FERRAMENTA = "1.1.0"
+VERSAO_FERRAMENTA = "1.2.0"
 
 AVISO_ESCOPO_ANALISE = (
     "Os resultados representam indícios técnicos identificados por análise "
@@ -111,6 +115,7 @@ EVIDENCIAS_SEGURAS = {
     "MISTURA_DADOS": "O schema concentrou campos classificados e operacionais na mesma estrutura.",
     "AUSENCIA_CONSENTIMENTO": "O schema não evidenciou consentimento nem outro registro técnico de base legal.",
     "DADO_SENSIVEL_COMO_PK": "O schema usa um campo classificado como identificador primário.",
+    "DADO_SENSIVEL_COMO_INDICE_UNICO": "O schema usa um identificador pessoal em índice único.",
 }
 
 DESCRICOES_SEGURAS = {
@@ -127,6 +132,7 @@ DESCRICOES_SEGURAS = {
     "MISTURA_DADOS": "Separação entre dados classificados e operacionais deve ser revisada.",
     "AUSENCIA_CONSENTIMENTO": "Proteção/base legal não evidenciada pelo schema; requer revisão humana.",
     "DADO_SENSIVEL_COMO_PK": "Uso de identificador pessoal como chave primária deve ser revisado.",
+    "DADO_SENSIVEL_COMO_INDICE_UNICO": "Uso de identificador pessoal em índice único deve ser revisado.",
 }
 
 REFERENCIAS_POTENCIAIS = {
@@ -143,10 +149,12 @@ REFERENCIAS_POTENCIAIS = {
     "MISTURA_DADOS": "Art. 46 — Segurança | Privacy by Design — Separação",
     "AUSENCIA_CONSENTIMENTO": "Art. 7º — Bases legais para tratamento de dados pessoais",
     "DADO_SENSIVEL_COMO_PK": "Art. 46 — Segurança | Privacy by Design — Linkability",
+    "DADO_SENSIVEL_COMO_INDICE_UNICO": "Art. 46 — Segurança | Privacy by Design — Linkability",
 }
 
 CATEGORIAS_PUBLICAS = {
     "AUSENCIA_CONSENTIMENTO": "PROTEÇÃO/BASE LEGAL NÃO EVIDENCIADA",
+    "DADO_SENSIVEL_COMO_INDICE_UNICO": "IDENTIFICADOR PESSOAL EM ÍNDICE ÚNICO",
 }
 
 
@@ -194,6 +202,44 @@ def construir_resumo(resultados, indicador_disponivel: bool = True) -> dict:
         "criterio_indicador": CRITERIO_INDICADOR_TECNICO,
         "aviso_escopo": AVISO_ESCOPO_ANALISE,
     }
+
+
+def deduplicar_achados(resultados) -> list:
+    """Remove duplicatas sem confundir regras distintas na mesma linha."""
+    unicos = []
+    vistos = set()
+    for achado in resultados:
+        arquivo = os.path.normcase(os.path.realpath(os.fspath(achado.arquivo)))
+        localizador = str(
+            getattr(achado, "localizador_interno", None)
+            or getattr(achado, "trecho", "")
+        )
+        chave = (
+            arquivo,
+            int(getattr(achado, "linha", 0) or 0),
+            str(achado.categoria),
+            " ".join(localizador.lower().split()),
+        )
+        if chave in vistos:
+            continue
+        vistos.add(chave)
+        unicos.append(achado)
+    return unicos
+
+
+def enriquecer_resumo_exibido(resumo_exibido: dict, resumo_bruto: dict) -> dict:
+    """Explicita o efeito do perfil preservando os nomes legados exibidos."""
+    resumo = dict(resumo_exibido)
+    resumo.update({
+        "total_exibido": resumo_exibido["total"],
+        "total_bruto": resumo_bruto["total"],
+        "ocultos_por_perfil": max(0, resumo_bruto["total"] - resumo_exibido["total"]),
+        "por_risco_exibido": resumo_exibido["por_risco"],
+        "por_risco_bruto": resumo_bruto["por_risco"],
+        "indicador_tecnico_exibido": resumo_exibido["indicador_tecnico"],
+        "indicador_tecnico_bruto": resumo_bruto["indicador_tecnico"],
+    })
+    return resumo
 
 
 def combinar_escopos(escopos: list[dict], alvo: str | None = None) -> dict:
@@ -278,9 +324,13 @@ def serializar_achado(achado, scope_root: str | None = None) -> dict:
     finding_id_legacy = hashlib.sha256(
         f"{arquivo}\0{linha}\0{categoria}\0{risco}".encode("utf-8")
     ).hexdigest()[:20]
+    suppression_id = hashlib.sha256(
+        f"s1\0{caminho_identidade}\0{linha}\0{categoria}\0{localizador_hash}".encode("utf-8")
+    ).hexdigest()[:24]
     return {
         "finding_id": finding_id,
         "finding_id_legacy": finding_id_legacy,
+        "suppression_id": suppression_id,
         "arquivo": arquivo,
         "linha": linha,
         "categoria": categoria,
@@ -319,6 +369,7 @@ class Reporter:
         self.alvo_banco  = alvo_banco
         self.timestamp   = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.resultados  = []
+        self.resultados_brutos: list | None = None
         self.escopo: dict | None = None
         self.perfil_analise: dict | None = None
 
@@ -332,6 +383,8 @@ class Reporter:
         if not self.alvo_codigo and not self.alvo_banco:
             raise ValueError("Informe ao menos um alvo de código ou banco SQLite.")
 
+        self.resultados = []
+        self.resultados_brutos = None
         escopos = []
         if self.alvo_codigo:
             if os.path.isfile(self.alvo_codigo):
@@ -348,6 +401,7 @@ class Reporter:
             self.resultados += resultados
             escopos.append(escopo)
 
+        self.resultados = deduplicar_achados(self.resultados)
         self.escopo = combinar_escopos(escopos)
 
         # Ordena: ALTO → MEDIO → BAIXO, depois por arquivo e linha
@@ -365,7 +419,16 @@ class Reporter:
 
     def dados_publicos(self) -> dict:
         """Retorna o contrato serializável usado em JSON e pela API."""
-        resumo = self._sumario()
+        resultados_brutos = deduplicar_achados(
+            self.resultados_brutos if self.resultados_brutos is not None else self.resultados
+        )
+        self.resultados = deduplicar_achados(self.resultados)
+        resumo_exibido = self._sumario()
+        resumo_bruto = construir_resumo(
+            resultados_brutos,
+            indicador_disponivel=_indicador_disponivel(self.escopo),
+        )
+        resumo = enriquecer_resumo_exibido(resumo_exibido, resumo_bruto)
         achados = serializar_achados(self.resultados, self._scope_root())
         return {
             "ferramenta": "Privacy Scanner — TCC FATEC",
@@ -394,7 +457,7 @@ class Reporter:
     # ── Exportar HTML ─────────────────────────────────────────────────────────
     def gerar_html(self) -> str:
         """Retorna o relatorio HTML em memoria."""
-        sumario = self._sumario()
+        sumario = self.dados_publicos()["resumo"]
         score = sumario["indicador_tecnico"]
         if score is None:
             raise ValueError("Não é possível gerar relatório para escopo vazio, inválido ou sem análise concluída.")
@@ -467,6 +530,7 @@ class Reporter:
         alvo_banco = esc(self.alvo_banco or "Nao informado")
         timestamp = esc(self.timestamp)
         aviso_escopo = esc(AVISO_ESCOPO_ANALISE)
+        perfil_nome = esc((self.perfil_analise or {}).get("preset", "nao informado"))
 
         return f"""<!DOCTYPE html>
 <html lang="pt-BR">
@@ -636,7 +700,7 @@ class Reporter:
       <div>
         <h1>Privacy Scanner LGPD</h1>
         <div class="subtitle">Relatorio tecnico de indicios de risco a privacidade em codigo Python, Java e SQLite.</div>
-        <div class="meta">Gerado em {timestamp} | Privacy by Design no ciclo de desenvolvimento</div>
+        <div class="meta">Gerado em {timestamp} | Perfil: {perfil_nome} | Privacy by Design no ciclo de desenvolvimento</div>
       </div>
       <div class="score-pill"><strong>{score}/100</strong><span>{status_score}</span></div>
     </div>
@@ -647,7 +711,9 @@ class Reporter:
     </section>
     <section class="section">
       <div class="cards">
-        <div class="card"><div class="num">{sumario['total']}</div><div class="lbl">Total de achados tecnicos</div></div>
+        <div class="card"><div class="num">{sumario['total_exibido']}</div><div class="lbl">Achados exibidos pelo perfil</div></div>
+        <div class="card"><div class="num">{sumario['total_bruto']}</div><div class="lbl">Achados brutos</div></div>
+        <div class="card"><div class="num">{sumario['ocultos_por_perfil']}</div><div class="lbl">Ocultos pelo perfil</div></div>
         <div class="card"><div class="num" style="color:#dc2626">{sumario['por_risco']['ALTO']}</div><div class="lbl">Risco alto</div></div>
         <div class="card"><div class="num" style="color:#d97706">{sumario['por_risco']['MEDIO']}</div><div class="lbl">Risco medio</div></div>
         <div class="card"><div class="num" style="color:#2563eb">{sumario['por_risco']['BAIXO']}</div><div class="lbl">Risco baixo</div></div>

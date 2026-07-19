@@ -2,7 +2,7 @@
   "name": "privacy-scanner-lgpd",
   "displayName": "Privacy Scanner LGPD",
   "description": "Análise estática de indícios técnicos de risco à privacidade conforme LGPD e Privacy by Design",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "author": "TCC FATEC",
   "license": "MIT",
   "publisher": "fatec-tcc",
@@ -39,12 +39,14 @@
     "onCommand:privacy-scanner.showSidebar",
     "onCommand:privacy-scanner.ignoreVulnerability",
     "onCommand:privacy-scanner.restoreIgnoredVulnerabilities",
+    "onCommand:privacy-scanner.configureProfile",
     "onCommand:privacy-scanner.createProfile",
     "onCommand:privacy-scanner.selectProfile",
     "onCommand:privacy-scanner.validateProfile",
     "onCommand:privacy-scanner.restartBackend",
     "onCommand:privacy-scanner.setupBackend",
-    "onCommand:privacy-scanner.showLogs"
+    "onCommand:privacy-scanner.showLogs",
+    "onView:privacy-scanner-actions"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -57,8 +59,9 @@
       },
       {
         "command": "privacy-scanner.analyze",
-        "title": "Privacy Scanner: Analisar arquivo atual",
-        "category": "Privacy Scanner"
+        "title": "Privacy Scanner: Analisar arquivo",
+        "category": "Privacy Scanner",
+        "icon": "$(shield)"
       },
       {
         "command": "privacy-scanner.analyzeAll",
@@ -68,7 +71,8 @@
       {
         "command": "privacy-scanner.analyzeDatabase",
         "title": "Privacy Scanner: Analisar banco SQLite",
-        "category": "Privacy Scanner"
+        "category": "Privacy Scanner",
+        "icon": "$(database)"
       },
       {
         "command": "privacy-scanner.clearResults",
@@ -94,8 +98,9 @@
       },
       {
         "command": "privacy-scanner.showSidebar",
-        "title": "Privacy Scanner: Mostrar achados",
-        "category": "Privacy Scanner"
+        "title": "Privacy Scanner: Abrir painel",
+        "category": "Privacy Scanner",
+        "icon": "$(layout-sidebar-left)"
       },
       {
         "command": "privacy-scanner.ignoreVulnerability",
@@ -110,9 +115,16 @@
         "icon": "$(eye)"
       },
       {
+        "command": "privacy-scanner.configureProfile",
+        "title": "Privacy Scanner: Configurar perfil",
+        "category": "Privacy Scanner",
+        "icon": "$(settings-gear)"
+      },
+      {
         "command": "privacy-scanner.createProfile",
-        "title": "Privacy Scanner: Criar perfil do projeto",
-        "category": "Privacy Scanner"
+        "title": "Privacy Scanner: Editar perfil JSON (avançado)",
+        "category": "Privacy Scanner",
+        "icon": "$(json)"
       },
       {
         "command": "privacy-scanner.selectProfile",
@@ -152,6 +164,11 @@
     "views": {
       "privacy-scanner-sidebar": [
         {
+          "id": "privacy-scanner-actions",
+          "name": "Ações rápidas",
+          "when": "privacy-scanner:showActions"
+        },
+        {
           "id": "privacy-scanner-vulnerabilities",
           "name": "Achados",
           "when": "privacy-scanner:showVulnerabilities"
@@ -164,6 +181,32 @@
       ]
     },
     "menus": {
+      "editor/title": [
+        {
+          "command": "privacy-scanner.analyze",
+          "when": "resourceLangId == python || resourceLangId == java",
+          "group": "navigation@10"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "privacy-scanner.analyze",
+          "when": "editorLangId == python || editorLangId == java",
+          "group": "privacy-scanner@1"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "privacy-scanner.analyze",
+          "when": "resourceExtname == .py || resourceExtname == .java",
+          "group": "privacy-scanner@1"
+        },
+        {
+          "command": "privacy-scanner.analyzeDatabase",
+          "when": "resourceExtname == .db || resourceExtname == .sqlite || resourceExtname == .sqlite3",
+          "group": "privacy-scanner@2"
+        }
+      ],
       "view/title": [
         {
           "command": "privacy-scanner.analyzeNow",
@@ -210,10 +253,24 @@
           "maximum": 65535,
           "description": "Porta do servidor Flask para análise"
         },
+        "privacy-scanner.analysisTimeoutMs": {
+          "type": "number",
+          "default": 60000,
+          "minimum": 5000,
+          "maximum": 300000,
+          "description": "Tempo limite de cada requisicao de analise ao backend, em milissegundos"
+        },
         "privacy-scanner.autoAnalyzeOnSave": {
           "type": "boolean",
           "default": true,
-          "description": "Analisar arquivo automaticamente ao salvar"
+          "description": "Analisar arquivo automaticamente ao abrir, ativar ou salvar"
+        },
+        "privacy-scanner.autoAnalyzeDelayMs": {
+          "type": "number",
+          "default": 500,
+          "minimum": 100,
+          "maximum": 5000,
+          "description": "Atraso para agrupar eventos repetidos da analise automatica"
         },
         "privacy-scanner.pythonPath": {
           "type": "string",
@@ -245,11 +302,11 @@
     "check-backend-version": "node ./scripts/check-backend-version.js",
     "package": "vsce package",
     "compile": "tsc -p ./",
-    "bundle": "esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=out/extension.js --sourcemap",
+    "bundle": "node ./scripts/bundle.js",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run check-backend-version && npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/contract.test.js && node ./out/test/profile.test.js && node ./out/test/processUtils.test.js && node ./out/test/analysisCoordinator.test.js && node ./out/test/findingState.test.js && node ./out/test/httpClient.test.js && node ./out/test/backendEndpoint.test.js",
+    "test": "node ./out/test/contract.test.js && node ./out/test/profile.test.js && node ./out/test/profileDraft.test.js && node ./out/test/profileWizard.test.js && node ./out/test/processUtils.test.js && node ./out/test/analysisCoordinator.test.js && node ./out/test/findingState.test.js && node ./out/test/httpClient.test.js && node ./out/test/backendEndpoint.test.js && node ./out/test/quickActions.test.js && node ./out/test/uiContributions.test.js",
     "test:integration": "npm run prepare-backend && npm run compile && node ./scripts/run-integration-tests.js",
     "test:vsix": "node ./scripts/smoke-install-vsix.js",
     "test:all": "npm test && npm run test:integration"

@@ -654,3 +654,129 @@ class User(db.Model):
     )
     results = analisar_arquivo(str(source))
     assert "DADO_SEM_CRIPTOGRAFIA" not in {item.categoria for item in results}
+
+
+def test_hardcoded_context_ignores_templates_events_and_app_metadata(tmp_path):
+    source = tmp_path / "models.py"
+    source.write_text(
+        """
+class CustomerConfig(AppConfig):
+    name = "oscar.apps.customer"
+
+class CommunicationType(models.Model):
+    email_subject_template_file = "emails/reset_subject.txt"
+    PASSWORD_RESET_EVENT_CODE = "PASSWORD_RESET"
+""",
+        encoding="utf-8",
+    )
+
+    results = analisar_arquivo(str(source))
+
+    assert "DADO_HARDCODED" not in {item.categoria for item in results}
+    assert "AUSENCIA_EXCLUSAO" not in {item.categoria for item in results}
+
+
+def test_hardcoded_test_fixture_is_not_high_confidence(tmp_path):
+    fixture_dir = tmp_path / "tests" / "fixtures"
+    fixture_dir.mkdir(parents=True)
+    source = fixture_dir / "user.py"
+    source.write_text('email = "person@example.com"\n', encoding="utf-8")
+
+    finding = next(
+        item for item in analisar_arquivo(str(source))
+        if item.categoria == "DADO_HARDCODED"
+    )
+
+    assert finding.confianca == "MEDIA"
+
+
+def test_call_matching_is_exact_and_logger_receiver_is_supported(tmp_path):
+    source = tmp_path / "logging_case.py"
+    source.write_text(
+        """
+def run(email, cpf):
+    print_data(cpf)
+    logging.error_handler(cpf)
+    requests.getter("https://example.invalid", json={"cpf": cpf})
+    httpx.getaway("https://example.invalid", data={"email": email})
+    self.logger.info("recipient=%s cpf=%s", email, cpf)
+""",
+        encoding="utf-8",
+    )
+
+    results = analisar_arquivo(str(source))
+    logs = [item for item in results if item.categoria == "DADO_EM_LOG"]
+
+    assert len(logs) == 1
+    assert logs[0].linha == 7
+    assert "TRANSFERENCIA_SEM_BASE_LEGAL" not in {
+        item.categoria for item in results
+    }
+
+
+def test_log_and_transfer_emit_one_finding_per_call(tmp_path):
+    source = tmp_path / "sinks.py"
+    source.write_text(
+        """
+def run(email, cpf):
+    logging.warning("email=%s cpf=%s", email, cpf)
+    requests.post("https://example.invalid", json={"email": email}, data={"cpf": cpf})
+""",
+        encoding="utf-8",
+    )
+
+    results = analisar_arquivo(str(source))
+
+    assert len([item for item in results if item.categoria == "DADO_EM_LOG"]) == 1
+    assert len([
+        item for item in results
+        if item.categoria == "TRANSFERENCIA_SEM_BASE_LEGAL"
+    ]) == 1
+
+
+def test_presentation_column_and_cascade_do_not_trigger_missing_deletion(tmp_path):
+    source = tmp_path / "models.py"
+    source.write_text(
+        """
+class UserTable(DashboardTable):
+    email = tables.Column()
+
+class ProductAlert(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    email = models.EmailField()
+""",
+        encoding="utf-8",
+    )
+
+    results = analisar_arquivo(str(source))
+
+    assert "AUSENCIA_EXCLUSAO" not in {item.categoria for item in results}
+
+
+def test_unrelated_delete_prefix_does_not_satisfy_deletion_rule(tmp_path):
+    source = tmp_path / "models.py"
+    source.write_text(
+        """
+class User(models.Model):
+    email = models.EmailField()
+
+    def delete_cache(self):
+        pass
+""",
+        encoding="utf-8",
+    )
+
+    results = analisar_arquivo(str(source))
+
+    assert "AUSENCIA_EXCLUSAO" in {item.categoria for item in results}
+
+
+def test_privacyignore_accepts_utf8_bom(tmp_path):
+    ignored = tmp_path / "ignored.py"
+    ignored.write_text('password = "real-secret"\n', encoding="utf-8")
+    (tmp_path / ".privacyignore").write_text(
+        "\ufeffignored.py\n",
+        encoding="utf-8",
+    )
+
+    assert analisar_diretorio(str(tmp_path)) == []

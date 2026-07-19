@@ -35,6 +35,7 @@ class Vulnerability:
     trecho:      Optional[str] = None  # "tabela.coluna : TIPO"
     confianca:   str = "ALTA"
     risco_base:  Optional[str] = None
+    localizador_interno: Optional[str] = None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -65,7 +66,7 @@ SUFIXOS_HASH = ["_hash", "_encrypted", "_hashed", "_cifrado", "_digest"]
 # Colunas que indicam controle de exclusão / soft delete
 COLUNAS_EXCLUSAO = [
     "deleted_at", "deletado_em", "excluido_em",
-    "removed_at", "is_deleted", "ativo", "active",
+    "removed_at", "is_deleted",
     "anonymized", "anonimizado",
 ]
 
@@ -138,7 +139,10 @@ class DBAnalyzer:
         self.conn.execute("PRAGMA query_only = ON")
         self.cur        = self.conn.cursor()
 
-    def _adicionar(self, categoria, descricao, risco, artigo, trecho="", confianca="ALTA"):
+    def _adicionar(
+        self, categoria, descricao, risco, artigo, trecho="", confianca="ALTA",
+        localizador_interno=None,
+    ):
         self.resultados.append(Vulnerability(
             arquivo=self.caminho,
             linha=0,
@@ -148,6 +152,7 @@ class DBAnalyzer:
             artigo_lgpd=artigo,
             trecho=trecho,
             confianca=confianca,
+            localizador_interno=localizador_interno or trecho,
         ))
 
     def _tabela_pessoal(self, tabela: str) -> bool:
@@ -203,14 +208,17 @@ class DBAnalyzer:
             for r in rows
         ]
 
-    def _indices(self, tabela: str) -> list[str]:
+    def _indices_unicos(self, tabela: str) -> set[str]:
         self.cur.execute(f"PRAGMA index_list({_identificador_sql_seguro(tabela)})")
         indices = self.cur.fetchall()
-        nomes = []
+        nomes = set()
         for idx in indices:
+            # PRAGMA index_list: seq, name, unique, origin, partial
+            if not idx[2]:
+                continue
             self.cur.execute(f"PRAGMA index_info({_identificador_sql_seguro(idx[1])})")
             for col in self.cur.fetchall():
-                nomes.append(col[2])
+                nomes.add(col[2])
         return nomes
 
     # ── Regra 1: campo sensível em texto puro sem hash ───────────────────────
@@ -315,10 +323,10 @@ class DBAnalyzer:
         legal operacionalizada no schema.
         """
         nomes_colunas = [c["name"].lower() for c in colunas]
-        indicadores_usuario = ["email", "cpf", "nome", "name", "usuario", "user"]
-        eh_tabela_usuario = sum(
-            1 for ind in indicadores_usuario if any(ind in n for n in nomes_colunas)
-        ) >= 2
+        campos_pessoais = {
+            self._campo_pessoal(nome, tabela) for nome in nomes_colunas
+        } - {None}
+        eh_tabela_usuario = self._tabela_pessoal(tabela) and len(campos_pessoais) >= 2
 
         tem_base_legal = any(
             nome in COLUNAS_CONSENTIMENTO or nome in COLUNAS_BASE_LEGAL
@@ -345,6 +353,7 @@ class DBAnalyzer:
         CPF, email e similares usados como chave primária ou índice único
         podem facilitar correlação entre sistemas (linkability).
         """
+        indices_unicos = self._indices_unicos(tabela)
         for col in colunas:
             campo = self._campo_pessoal(col["name"], tabela)
             if not campo:
@@ -359,6 +368,18 @@ class DBAnalyzer:
                     "MEDIO",
                     "Art. 46 — Segurança | Princípio Privacy by Design — Linkability",
                     f"{tabela}.{col['name']} : PK",
+                )
+            elif col["name"] in indices_unicos:
+                self._adicionar(
+                    "DADO_SENSIVEL_COMO_INDICE_UNICO",
+                    f"Coluna '{col['name']}' (campo: '{campo}') usada em "
+                    f"índice único. Identificadores pessoais únicos facilitam "
+                    f"correlação entre sistemas (linkability). Avalie usar um "
+                    f"ID técnico e limitar a exposição do identificador.",
+                    "MEDIO",
+                    "Art. 46 — Segurança | Princípio Privacy by Design — Linkability",
+                    f"{tabela}.{col['name']} : UNIQUE",
+                    "MEDIA",
                 )
 
     # ── Execução de todas as regras ──────────────────────────────────────────

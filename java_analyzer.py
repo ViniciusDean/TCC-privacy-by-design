@@ -36,7 +36,7 @@ CAMPOS_PROTECAO_ELEVADA = {
 CAMPOS_AMBIGUOS = {"nome", "name", "idade", "age"}
 CONTEXTO_PESSOAL = {
     "usuario", "user", "cliente", "customer", "pessoa", "person", "titular",
-    "paciente", "patient", "funcionario", "employee",
+    "paciente", "patient", "funcionario", "employee", "owner", "proprietario",
 }
 CAMPOS_TECNICOS = {
     "user_agent", "user_id", "session_id", "request_id", "trace_id",
@@ -45,6 +45,13 @@ CAMPOS_TECNICOS = {
 CAMPOS_PROTEGIDOS = {
     "hash", "hashed", "sha256", "sha512", "encrypt", "encrypted",
     "cipher", "cifrado", "criptografado", "anonimizado", "anon",
+}
+TOKENS_FINALIDADE_TECNICA = {
+    "template", "file", "filename", "path", "subject", "body", "event",
+    "evento", "code", "codigo", "status", "type", "tipo", "label", "slug",
+}
+CAMPOS_CONTEXTO_HUMANO = {
+    "nome", "name", "nascimento", "birth", "idade", "age",
 }
 SUFIXOS_COLABORADORES = {
     "service", "repository", "repo", "controller", "client", "filter",
@@ -132,6 +139,7 @@ class Bloco:
     abertura: int
     fim: int
     parametros: tuple[str, ...] = ()
+    cabecalho: str = ""
 
 
 def _tokens(nome: str) -> list[str]:
@@ -145,6 +153,8 @@ def _campo_sensivel(nome: str):
         return None
 
     tokens = _tokens(nome)
+    if any(token in TOKENS_FINALIDADE_TECNICA for token in tokens):
+        return None
     if tokens and tokens[0] == "ip":
         return None
     if any(token in CAMPOS_PROTEGIDOS for token in tokens):
@@ -222,8 +232,9 @@ def _mascarar_strings(codigo: str) -> str:
         if codigo[i] not in {'"', "'"}:
             i += 1
             continue
-        delimitador = codigo[i]
-        i += 1
+        delimitador = '"""' if codigo.startswith('"""', i) else codigo[i]
+        passo = len(delimitador)
+        i += passo
         while i < len(codigo):
             if codigo[i] == "\\":
                 if codigo[i] != "\n":
@@ -232,12 +243,12 @@ def _mascarar_strings(codigo: str) -> str:
                     resultado[i + 1] = " "
                 i += 2
                 continue
-            if codigo[i] == delimitador:
+            if codigo.startswith(delimitador, i):
                 break
             if codigo[i] != "\n":
                 resultado[i] = " "
             i += 1
-        i += 1
+        i += passo
     return "".join(resultado)
 
 
@@ -293,6 +304,7 @@ def _encontrar_classes(estrutura: str) -> list[Bloco]:
             abertura=abertura,
             fim=_fim_bloco(estrutura, abertura),
             parametros=parametros,
+            cabecalho=match.group("cabecalho"),
         ))
     return classes
 
@@ -323,14 +335,15 @@ def _instrucoes(codigo: str):
     """Retorna instruções terminadas em ponto e vírgula com sua posição."""
     inicio = 0
     parenteses = 0
-    for posicao, caractere in enumerate(codigo):
+    estrutura = _mascarar_strings(codigo)
+    for posicao, caractere in enumerate(estrutura):
         if caractere == "(":
             parenteses += 1
         elif caractere == ")":
             parenteses = max(0, parenteses - 1)
         elif caractere == ";" and parenteses == 0:
             trecho = codigo[inicio:posicao + 1]
-            trecho_antes_do_final = trecho[:-1]
+            trecho_antes_do_final = estrutura[inicio:posicao]
             ultimo_delimitador = max(
                 trecho_antes_do_final.rfind("{"),
                 trecho_antes_do_final.rfind("}"),
@@ -413,10 +426,18 @@ def _registro_de_entrada(nome: str) -> bool:
     return any(token in MARCADORES_REGISTRO_ENTRADA for token in _tokens(nome))
 
 
-def _campo_modelo_pessoal(nome: str):
+def _campo_modelo_pessoal(nome: str, classe: Bloco):
     if _nome_colaborador(nome):
         return None
-    return _campo_sensivel(nome)
+    campo = _campo_sensivel(nome)
+    if not campo:
+        return None
+    if campo in CAMPOS_CONTEXTO_HUMANO:
+        contexto = set(_tokens(classe.nome))
+        contexto.update(_tokens(classe.cabecalho))
+        if not contexto.intersection(CONTEXTO_PESSOAL):
+            return None
+    return campo
 
 
 def _confianca_classe_persistente(codigo: str, classe: Bloco) -> str | None:
@@ -649,13 +670,35 @@ def analisar_java(caminho: str):
             if _profundidade(estrutura, classe.abertura, posicao_absoluta) != 1:
                 continue
             campo_match = PADRAO_CAMPO.search(instrucao)
-            if campo_match and (campo := _campo_modelo_pessoal(campo_match.group("nome"))):
+            if campo_match and (
+                campo := _campo_modelo_pessoal(campo_match.group("nome"), classe)
+            ):
                 campos.append(campo_match.group("nome"))
 
+        herda_contexto_pessoal = bool(
+            re.search(
+                r"\bextends\s+(?:[A-Za-z0-9_$.]*\.)?(?:Person|Pessoa|User|Usuario)\b",
+                classe.cabecalho,
+                re.IGNORECASE,
+            )
+        )
+        if not campos and herda_contexto_pessoal:
+            campos.append("dados pessoais herdados")
+
+        verbos_exclusao = {
+            "delete", "remove", "remover", "excluir", "anonimizar",
+            "anonymize", "purge", "erase", "apagar",
+        }
+        alvos_exclusao = {
+            "user", "usuario", "account", "conta", "profile", "perfil",
+            "data", "dados", "personal", "pessoal", "record", "registro",
+        }
         tem_exclusao = any(
-            parte in metodo.nome.lower()
+            tokens
+            and tokens[0] in verbos_exclusao
+            and (len(tokens) == 1 or tokens[1] in alvos_exclusao)
             for metodo in metodos_classe
-            for parte in METODOS_EXCLUSAO
+            if (tokens := _tokens(metodo.nome))
         )
         if campos and not tem_exclusao:
             adicionar(

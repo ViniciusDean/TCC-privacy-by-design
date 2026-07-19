@@ -30,4 +30,8 @@ const withoutIds = finding({ finding_id: undefined, finding_id_legacy: undefined
 state.replaceIgnored([state.legacyLocationKey(withoutIds)]);
 assert.strictEqual(state.isIgnored(withoutIds), true);
 
+const stable = finding({ suppression_id: 'stable-id' });
+state.replaceIgnored(['suppression:stable-id']);
+assert.strictEqual(state.isIgnored(stable), true);
+
 console.log('ok - estado migra IDs legados e severidade-base');

@@ -7,6 +7,16 @@ export interface CoordinatedAnalysisSession {
     label: string;
 }
 
+export type CanonicalAnalysisOrigin = 'workspace' | 'single';
+
+/** Preserva o resumo do projeto quando um arquivo é analisado automaticamente. */
+export function shouldPreserveCanonicalWorkspaceState(
+    currentOrigin: CanonicalAnalysisOrigin | undefined,
+    automaticFileAnalysis: boolean
+): boolean {
+    return automaticFileAnalysis && currentOrigin === 'workspace';
+}
+
 export class AnalysisCoordinator {
     private active?: CoordinatedAnalysisSession;
     private readonly gate = new LatestRequestGate();

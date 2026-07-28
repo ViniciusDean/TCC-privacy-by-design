@@ -23,7 +23,9 @@
 \usepackage{tocloft}
 \usepackage{fancyhdr}
 \usepackage{ragged2e}
+\usepackage{array}
 \usepackage{enumitem}
+\usepackage{etoolbox}
 \usepackage{url}
 \usepackage[hidelinks]{hyperref}
 
@@ -35,32 +37,81 @@
 \setlength{\parindent}{1.25cm}
 \setlength{\parskip}{0pt}
 \justifying
-\sloppy
+\setlength{\emergencystretch}{2em}
+\widowpenalty=10000
+\clubpenalty=10000
+\displaywidowpenalty=10000
 
 % Cabeçalhos do modelo: páginas pré-textuais sem número aparente;
 % páginas textuais com numeração no canto superior direito.
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[R]{\thepage}
+\fancyhead[R]{\footnotesize\thepage}
 \renewcommand{\headrulewidth}{0pt}
-\fancypagestyle{plain}{\fancyhf{}\fancyhead[R]{\thepage}\renewcommand{\headrulewidth}{0pt}}
+\fancypagestyle{plain}{\fancyhf{}\fancyhead[R]{\footnotesize\thepage}\renewcommand{\headrulewidth}{0pt}}
 \fancypagestyle{pretextual}{\fancyhf{}\renewcommand{\headrulewidth}{0pt}}
 
 % Títulos conforme os estilos 1-Título e 1.1-Título do DOCX.
-\titleformat{\chapter}[hang]{\normalfont\bfseries\normalsize}{\thechapter}{0.6em}{\MakeUppercase}
+\titleformat{\chapter}[hang]{\normalfont\bfseries\normalsize\raggedright\hyphenpenalty=10000\exhyphenpenalty=10000}{\thechapter}{0.6em}{\MakeUppercase}
+\titleformat{name=\chapter,numberless}[hang]{\normalfont\bfseries\normalsize\raggedright\hyphenpenalty=10000\exhyphenpenalty=10000}{}{0pt}{\MakeUppercase}
 \titlespacing*{\chapter}{0pt}{0pt}{12pt}
 \titleformat{\section}[hang]{\normalfont\bfseries\normalsize}{\thesection}{0.6em}{}
 \titlespacing*{\section}{0pt}{12pt}{12pt}
 \titleformat{\subsection}[hang]{\normalfont\bfseries\normalsize}{\thesubsection}{0.6em}{}
 \titlespacing*{\subsection}{0pt}{12pt}{12pt}
 
-\renewcommand{\cftchapfont}{\normalfont}
-\renewcommand{\cftchappagefont}{\normalfont}
+\renewcommand{\cftchapfont}{\normalfont\bfseries}
+\renewcommand{\cftchappagefont}{\normalfont\bfseries}
 \renewcommand{\cftdotsep}{1}
 \setlength{\cftbeforechapskip}{0pt}
 
 \setlist[enumerate]{leftmargin=1.25cm,itemindent=0pt,label=\arabic*.,topsep=0pt,itemsep=0pt,parsep=0pt}
 \setlist[itemize]{leftmargin=1.25cm,topsep=0pt,itemsep=0pt,parsep=0pt}
+
+\newcounter{quadro}
+\renewcommand{\thequadro}{\arabic{quadro}}
+\makeatletter
+\@removefromreset{table}{chapter}
+\renewcommand{\thetable}{\arabic{table}}
+\newcommand{\l@quadro}{\@dottedtocline{1}{0em}{2.3em}}
+\newcommand{\listadequadros}{%
+  \clearpage
+  \begin{center}\textbf{LISTA DE QUADROS}\end{center}
+  \thispagestyle{pretextual}
+  \@starttoc{loq}
+  \clearpage
+}
+\newcommand{\listadetabelas}{%
+  \clearpage
+  \begin{center}\textbf{LISTA DE TABELAS}\end{center}
+  \thispagestyle{pretextual}
+  \@starttoc{lot}
+  \clearpage
+}
+\makeatother
+\newenvironment{quadro}[1][]{%
+  \par\addvspace{12pt}\begin{center}\begin{minipage}{\textwidth}\centering
+}{%
+  \end{minipage}\end{center}\par\addvspace{12pt}
+}
+\newcommand{\captionquadro}[1]{%
+  \refstepcounter{quadro}%
+  \addcontentsline{loq}{quadro}{\protect\numberline{\thequadro}#1}%
+  \noindent\textbf{Quadro \thequadro\ -- #1}\par\smallskip
+}
+\newcommand{\captiontabela}[1]{%
+  \refstepcounter{table}%
+  \addcontentsline{lot}{table}{\protect\numberline{\thetable}#1}%
+  \noindent\textbf{Tabela \thetable\ -- #1}\par\smallskip
+}
+\newcommand{\fonte}[1]{%
+  \par\smallskip
+  \begin{minipage}{\linewidth}
+  \setstretch{1.0}\footnotesize\RaggedRight Fonte: #1.
+  \end{minipage}
+}
+\newcommand{\tituloref}[1]{\textbf{#1}}
+\newcolumntype{P}[1]{>{\RaggedRight\arraybackslash}p{#1}}
 
 \newcommand{\fateclogo}{\includegraphics[width=\textwidth]{assets/image1.png}}
 \newcommand{\tituloTCC}{Privacy by Design no Ciclo de Desenvolvimento de Software}
@@ -71,6 +122,11 @@
 \newcommand{\cursoTCC}{Curso Superior de Tecnologia em Segurança da Informação}
 \newcommand{\localTCC}{São Caetano do Sul}
 \newcommand{\anoTCC}{2026}
+\newcommand{\dataAprovacaoTCC}{}
+\newcommand{\membroUmBanca}{Prof. Xxxxxxxxxxxxxxxxxxxxxxx}
+\newcommand{\membroDoisBanca}{Prof. Xxxxxxxxxxxxxxxxxxxxxxx}
+\newcommand{\instituicaoMembroUm}{}
+\newcommand{\instituicaoMembroDois}{}
 
 \newcommand{\paginaCapa}{%
 \thispagestyle{pretextual}
@@ -99,6 +155,7 @@
 \vspace*{2.5cm}
 \begin{flushright}
 \begin{minipage}{8.5cm}
+\setstretch{1.0}
 Trabalho de Graduação apresentado à \instituicaoTCC, como requisito parcial para a obtenção do grau de Tecnólogo em Segurança da Informação.
 
 \vspace{0.5cm}
@@ -113,32 +170,60 @@ Orientador: \orientadorTCC
 \clearpage
 }
 
+\newcommand{\paginaFichaCatalografica}{%
+\IfFileExists{assets/ficha_catalografica.pdf}{%
+  \thispagestyle{pretextual}%
+  \null\vfill
+  \begin{center}
+  \includegraphics[page=1,width=\textwidth,height=0.9\textheight,keepaspectratio]{assets/ficha_catalografica.pdf}
+  \end{center}
+  \vfill\null
+  \clearpage
+  \addtocounter{page}{-1}%
+}{}
+}
+
 \newcommand{\paginaBanca}{%
 \thispagestyle{pretextual}
 \begin{center}
 \fateclogo
-\vspace*{1.6cm}
+\vspace*{0.8cm}
 \autorTCC
-\vfill
+\vspace*{1.0cm}
 \textbf{\tituloTCC}
 \end{center}
-\vspace*{1.3cm}
-Banca examinadora:
+\vspace*{0.8cm}
+\begin{flushright}
+\begin{minipage}{8.5cm}
+\setstretch{1.0}
+Trabalho de Graduação apresentado à \instituicaoTCC, como requisito parcial para a obtenção do grau de Tecnólogo em Segurança da Informação.
+\end{minipage}
+\end{flushright}
+\ifdefempty{\dataAprovacaoTCC}{}{%
+\vspace{0.5cm}
+\noindent Aprovado em: \dataAprovacaoTCC.
+}
+\vspace{0.7cm}
+\begin{center}
+\textbf{BANCA EXAMINADORA}
+\end{center}
 
-\vspace{1.2cm}
+\vspace{0.7cm}
 \noindent\rule{8cm}{0.4pt}\\
 \orientadorTCC\\
 Presidente da Banca
 
-\vspace{1.2cm}
+\vspace{0.7cm}
 \noindent\rule{8cm}{0.4pt}\\
-Prof. Xxxxxxxxxxxxxxxxxxxxxxx\\
-Professor convidado
+\membroUmBanca\\
+Professor convidado%
+\ifdefempty{\instituicaoMembroUm}{}{\\\instituicaoMembroUm}
 
-\vspace{1.2cm}
+\vspace{0.7cm}
 \noindent\rule{8cm}{0.4pt}\\
-Prof. Xxxxxxxxxxxxxxxxxxxxxxx\\
-Professor convidado
+\membroDoisBanca\\
+Professor convidado%
+\ifdefempty{\instituicaoMembroDois}{}{\\\instituicaoMembroDois}
 
 \vfill
 \begin{center}
@@ -157,15 +242,19 @@ Professor convidado
 }{\clearpage}
 
 \begin{document}
+\pagestyle{pretextual}
 
 \paginaCapa
+\pagenumbering{arabic}
+\setcounter{page}{1}
 \paginaFolhaRosto
+\paginaFichaCatalografica
 \paginaBanca
 
 \begin{resumomodelo}
 DEAN, Vinicius. \textbf{\tituloTCC}. Trabalho de Graduação. FATEC São Caetano do Sul -- Antônio Russo. 2026.
 
-Este trabalho aborda a aplicação do conceito de Privacy by Design no ciclo de desenvolvimento de software, com foco na construção de uma ferramenta de apoio à identificação de indícios técnicos de risco à privacidade em código-fonte e esquemas de banco de dados. A proposta considera os requisitos da Lei Geral de Proteção de Dados Pessoais (LGPD) e busca aproximar práticas de revisão técnica de privacidade do cotidiano das equipes de desenvolvimento, sem substituir a análise jurídica necessária para conclusões formais de conformidade.
+Este trabalho investiga como o conceito de Privacy by Design pode ser incorporado ao ciclo de desenvolvimento de software por meio de uma ferramenta de análise estática voltada à identificação de indícios técnicos de risco à privacidade. Como artefato da pesquisa, foi desenvolvido o Privacy Scanner LGPD 1.2.0, composto por analisadores para Python, Java e esquemas SQLite, API local, relatórios e extensão para o Visual Studio Code. A ferramenta oferece perfis configuráveis, separação auditável entre achados brutos e exibidos, ações integradas ao ambiente de desenvolvimento e filtros contextuais destinados a reduzir falsos positivos. A avaliação combinou uma suíte automatizada de 181 testes Python, testes TypeScript, integração real no VS Code, instalação isolada do pacote VSIX e um benchmark controlado com 18 casos e 120 decisões caso--categoria, sem divergências em relação ao gabarito. Em uma validação externa histórica, entretanto, as heurísticas apresentaram limitações de precisão e recall em projetos reais. Conclui-se que o artefato pode apoiar a triagem preventiva e reproduzível de evidências técnicas de privacidade, desde que seus resultados sejam submetidos à revisão humana e não sejam interpretados como certificação de conformidade com a LGPD.
 
 \noindent\textbf{Palavras-chave:} Privacy by Design; LGPD; análise estática; privacidade; desenvolvimento de software.
 \end{resumomodelo}
@@ -173,20 +262,28 @@ Este trabalho aborda a aplicação do conceito de Privacy by Design no ciclo de 
 \begin{abstractmodelo}
 DEAN, Vinicius. \textbf{\tituloInglesTCC}. Undergraduate Final Paper. FATEC São Caetano do Sul -- Antônio Russo. 2026.
 
-This work discusses the application of Privacy by Design in the software development life cycle, focusing on the construction of a tool to support the identification of technical indicators of privacy risk in source code and database schemas. The proposal considers the requirements of the Brazilian General Data Protection Law (LGPD) and aims to bring technical privacy review practices closer to software development teams, without replacing the legal analysis required for formal compliance conclusions.
+This work investigates how Privacy by Design can be incorporated into the software development life cycle through a static analysis tool designed to identify technical indicators of privacy risk. The research artifact is Privacy Scanner LGPD 1.2.0, which comprises analyzers for Python, Java, and SQLite schemas, a local API, reports, and a Visual Studio Code extension. The tool provides configurable profiles, an auditable distinction between raw and displayed findings, actions integrated into the development environment, and contextual filters intended to reduce false positives. The evaluation combined an automated suite of 181 Python tests, TypeScript tests, real integration in VS Code, isolated installation of the VSIX package, and a controlled benchmark with 18 cases and 120 case--category decisions, with no divergence from the reference set. A historical external validation, however, revealed precision and recall limitations in real projects. The study concludes that the artifact can support preventive and reproducible triage of technical privacy evidence, provided that its results undergo human review and are not interpreted as certification of compliance with the Brazilian General Data Protection Law.
 
 \noindent\textbf{Keywords:} Privacy by Design; LGPD; static analysis; privacy; software development.
 \end{abstractmodelo}
+
+\listadequadros
+\listadetabelas
 
 \clearpage
 \thispagestyle{pretextual}
 \begin{center}\textbf{LISTA DE ABREVIATURAS E SIGLAS}\end{center}
 \begin{description}[leftmargin=2.8cm,style=nextline]
 \item[ABNT] Associação Brasileira de Normas Técnicas
+\item[AST] Abstract Syntax Tree
+\item[CI/CD] Continuous Integration / Continuous Delivery
+\item[DSR] Design Science Research
 \item[GDPR] General Data Protection Regulation
 \item[LGPD] Lei Geral de Proteção de Dados Pessoais
 \item[PbD] Privacy by Design
+\item[SAST] Static Application Security Testing
 \item[SDLC] Software Development Life Cycle
+\item[SSDF] Secure Software Development Framework
 \end{description}
 \clearpage
 
@@ -197,8 +294,6 @@ This work discusses the application of Privacy by Design in the software develop
 \sumariomodelo
 \clearpage
 
-\pagenumbering{arabic}
-\setcounter{page}{1}
 \pagestyle{fancy}
 
 \chapter{INTRODUÇÃO}
@@ -207,27 +302,27 @@ This work discusses the application of Privacy by Design in the software develop
 
 A produção e o consumo de dados pessoais em escala global intensificaram a digitalização das relações sociais, comerciais e institucionais. Nesse contexto, sistemas de software passaram a ocupar papel central na coleta, no armazenamento, no processamento e na transferência de informações pessoais, o que torna as decisões de projeto e de implementação desses sistemas diretamente relacionadas à proteção da privacidade dos indivíduos.
 
-Em resposta a esse cenário, legislações específicas de proteção de dados foram promulgadas em diversas jurisdições. Na União Europeia, o Regulamento Geral de Proteção de Dados ( General Data Protection Regulation -- GDPR), em vigor desde maio de 2018, estabeleceu um marco regulatório abrangente que impõe obrigações técnicas e organizacionais aos agentes de tratamento de dados pessoais, com sanções de até 4\% do faturamento global da organização (UNIÃO EUROPEIA, 2016). No Brasil, a Lei Geral de Proteção de Dados Pessoais (LGPD), promulgada em agosto de 2018 e com vigência a partir de setembro de 2020, seguiu trajetória semelhante ao prever, no artigo 46, a obrigação de adotar medidas técnicas e administrativas aptas a proteger dados pessoais desde a fase de concepção dos produtos e serviços (BRASIL, 2018).
+Em resposta a esse cenário, legislações específicas de proteção de dados foram promulgadas em diversas jurisdições. Na União Europeia, o Regulamento Geral sobre a Proteção de Dados (General Data Protection Regulation -- GDPR), aplicável desde maio de 2018, estabeleceu obrigações técnicas e organizacionais aos responsáveis pelo tratamento, com multas administrativas que podem alcançar 4\% do volume de negócios anual total mundial do exercício anterior, conforme as condições do artigo 83 (União Europeia, 2016). No Brasil, a Lei Geral de Proteção de Dados Pessoais (LGPD), promulgada em agosto de 2018 e com vigência geral a partir de setembro de 2020, determina, no artigo 46, a adoção de medidas técnicas e administrativas aptas a proteger dados pessoais, consideradas desde a fase de concepção do produto ou serviço (Brasil, 2018).
 
-Nesse cenário regulatório e tecnológico, o conceito de Privacy by Design (PbD), proposto pela canadense Ann Cavoukian na década de 1990 e reconhecido internacionalmente como boas práticas pelo GDPR, emerge como abordagem estratégica que propõe a incorporação da privacidade desde as fases iniciais do desenvolvimento de sistemas, e não como um recurso adicionado a posteriori (CAVOUKIAN, 2009). Os sete princípios fundamentais do PbD, entre eles a privacidade como padrão ( privacy as default ) e a integração proativa de medidas de proteção, representam uma mudança de paradigma no modo como engenheiros e desenvolvedores concebem e constroem software.
+Cavoukian sistematizou o Privacy by Design (PbD) como abordagem de projeto baseada em sete princípios, entre eles atuação proativa, privacidade como padrão e proteção incorporada ao desenho do sistema (Cavoukian, 2011). Posteriormente, o artigo 25 do GDPR estabeleceu obrigação regulatória relacionada, ao exigir proteção de dados desde a concepção e por padrão; essa aproximação não transforma os sete princípios de Cavoukian em texto do regulamento europeu (União Europeia, 2016, art. 25).
 
-Apesar da relevância do conceito, a adoção do PbD ainda enfrenta resistências práticas no mercado: pressões por velocidade de entrega, falta de capacitação técnica das equipes e ausência de processos formalizados são barreiras recorrentes. Compreender como o Privacy by Design pode ser integrado de forma efetiva ao ciclo de desenvolvimento de software, seja em metodologias ágeis como Scrum e Kanban, seja em abordagens tradicionais como o modelo cascata, é, portanto, uma questão de crescente relevância acadêmica e profissional.
+A incorporação de privacidade às rotinas de desenvolvimento não decorre automaticamente da existência de normas ou princípios. Neste trabalho, essa dificuldade é tratada como problema de operacionalização: critérios jurídicos e de projeto precisam ser traduzidos em pontos de revisão compreensíveis no fluxo técnico. Para definir onde o artefato pode ser empregado, realiza-se uma comparação documental entre modelos de ciclo de vida, o framework Scrum e práticas DevSecOps. A comparação não mede o desempenho dessas abordagens nem pretende eleger uma metodologia universalmente superior; seu objetivo é identificar pontos de inserção compatíveis com a análise estática.
 
 \section{Problema e justificativa}
 
-O processo de desenvolvimento de software envolve uma série de decisões técnicas que, quando não orientadas por critérios de privacidade, podem resultar na exposição indevida de dados pessoais, no armazenamento excessivo de informações sensíveis, na ausência de controles de acesso adequados e na transferência de dados a terceiros sem base legal. Essas vulnerabilidades são frequentemente introduzidas nas fases de implementação e de definição do esquema de banco de dados, e sua identificação por revisões manuais se mostra pouco eficaz em projetos de maior escala.
+Este trabalho delimita como objeto decisões observáveis no código-fonte e no esquema de dados que podem justificar revisão de privacidade, como exposição de identificadores, retenção não evidenciada, coleta potencialmente excessiva e integrações externas. A análise automatizada não determina a licitude do tratamento nem substitui a revisão humana; ela organiza evidências locais para priorização.
 
-As ferramentas de análise estática de código atualmente disponíveis no mercado, como Veracode, SonarQube, Checkmarx, Snyk Code, Semgrep e GitHub Code Scanning, têm como foco principal a detecção de vulnerabilidades de segurança em sentido estrito, problemas de qualidade de código, exposição de credenciais e outros padrões inseguros (CHESS; WEST, 2007). Embora possam auxiliar indiretamente em práticas de proteção de dados, essas soluções tendem a priorizar segurança de aplicação e qualidade de código, não a identificação específica de padrões técnicos associados a riscos de privacidade, como armazenamento de dados pessoais sem proteção, retenção indefinida de informações, coleta excessiva, ausência de mecanismos de pseudonimização ou anonimização e falta de evidências técnicas de base legal para transferências de dados. Essa lacuna justifica a construção de um artefato voltado ao apoio técnico à revisão de privacidade no desenvolvimento de software.
+A documentação pública de Veracode, SonarQube, Checkmarx, Snyk Code, Semgrep e GitHub Code Scanning descreve recursos de segurança, qualidade ou integração de alertas ao fluxo de desenvolvimento (Veracode, 2026; SonarSource, [s. d.]; Checkmarx, [s. d.]; Snyk, [s. d.]; Semgrep, [s. d.]; GitHub, [s. d.]). O recorte deste trabalho não pressupõe ausência de extensibilidade nessas soluções; propõe um artefato acadêmico que organiza previamente categorias de revisão técnica relacionadas a dados pessoais, retenção, logs e esquemas SQLite.
 
-O público-alvo deste trabalho são equipes de desenvolvimento de software que tratam dados pessoais em seus sistemas e precisam considerar as exigências da LGPD, especialmente aquelas inseridas em contextos ágeis que frequentemente não contam com especialistas dedicados em privacidade ou segurança da informação. A ferramenta proposta visa oferecer a esse público um mecanismo acessível e integrado ao ambiente de desenvolvimento para a identificação automática de indícios técnicos de risco à privacidade em código-fonte e em esquemas de banco de dados. Os resultados gerados devem ser entendidos como apoio à revisão técnica e não como certificação de conformidade legal.
+O público-alvo deste trabalho são equipes de desenvolvimento de software que tratam dados pessoais em seus sistemas e precisam considerar as exigências da LGPD, incluindo equipes que não disponham de especialistas dedicados em privacidade ou segurança da informação. A ferramenta proposta visa oferecer a esse público um mecanismo acessível e integrado ao ambiente de desenvolvimento para a identificação automática de indícios técnicos de risco à privacidade em código-fonte e em esquemas de banco de dados. Os resultados gerados devem ser entendidos como apoio à revisão técnica e não como certificação de conformidade legal.
 
 A justificativa deste trabalho se sustenta em três dimensões complementares: legal, técnica e social.
 
-Do ponto de vista legal, a LGPD estabelece, no artigo 46, que os agentes de tratamento devem adotar medidas técnicas e administrativas capazes de proteger dados pessoais desde a fase de concepção do produto ou serviço, o que dialoga diretamente com o conceito de privacy by design (BRASIL, 2018). O descumprimento dessas obrigações pode resultar em sanções administrativas de até 2\% do faturamento da empresa, limitadas a R\$ 50 milhões por infração, além de danos reputacionais severos.
+Do ponto de vista legal, a LGPD estabelece, no artigo 46, que os agentes de tratamento devem adotar medidas técnicas e administrativas capazes de proteger dados pessoais desde a fase de concepção do produto ou serviço, o que se relaciona à proteção de dados desde o projeto (Brasil, 2018). Entre as sanções administrativas, o artigo 52, inciso II, prevê multa simples de até 2\% do faturamento da pessoa jurídica de direito privado, grupo ou conglomerado no Brasil no último exercício, excluídos os tributos e limitada a R\$ 50 milhões por infração, observadas as condições legais aplicáveis (Brasil, 2018).
 
-No aspecto técnico, corrigir vulnerabilidades de privacidade após a entrega de um sistema é significativamente mais custoso do que preveni-las durante o desenvolvimento. Estudos na área de engenharia de software demonstram que o custo de correção de defeitos cresce exponencialmente conforme avançam as fases do ciclo de vida (BOEHM, 1981; PRESSMAN, 2016), o que reforça a vantagem econômica e operacional de adotar controles de privacidade desde o início do projeto.
+A literatura clássica de engenharia de software associa a descoberta tardia de defeitos a maior esforço de correção, embora a magnitude dessa diferença dependa do processo, da arquitetura e do tipo de sistema (Boehm, 1981; Pressman; Maxim, 2016). Neste trabalho, esse argumento fundamenta a antecipação da revisão de privacidade, sem quantificar benefício econômico produzido pelo artefato.
 
-Sob a perspectiva social, a proteção da privacidade é reconhecida como um direito fundamental, conforme previsto na Constituição Federal de 1988, no artigo 5, inciso X (BRASIL, 1988). Em um contexto de crescentes violações de dados e uso indevido de informações pessoais, desenvolver software com privacidade integrada contribui para a construção de uma cultura digital mais ética, transparente e centrada no usuário.
+Sob a perspectiva social, a Constituição protege a intimidade e a vida privada no artigo 5º, inciso X, e passou a assegurar expressamente o direito à proteção de dados pessoais, inclusive nos meios digitais, com a Emenda Constitucional n. 115/2022 e a inclusão do inciso LXXIX (Brasil, 1988; Brasil, 2022). O desenvolvimento de software com revisão de privacidade pode contribuir para concretizar esses direitos no recorte técnico, sem substituir as dimensões jurídica, organizacional e social da proteção de dados.
 
 Assim, este trabalho se justifica pela necessidade de desenvolver e disponibilizar uma ferramenta prática de apoio à identificação de riscos técnicos de privacidade que aproxime os princípios da LGPD do cotidiano das equipes de desenvolvimento, oferecendo subsídios concretos para a adoção do Privacy by Design no ciclo de desenvolvimento de software.
 
@@ -245,41 +340,44 @@ Desenvolver uma ferramenta de análise estática de código-fonte e de esquemas 
 
 \begin{enumerate}
 \item Revisar os fundamentos teóricos do Privacy by Design, a origem, os sete princípios e o reconhecimento no contexto regulatório da Lei Geral de Proteção de Dados Pessoais (LGPD) e do Regulamento Geral de Proteção de Dados (General Data Protection Regulation -- GDPR);
-\item Mapear as etapas do ciclo de desenvolvimento de software, identificando os pontos críticos para a proteção de dados em cada fase e definindo em qual etapa a ferramenta deve ser aplicada;
+\item Comparar documentalmente modelos e práticas de desenvolvimento de software, identificando os pontos críticos para a proteção de dados e definindo em quais etapas a ferramenta deve ser preparada, executada e repetida;
 \item Levantar e comparar ferramentas existentes com finalidade similar, como Veracode, SonarQube, Checkmarx, Snyk Code, Semgrep e GitHub Code Scanning, identificando a lacuna em relação à verificação específica de padrões técnicos de privacidade;
-\item Definir e justificar as escolhas tecnológicas adotadas para o desenvolvimento da ferramenta, incluindo o uso de Python no backend de análise, suporte a código Python e Java, inspeção de bancos SQLite e distribuição por meio de extensão para o Visual Studio Code;
+\item Definir e justificar as escolhas tecnológicas adotadas para o desenvolvimento da ferramenta, incluindo o uso de Python no módulo servidor de análise, suporte a código Python e Java, inspeção de bancos SQLite e distribuição por meio de extensão para o Visual Studio Code;
 \item Desenvolver e avaliar a ferramenta proposta, verificando a capacidade de detecção de indícios técnicos de risco à privacidade em código-fonte e em esquemas de banco de dados em cenários de teste definidos.
 \end{enumerate}
 
 \section{Hipótese}
 
-A adoção de uma ferramenta de análise estática de código e de esquemas de banco de dados, orientada pelos princípios do Privacy by Design e pelos requisitos da Lei Geral de Proteção de Dados Pessoais, contribui para a identificação antecipada de indícios técnicos de risco à privacidade nas fases de implementação e teste do ciclo de desenvolvimento de software. A integração dessa ferramenta ao ambiente de desenvolvimento, por meio de extensão para o VS Code, tende a tornar a revisão técnica de privacidade mais acessível a equipes que não possuem conhecimento especializado no tema, desde que os achados sejam interpretados como indícios a serem revisados e não como conclusões jurídicas automáticas.
+A adoção de uma ferramenta de análise estática de código e de esquemas de banco de dados, orientada pelos princípios do Privacy by Design e pelos requisitos da Lei Geral de Proteção de Dados Pessoais, contribui para a identificação antecipada de indícios técnicos de risco à privacidade quando preparada a partir dos requisitos, executada principalmente durante a implementação e repetida na revisão de código, nos testes, na integração e na evolução do software. A integração dessa ferramenta ao ambiente de desenvolvimento, por meio de extensão para o VS Code, tende a tornar a revisão técnica de privacidade mais acessível a equipes que não possuem conhecimento especializado no tema, desde que os achados sejam interpretados como indícios a serem revisados e não como conclusões jurídicas automáticas.
 
 \section{Estrutura do Trabalho}
 
-Este trabalho está organizado em seis capítulos. O Capítulo 1 apresenta a contextualização do tema, o problema de pesquisa, o público-alvo, os objetivos e a hipótese. O Capítulo 2 discute riscos técnicos de privacidade, Privacy by Design, o ciclo de desenvolvimento e referências normativas potencialmente relacionadas. O Capítulo 3 descreve a metodologia de pesquisa e as decisões técnicas do artefato. O Capítulo 4 apresenta os resultados, a comparação com ferramentas correlatas e a discussão da avaliação. O Capítulo 5 registra as limitações e os trabalhos futuros. O Capítulo 6 conclui o trabalho, retomando a pergunta de pesquisa, as evidências produzidas e seus limites.
+Este trabalho está organizado em seis seções primárias. A Seção 1 apresenta a contextualização do tema, o problema de pesquisa, o público-alvo, os objetivos e a hipótese. A Seção 2 discute riscos técnicos de privacidade, Privacy by Design, modelos e práticas de desenvolvimento, o posicionamento da revisão no ciclo de vida e referências normativas potencialmente relacionadas. A Seção 3 descreve a metodologia de pesquisa e as decisões técnicas do artefato. A Seção 4 apresenta os resultados, a comparação com ferramentas correlatas, a definição da etapa de aplicação e a discussão da avaliação. A Seção 5 registra as limitações e os trabalhos futuros. A Seção 6 conclui o trabalho, retomando a pergunta de pesquisa, as evidências produzidas e seus limites.
 
-\chapter{Vulnerabilidades de Privacidade no Desenvolvimento de Software}
+\chapter{VULNERABILIDADES DE PRIVACIDADE NO DESENVOLVIMENTO DE SOFTWARE}
 
 \section{Conceito de Privacidade no Contexto Digital}
 
-A privacidade, enquanto direito individual, precede em muito a era digital. Entretanto, a digitalização massiva das relações sociais, econômicas e institucionais ao longo das últimas décadas transformou profundamente o escopo e a complexidade desse direito. Se, no passado, a privacidade estava associada principalmente à proteção do domicílio e da correspondência, hoje ela abrange o controle que os indivíduos exercem sobre os próprios dados pessoais, incluindo informações de identidade, localização, comportamento, saúde e preferências (WESTIN, 1967).
+A privacidade, enquanto direito individual, precede a era digital, mas a expansão do tratamento automatizado de informações ampliou as situações em que decisões técnicas afetam a esfera privada. A formulação clássica de Westin relaciona a privacidade à possibilidade de participar das decisões sobre a circulação de informações relativas a si próprio (Westin, 1967, p. 7).
 
-No contexto digital, a privacidade pode ser compreendida como a capacidade de um indivíduo de determinar quando, como e em que medida informações a seu respeito são coletadas, processadas e compartilhadas por sistemas de software (CAVOUKIAN, 2009). Essa definição é relevante para o desenvolvimento de sistemas porque posiciona os desenvolvedores e as organizações como agentes ativos na proteção ou na violação desse direito, a depender das decisões técnicas tomadas ao longo do ciclo de vida do produto.
+No ambiente digital, essa perspectiva direciona a análise para as escolhas que definem quais dados o sistema coleta, para que os utiliza, quem pode acessá-los e em quais condições são compartilhados. Cavoukian transpõe essa preocupação para o projeto de sistemas ao defender que a proteção da privacidade seja incorporada desde a concepção (Cavoukian, 2011).
 
-A Lei Geral de Proteção de Dados Pessoais (LGPD) define dado pessoal como qualquer informação relacionada a pessoa natural identificada ou identificável (BRASIL, 2018, art. 5, inciso I). Essa definição é intencionalmente ampla e abarca não apenas informações cadastrais tradicionais, como nome e CPF, mas também endereços de IP, identificadores de dispositivos, dados de geolocalização, registros de comportamento em aplicações e qualquer combinação de informações que permita a individualização de uma pessoa.
+A Lei Geral de Proteção de Dados Pessoais (LGPD) define dado pessoal como informação relacionada a pessoa natural identificada ou identificável (Brasil, 2018, art. 5º, I). O enquadramento não se limita a nome e CPF: identificadores digitais, dados de localização e combinações de atributos também podem ser pessoais quando permitem relacionar a informação a alguém, avaliação que depende do contexto e dos meios disponíveis (União Europeia, 2016, considerando 30).
 
-A crescente capacidade dos sistemas de software de coletar, armazenar e correlacionar grandes volumes de dados pessoais amplia o risco de violações de privacidade. Algoritmos de recomendação, sistemas de autenticação, aplicações de comércio eletrônico e plataformas de comunicação são apenas alguns exemplos de sistemas que, por natureza, lidam com dados pessoais sensíveis e que, quando desenvolvidos sem critérios de privacidade, podem tornar-se vetores de dano ao titular dos dados (SOLOVE, 2006).
+Aplicações de autenticação, comércio eletrônico, comunicação e recomendação podem tratar dados pessoais e, conforme o conteúdo e a finalidade, também dados pessoais sensíveis nas categorias delimitadas pelo artigo 5º, inciso II, da LGPD. A coleta, a correlação e o uso dessas informações podem produzir diferentes formas de dano ou interferência na vida do titular, motivo pelo qual o risco deve ser avaliado segundo o fluxo concreto de tratamento, e não apenas pelo tipo de aplicação (Brasil, 2018; Solove, 2006).
 
 \section{Privacy by Design e Cobertura do Artefato}
 
-Privacy by Design propõe que a privacidade seja considerada desde a concepção e durante toda a operação do sistema. Seus sete princípios são: atuação proativa e preventiva; privacidade como padrão; privacidade incorporada ao projeto; funcionalidade integral; segurança de ponta a ponta; visibilidade e transparência; e respeito à privacidade do usuário (CAVOUKIAN, 2009). No plano regulatório europeu, o artigo 25 do GDPR explicita a adoção de medidas técnicas e organizacionais apropriadas desde a definição dos meios de tratamento e por padrão (UNIÃO EUROPEIA, 2016).
+Privacy by Design propõe que a privacidade seja considerada desde a concepção e durante toda a operação do sistema. Seus sete princípios são: atuação proativa e preventiva; privacidade como padrão; privacidade incorporada ao projeto; funcionalidade integral; segurança de ponta a ponta; visibilidade e transparência; e respeito à privacidade do usuário (Cavoukian, 2011). No plano regulatório europeu, o artigo 25 do GDPR explicita a adoção de medidas técnicas e organizacionais apropriadas desde a definição dos meios de tratamento e por padrão (União Europeia, 2016).
 
-O artefato não verifica todos os princípios do PbD. Ele apoia diretamente a identificação preliminar de evidências relacionadas a segurança, minimização, retenção e registros de dados; apoia indiretamente a prevenção ao antecipar a revisão no desenvolvimento; e não é capaz de verificar, apenas pelo código, finalidade, transparência ao titular, base legal, governança ou respeito integral às preferências do usuário. Essa delimitação evita interpretar a ferramenta como mecanismo de certificação.
+O artefato não verifica todos os princípios do PbD. Ele apoia diretamente a identificação preliminar de evidências relacionadas a segurança, minimização, retenção e registros de dados; apoia indiretamente a prevenção ao antecipar a revisão no desenvolvimento; e não é capaz de verificar, apenas pelo código, finalidade, transparência ao titular, base legal, governança ou respeito integral às preferências do usuário. Essa delimitação evita interpretar a ferramenta como mecanismo de certificação. O Quadro~\ref{qua:pbd-cobertura} sintetiza a cobertura e os limites.
 
-\begin{center}
+\begin{quadro}[htbp]
+\centering
 \small
-\begin{tabular}{|p{3.5cm}|p{3.7cm}|p{5.7cm}|}
+\captionquadro{Relação entre os princípios do Privacy by Design e o artefato}
+\label{qua:pbd-cobertura}
+\begin{tabular}{|P{3.5cm}|P{3.7cm}|P{5.7cm}|}
 \hline
 \textbf{Princípio PbD} & \textbf{Relação com o artefato} & \textbf{Limite da evidência automatizada} \\
 \hline
@@ -287,174 +385,230 @@ Proativo e preventivo & Apoio indireto pela análise antes da integração ou en
 \hline
 Privacidade como padrão e incorporada ao projeto & Apoio parcial por regras de minimização, proteção e retenção. & Não prova que configurações e fluxos reais respeitam o padrão. \\
 \hline
-Funcionalidade integral e segurança de ponta a ponta & Apoio parcial por achados de código, logs e schema. & Não cobre infraestrutura, criptografia em trânsito, permissões implantadas ou operação. \\
+Funcionalidade integral e segurança de ponta a ponta & Apoio parcial por achados de código, logs e esquema. & Não cobre infraestrutura, criptografia em trânsito, permissões implantadas ou operação. \\
 \hline
 Visibilidade, transparência e respeito ao usuário & Fora do escopo de detecção automática atual. & Exigem análise de interfaces, políticas, finalidade e direitos dos titulares. \\
 \hline
 \end{tabular}
-\end{center}
+\fonte{elaboração própria com base em Cavoukian (2011), União Europeia (2016) e Brasil (2018)}
+\end{quadro}
 
 \section{Principais Tipos de Vulnerabilidades de Privacidade}
 
-As vulnerabilidades de privacidade em software diferem das vulnerabilidades de segurança tradicionais em sua natureza e impacto. Enquanto uma vulnerabilidade de segurança, como uma injeção de SQL ou um buffer overflow, representa uma falha técnica que permite acesso não autorizado a um sistema, uma vulnerabilidade de privacidade pode existir mesmo em sistemas tecnicamente seguros, manifestando-se na coleta excessiva de dados, na retenção além do prazo necessário ou na ausência de mecanismos de controle pelo titular (SPIEKERMANN; CRANOR, 2009).
+Problemas de privacidade e vulnerabilidades de segurança podem se sobrepor, mas não são equivalentes. Um sistema pode impedir acesso não autorizado e, ainda assim, realizar coleta incompatível com a finalidade, retenção excessiva ou tratamento sem transparência. De modo inverso, falhas de segurança podem comprometer a confidencialidade, a integridade ou a disponibilidade dos dados (Spiekermann; Cranor, 2009).
 
-Spiekermann e Cranor (2009) propõem uma taxonomia de vulnerabilidades de privacidade organizada em duas categorias principais: vulnerabilidades de privacy by policy, relacionadas à ausência ou inadequação de políticas e controles organizacionais, e vulnerabilidades de privacy by architecture, decorrentes de decisões técnicas inadequadas na concepção e implementação dos sistemas. Este trabalho concentra-se na segunda categoria, dado que o artefato proposto visa à identificação automática de problemas técnicos de privacidade no código-fonte e nos esquemas de banco de dados.
+Spiekermann e Cranor (2009) distinguem abordagens de engenharia apoiadas em políticas (\textit{privacy-by-policy}) e abordagens incorporadas à arquitetura (\textit{privacy-by-architecture}). Neste estudo, essa distinção é usada para delimitar o que pode deixar evidências técnicas em código e em esquemas de dados; ela não reduz os problemas de privacidade à dimensão técnica.
 
-As principais categorias de vulnerabilidades de privacidade identificadas na literatura e relevantes para o escopo deste trabalho são descritas a seguir.
+As subseções seguintes apresentam as categorias operacionais selecionadas para o artefato a partir do referencial consultado e do escopo da pesquisa. Elas não constituem taxonomia exaustiva de vulnerabilidades de privacidade.
 
-\subsection{Armazenamento de Dados Pessoais sem Criptografia}
+\subsection{Proteção Criptográfica não Evidenciada no Armazenamento}
 
-O armazenamento de dados pessoais em texto simples, sem aplicação de algoritmos de criptografia ou de funções de hash adequadas, representa uma das vulnerabilidades de privacidade mais comuns e de maior impacto. Quando um banco de dados é comprometido por um agente malicioso ou exposto acidentalmente, dados armazenados sem proteção criptográfica ficam imediatamente disponíveis e legíveis. Campos como senhas, números de documentos, dados de cartão de crédito e informações de saúde são frequentemente encontrados em texto plano em aplicações desenvolvidas sem orientação de privacidade (CHESS; WEST, 2007).
+A exposição de um armazenamento pode revelar diretamente informações mantidas em formato legível ou senhas protegidas por mecanismo inadequado. O controle apropriado depende do tipo de dado, do risco e da arquitetura: senhas demandam funções de derivação resistentes, enquanto outros dados podem exigir criptografia, tokenização, segregação e controle de acesso (Chess; West, 2007; OWASP Foundation, [s. d.]a; OWASP Foundation, [s. d.]c). Por isso, o artefato identifica ausência de evidência local de proteção, e não conclui que toda informação pessoal deva receber o mesmo mecanismo criptográfico.
 
-A LGPD, no artigo 46, exige que os agentes de tratamento adotem medidas técnicas capazes de proteger dados pessoais de acessos não autorizados (BRASIL, 2018). A ausência de criptografia ou de proteção equivalente representa um risco técnico relevante e pode indicar descumprimento de medidas de segurança, a depender do contexto do tratamento e dos controles existentes em outras camadas.
+A LGPD, no artigo 46, exige que os agentes de tratamento adotem medidas técnicas e administrativas aptas a proteger dados pessoais contra acessos não autorizados e situações acidentais ou ilícitas (Brasil, 2018). A ausência de evidência de proteção no trecho analisado é, portanto, um ponto de revisão; não demonstra, isoladamente, ausência do controle em outras camadas.
 
 \subsection{Coleta e Retenção Excessiva de Dados}
 
-O princípio da minimização de dados, previsto no artigo 6, inciso III, da LGPD, bem como nos fundamentos do Privacy by Design, estabelece que apenas os dados estritamente necessários para a finalidade declarada devem ser coletados e mantidos (BRASIL, 2018; CAVOUKIAN, 2009). O desrespeito a esse princípio ocorre quando sistemas coletam informações além do necessário -- prática conhecida como data maximization -- ou retêm dados por períodos indefinidos após o cumprimento da finalidade original.
+O princípio da necessidade, previsto no artigo 6º, inciso III, da LGPD, estabelece a limitação do tratamento ao mínimo necessário para a realização de suas finalidades, com dados pertinentes, proporcionais e não excessivos (Brasil, 2018). A privacidade como padrão também orienta a redução da exposição desde o projeto (Cavoukian, 2011).
 
-No nível do código-fonte, essa vulnerabilidade se manifesta em formulários com campos desnecessários, em consultas de banco de dados que retornam mais colunas do que o necessário para a operação, e em rotinas de log que registram identificadores pessoais sem necessidade. No nível do banco de dados, manifesta-se em tabelas sem políticas de retenção definidas, em colunas que armazenam informações além da finalidade declarada e em ausência de rotinas automatizadas de exclusão ou anonimização de dados históricos.
+No código-fonte, formulários extensos, consultas amplas e logs com identificadores podem motivar revisão de necessidade. No esquema de dados, colunas potencialmente pessoais e ausência de rotinas visíveis de retenção ou exclusão também podem motivá-la. Esses sinais não provam excesso sem conhecimento da finalidade, dos prazos e dos controles mantidos fora do código.
 
 \subsection{Ausência de Pseudonimização e Anonimização}
 
-A pseudonimização consiste na substituição de identificadores diretos de um titular de dados por um código ou identificador artificial, de modo que os dados não possam ser atribuídos a uma pessoa específica sem o uso de informação adicional mantida separadamente (UNIÃO EUROPEIA, 2016). A anonimização, por sua vez, é um processo irreversível pelo qual os dados perdem qualquer possibilidade de identificação do titular.
+O artigo 4º, item 5, do GDPR denomina pseudonimização o tratamento que impede atribuir os dados a uma pessoa sem informação adicional, desde que essa informação seja mantida separadamente e protegida (União Europeia, 2016). A LGPD define anonimização em função dos meios técnicos razoáveis e disponíveis no momento do tratamento e reconhece hipóteses em que a reversão por meios próprios ou mediante esforços razoáveis faz com que os dados continuem sujeitos à lei (Brasil, 2018, arts. 5º, XI, e 12). Assim, a anonimização não é tratada neste trabalho como garantia abstrata de irreversibilidade, mas como resultado dependente da técnica e do contexto.
 
-A ausência dessas técnicas em sistemas que lidam com dados pessoais aumenta o risco de identificação indevida dos titulares em casos de vazamento ou acesso não autorizado. Em esquemas de banco de dados, esse risco pode aparecer na ausência de separação entre tabelas com dados identificáveis e tabelas operacionais ou na presença de identificadores reais como chaves. Funções de hash são adequadas para verificação não reversível, como em senhas; não substituem criptografia, controles de acesso ou avaliação contextual para e-mails, CPF e outros dados que precisam ser recuperados.
+Quando identificadores diretos não são necessários à finalidade, pseudonimização, anonimização, segregação e controle de acesso podem reduzir a exposição. Funções de derivação de senha são apropriadas para verificação sem recuperação do segredo, enquanto dados que precisam ser recuperados demandam controles compatíveis, como criptografia e gestão de chaves (OWASP Foundation, [s. d.]a; OWASP Foundation, [s. d.]c). A ausência de uma técnica isolada não demonstra irregularidade; constitui aspecto a ser revisto à luz da finalidade e dos demais controles.
 
 \subsection{Registro Excessivo de Informações em Logs}
 
-Os registros de log são componentes essenciais para a operação e a auditoria de sistemas de software. Entretanto, quando configurados sem critérios de privacidade, tornam-se fontes de vazamento de dados pessoais. É comum encontrar em logs de aplicação informações como tokens de autenticação, endereços de e-mail, números de documentos, parâmetros de requisições HTTP com dados pessoais e até senhas em texto simples, registradas inadvertidamente durante o tratamento de erros (OWASP, 2021).
+Os registros de log apoiam operação, investigação e auditoria, mas também podem reproduzir identificadores, tokens, parâmetros de requisição e conteúdo de erros. A orientação da OWASP recomenda excluir ou mascarar segredos, dados de autenticação e informações pessoais cuja gravação não seja necessária (OWASP Foundation, [s. d.]b).
 
-Essa vulnerabilidade é particularmente crítica porque os arquivos de log frequentemente têm controles de acesso menos rigorosos do que os bancos de dados principais, são compartilhados com ferramentas de monitoramento e análise de terceiros e são retidos por longos períodos sem revisão. A LGPD não isenta os dados pessoais presentes em logs das obrigações de proteção previstas no artigo 46, o que torna essa prática um indício técnico relevante de risco à privacidade.
+O risco depende do conteúdo registrado, dos perfis de acesso, do prazo de retenção e do eventual encaminhamento a serviços de monitoramento. Os dados pessoais presentes em logs permanecem submetidos às medidas de segurança previstas na LGPD; por isso, sua presença é tratada como ponto de revisão contextual, e não como prova automática de violação (Brasil, 2018, art. 46; OWASP Foundation, [s. d.]b).
 
 \subsection{Ausência de Controle de Acesso a Dados Pessoais}
 
-O controle de acesso a dados pessoais é um requisito técnico fundamental para garantir que apenas agentes autorizados possam consultar, modificar ou excluir informações sensíveis. A ausência de controles granulares de acesso em bancos de dados e em camadas de aplicação expõe dados pessoais a riscos de acesso interno não autorizado, além de ampliar a superfície de ataque em caso de comprometimento de credenciais (CHESS; WEST, 2007).
+O controle de acesso busca restringir consulta, modificação e exclusão de dados às identidades e funções autorizadas. Contas com privilégios excessivos ou verificações ausentes nas camadas de aplicação podem ampliar o impacto de erro ou comprometimento de credenciais (Chess; West, 2007).
 
 No nível do banco de dados, essa vulnerabilidade se manifesta em contas com privilégios excessivos, na ausência de segregação entre perfis de acesso de leitura e escrita, e na inexistência de controles por linha ou coluna para dados especialmente sensíveis. No código-fonte, manifesta-se em rotas de API que não verificam a autorização do usuário antes de retornar dados pessoais, e em consultas que não filtram os resultados pelo identificador do usuário autenticado.
 
 \subsection{Transferência de Dados a Terceiros sem Base Legal}
 
-A integração de sistemas com serviços de terceiros, como plataformas de analytics, ferramentas de monitoramento, serviços de envio de e-mail e redes de publicidade, é uma prática comum no desenvolvimento moderno de software. Entretanto, quando essa integração ocorre sem avaliação das bases legais para o compartilhamento de dados pessoais, configura-se uma vulnerabilidade de privacidade com potenciais implicações na LGPD.
+A integração com serviços externos pode envolver tratamento ou compartilhamento de dados pessoais e, por isso, exige análise da finalidade, da hipótese legal, da transparência e das salvaguardas aplicáveis.
 
-O artigo 7 da LGPD estabelece as hipóteses legais que autorizam o tratamento de dados pessoais, entre elas o consentimento do titular e o legítimo interesse do controlador (BRASIL, 2018). A transferência de dados a terceiros sem enquadramento em uma dessas hipóteses e sem a adoção de salvaguardas contratuais adequadas pode caracterizar irregularidade, a depender do contexto do tratamento. No nível do código-fonte, a presença de chamadas a APIs externas que incluem parâmetros com dados pessoais sem marcador de consentimento ou base legal associada é tratada, neste trabalho, como indício técnico que exige revisão.
+A mera chamada a uma API não demonstra irregularidade, assim como a ausência de marcador literal no código não prova inexistência de hipótese legal. No artefato, fluxos externos com dados potencialmente pessoais são apresentados como indícios que demandam verificação contextual. Quando o destinatário estiver em outro país ou organismo internacional, também devem ser consideradas as regras específicas de transferência internacional dos artigos 33 a 36 da LGPD (Brasil, 2018).
 
 \section{Exemplos de Incidentes e Impactos para Organizações}
 
-As vulnerabilidades de privacidade descritas na seção anterior não são hipotéticas. Incidentes envolvendo exposição de dados pessoais resultantes de decisões técnicas inadequadas no desenvolvimento de software ocorrem com frequência crescente e produzem impactos significativos tanto para os titulares dos dados quanto para as organizações responsáveis.
+Incidentes de segurança envolvendo dados pessoais tornam concretos os riscos discutidos nesta seção, embora um relatório regulatório agregado não permita atribuir cada ocorrência a uma falha específica de implementação.
 
-Relatórios de autoridades de proteção de dados e de organizações de segurança registram incidentes associados a falhas técnicas recorrentes, como exposição indevida de bases de dados, armazenamento inadequado de credenciais, envio excessivo de dados a terceiros e ausência de controles mínimos de acesso. Esses eventos ilustram como decisões tomadas durante a implementação ou a modelagem de dados podem permanecer ativas por longos períodos sem detecção, especialmente quando não há revisão sistemática de privacidade no ciclo de desenvolvimento.
+No segundo Relatório de Ciclo de Monitoramento, a ANPD registrou 163 comunicações de incidentes de segurança recebidas entre janeiro e junho de 2023 e informou que ransomware foi a causa mais frequente no período (ANPD, 2023b). O documento contextualiza a existência de ocorrências submetidas à autoridade, mas não individualiza causas técnicas em nível suficiente para afirmar que os padrões examinados pelo scanner originaram esses incidentes.
 
-No Brasil, a Autoridade Nacional de Proteção de Dados (ANPD) registrou, desde o início de suas operações, em 2021, dezenas de notificações de incidentes de segurança com impacto sobre dados pessoais, incluindo casos envolvendo armazenamento de senhas sem criptografia, exposição de dados de saúde em sistemas públicos e compartilhamento não autorizado de dados com terceiros (ANPD, 2023a). Esses casos reforçam a relevância de mecanismos preventivos de verificação de privacidade no ciclo de desenvolvimento.
+O relatório divulgado pela IBM agrega custos de detecção e escalonamento, notificação, resposta posterior e perda de negócios em incidentes estudados (IBM, 2023). Essas estimativas não permitem afirmar que um achado do Privacy Scanner LGPD causaria ou evitaria determinado prejuízo.
 
-Do ponto de vista organizacional, os impactos de uma violação de privacidade vão além das sanções administrativas previstas na LGPD. Pesquisas na área de segurança da informação indicam que os custos médios de um vazamento de dados incluem despesas com notificação dos titulares, honorários jurídicos, medidas de remediação técnica e perda de receita decorrente de dano reputacional. Esses custos são sistematicamente maiores quando a vulnerabilidade é descoberta após a entrega do sistema do que quando identificada durante o desenvolvimento (BOEHM, 1981; PONEMON INSTITUTE, 2023).
+Separadamente, a literatura de engenharia de software discute o aumento do esforço de correção quando defeitos permanecem até fases posteriores (Boehm, 1981; Pressman; Maxim, 2016). Os dois conjuntos de evidências possuem objetos, amostras e unidades diferentes; neste trabalho, sustentam apenas a justificativa qualitativa para antecipar revisões, não uma estimativa comum de custo ou benefício.
 
 \section{Relação entre Riscos Técnicos de Privacidade e a LGPD}
 
-A Lei Geral de Proteção de Dados Pessoais estabelece um conjunto de princípios e obrigações que se relacionam com requisitos técnicos para os sistemas de software. Compreender essa correspondência é fundamental para o desenvolvimento de uma ferramenta de apoio à revisão de privacidade, pois permite mapear cada categoria de achado a um ou mais dispositivos legais relacionados.
+A Lei Geral de Proteção de Dados Pessoais estabelece princípios e obrigações que orientam o tratamento de dados pessoais. Alguns podem motivar controles técnicos; outros dependem de finalidade, governança, relações contratuais e informações que não aparecem no código-fonte. O mapeamento adotado pelo artefato registra relações potenciais para orientar a revisão, sem converter achados em conclusões jurídicas.
 
-O artigo 6 da LGPD elenca dez princípios que devem nortear o tratamento de dados pessoais, entre eles: finalidade (coleta para propósitos legítimos e explícitos), adequação (compatibilidade com a finalidade declarada), necessidade (limitação ao mínimo necessário), qualidade dos dados (exatidão e atualização), transparência (informação clara ao titular), segurança (medidas técnicas de proteção) e prestação de contas (responsabilização do controlador) (BRASIL, 2018). Cada um desses princípios corresponde a um conjunto de práticas técnicas que podem ou não estar presentes no código-fonte e na estrutura do banco de dados de um sistema.
+O artigo 6º da LGPD elenca dez princípios, entre eles finalidade, adequação, necessidade, qualidade dos dados, transparência, segurança, prevenção e responsabilização e prestação de contas (Brasil, 2018). O scanner observa apenas sinais locais que podem ajudar a revisar alguns desses princípios; não verifica o conjunto do tratamento.
 
-O artigo 46 da LGPD é especialmente relevante para este trabalho, pois determina a adoção de medidas técnicas e administrativas aptas a proteger dados pessoais. O artefato observa somente evidências técnicas limitadas no código e no schema; por isso, seus resultados devem ser lidos como pontos de revisão, e não como conclusão de atendimento ou descumprimento de obrigação legal (BRASIL, 2018).
+O artigo 46 da LGPD é especialmente relevante para este trabalho, pois determina a adoção de medidas técnicas e administrativas aptas a proteger dados pessoais. O artefato observa somente evidências técnicas limitadas no código e no esquema; por isso, seus resultados devem ser lidos como pontos de revisão, e não como conclusão de atendimento ou descumprimento de obrigação legal (Brasil, 2018).
 
-O quadro a seguir apresenta referências normativas potencialmente relacionadas às regras. Ele não estabelece equivalência entre um padrão encontrado e uma obrigação jurídica individual. O artigo 13 da LGPD é contextual a estudos em saúde pública, e o artigo 26 disciplina uso compartilhado de dados pelo Poder Público; por isso, não são empregados como fundamento genérico para pseudonimização ou transferência a terceiros (ANPD, 2023b; BRASIL, 2018).
+O Quadro~\ref{qua:regras-lgpd} apresenta referências normativas potencialmente relacionadas às regras. Ele não estabelece equivalência entre um padrão encontrado e uma obrigação jurídica individual. O artigo 13 da LGPD é contextual a estudos em saúde pública, e o artigo 26 disciplina uso compartilhado de dados pelo Poder Público; por isso, não são empregados como fundamento genérico para pseudonimização ou transferência a terceiros (ANPD, 2023a; Brasil, 2018).
 
-\begin{center}
+\begin{quadro}[htbp]
+\centering
 \small
-\begin{tabular}{|p{2.7cm}|p{3.1cm}|p{2.3cm}|p{4.8cm}|}
+\captionquadro{Relações potenciais entre regras observáveis e a LGPD}
+\label{qua:regras-lgpd}
+\begin{tabular}{|P{2.7cm}|P{3.1cm}|P{2.3cm}|P{4.8cm}|}
 \hline
 \textbf{Regra observável} & \textbf{Evidência técnica} & \textbf{Referência potencial} & \textbf{Limite e revisão necessária} \\
 \hline
 Proteção não evidenciada & Campo sensível, literal ou atribuição sem evidência local de proteção. & Art. 6, VII; art. 46. & Verificar criptografia, hash apropriado, gestão de chaves e controles em outras camadas. \\
 \hline
-Coleta, log ou retenção a revisar & Campos, parâmetros ou logs potencialmente excessivos; schema sem evidência de expurgo. & Art. 6, I, III, VII e VIII; art. 15--16. & Confirmar finalidade, necessidade, prazo e política de retenção fora do código. \\
+Coleta, log ou retenção a revisar & Campos, parâmetros ou logs potencialmente excessivos; esquema sem evidência de expurgo. & Art. 6, I, III, VII e VIII; art. 15--16. & Confirmar finalidade, necessidade, prazo e política de retenção fora do código. \\
 \hline
-Base legal não evidenciada & Integração externa ou schema sem marcador técnico configurado. & Art. 7 ou 11; arts. 33--36 se houver transferência internacional. & Determinar a hipótese legal e contratos aplicáveis; o scanner não a infere. \\
+Base legal não evidenciada & Integração externa ou esquema sem marcador técnico configurado. & Art. 7 ou 11; arts. 33--36 se houver transferência internacional. & Determinar a hipótese legal e contratos aplicáveis; o scanner não a infere. \\
 \hline
 Identificador direto ou acesso a revisar & CPF/e-mail como chave ou rota/log com dado identificável. & Art. 6, VII e VIII; art. 46. & Revisar modelo de dados, perfis de acesso, pseudonimização e necessidade operacional. \\
 \hline
 \end{tabular}
-\end{center}
+\fonte{elaboração própria com base em Brasil (2018) e ANPD (2023a)}
+\end{quadro}
 
 Esse mapeamento orienta recomendações de revisão técnica e a redação dos relatórios. A decisão sobre adequação à LGPD depende de finalidade, contexto, salvaguardas organizacionais e avaliação humana.
 
 \section{Posicionamento da Revisão de Privacidade no SDLC}
 
-O artefato foi posicionado como apoio à revisão técnica contínua, e não como etapa isolada de aprovação. A leitura dos achados deve alimentar decisões de projeto, implementação e teste; quando houver dado pessoal ou risco elevado, a equipe deve encaminhar a questão para responsáveis técnicos, de segurança, privacidade e, quando necessário, jurídicos.
+Um ciclo de vida de desenvolvimento de software pode ser organizado por diferentes modelos e práticas. O NIST cita, entre outros, cascata, espiral, desenvolvimento ágil e abordagens ágeis combinadas com práticas DevOps, e ressalta que atividades de desenvolvimento seguro precisam ser integradas ao processo existente, em vez de depender de um único modelo (Souppaya; Scarfone; Dodson, 2022). Neste trabalho, essas categorias não são tratadas como equivalentes: cascata e espiral são modelos de ciclo de vida; Scrum é um framework ágil; e DevSecOps reúne práticas que aproximam desenvolvimento, segurança e operação.
 
-\begin{center}
+\subsection{Modelo Preditivo ou em Cascata}
+
+Em um fluxo predominantemente preditivo, requisitos, projeto, implementação e testes são organizados em etapas com marcos definidos, ainda que processos reais admitam retorno e correções entre elas (Pressman; Maxim, 2016). O Privacy Scanner LGPD não analisa requisitos abstratos ou diagramas isolados. Na etapa de requisitos, a equipe pode definir categorias de dados, finalidade, retenção e perfil de análise; a execução efetiva começa quando existem código-fonte ou esquemas de banco. Nesse contexto, o uso principal ocorre durante a implementação e deve ser repetido antes da passagem para testes ou para outro marco formal de verificação.
+
+\subsection{Modelo Espiral e Desenvolvimento Iterativo}
+
+O modelo espiral organiza o desenvolvimento em ciclos orientados a objetivos, alternativas, riscos e validação, permitindo que protótipos e versões sucessivas alimentem decisões posteriores (Boehm, 1988). A análise estática pode acompanhar cada ciclo no qual haja incremento de código ou alteração de esquema. Os achados devem retornar ao planejamento da iteração seguinte como evidências para correção, aceitação justificada ou investigação, sem substituir a análise de riscos que depende do contexto do sistema.
+
+\subsection{Desenvolvimento Ágil e Scrum}
+
+Os princípios do desenvolvimento ágil valorizam entregas frequentes de software funcionando e atenção contínua à excelência técnica e ao bom projeto (Beck et al., 2001). O Scrum, especificamente, é um framework iterativo e incremental no qual cada incremento precisa atender à \textit{Definition of Done}, descrição formal das medidas de qualidade exigidas para o produto (Schwaber; Sutherland, 2020). A equipe pode incorporar a revisão técnica de privacidade a esses critérios, executar o scanner durante a implementação de cada item e repetir a análise antes de considerar o incremento concluído. Essa integração é uma possibilidade de uso dentro do Scrum, e não uma prática prescrita originalmente pelo framework.
+
+\subsection{DevOps, DevSecOps e SSDF}
+
+O Secure Software Development Framework (SSDF) recomenda integrar práticas de desenvolvimento seguro ao longo de qualquer SDLC e inclui a revisão ou análise automatizada de código legível por pessoas, seguida de registro, triagem e correção dos problemas identificados (Souppaya; Scarfone; Dodson, 2022). De forma convergente, o OWASP SAMM organiza práticas de segurança em governança, projeto, implementação, verificação e operação e admite verificações automatizadas no processo de construção (OWASP Foundation, [s. d.]d). Em um fluxo DevSecOps, o Privacy Scanner LGPD pode ser executado localmente e repetido em solicitações de integração, construção e testes automatizados. Entretanto, as limitações de precisão e cobertura observadas neste estudo impedem tratar o resultado como aprovação ou reprovação automática de conformidade; a triagem humana continua obrigatória.
+
+\subsection{Síntese do Posicionamento}
+
+Independentemente do modelo adotado, o artefato foi posicionado como apoio à revisão técnica contínua, e não como etapa isolada de aprovação. A fase de requisitos prepara o escopo, mas não produz achados automáticos; a execução principal ocorre durante a implementação, quando código e esquemas se tornam analisáveis; novas execuções devem acompanhar revisão de código, testes, integração e evolução. Quando houver dado pessoal ou risco elevado, a equipe deve encaminhar a questão para responsáveis técnicos, de segurança, privacidade e, quando necessário, jurídicos. O Quadro~\ref{qua:sdlc-revisao} sintetiza o uso por etapa, enquanto o Quadro~\ref{qua:modelos-aplicacao} adapta esse posicionamento às quatro famílias comparadas.
+
+\begin{quadro}[htbp]
+\centering
 \small
-\begin{tabular}{|p{3.2cm}|p{4.1cm}|p{5.6cm}|}
+\captionquadro{Posicionamento da revisão técnica de privacidade no SDLC}
+\label{qua:sdlc-revisao}
+\begin{tabular}{|P{3.2cm}|P{4.1cm}|P{5.6cm}|}
 \hline
 \textbf{Etapa do SDLC} & \textbf{Uso previsto do artefato} & \textbf{Resultado esperado da revisão humana} \\
 \hline
-Requisitos e modelagem & Definir categorias de dados, finalidade, retenção e perfil de análise. & Confirmar necessidade, hipótese legal, riscos e controles que não podem ser inferidos pelo scanner. \\
+Requisitos e modelagem & Preparar categorias de dados, finalidade, retenção e perfil; ainda não há análise automática sem código ou esquema. & Confirmar necessidade, hipótese legal, riscos e controles que não podem ser inferidos pelo scanner. \\
 \hline
-Implementação & Executar análise local em Python, Java e schema SQLite. & Revisar achados, localizar evidências e corrigir padrões técnicos priorizados. \\
+Implementação & Executar a análise principal em código Python ou Java e em esquema SQLite. & Revisar achados, localizar evidências e corrigir padrões técnicos priorizados. \\
 \hline
-Revisão de código e testes & Executar novamente em pull request, integração ou ambiente de teste. & Distinguir verdadeiro positivo, falso positivo e exceção justificada; registrar decisão. \\
+Revisão de código e testes & Executar novamente em solicitação de integração, integração contínua ou ambiente de teste. & Distinguir verdadeiro positivo, falso positivo e exceção justificada; registrar decisão. \\
 \hline
-Operação e evolução & Usar relatórios como evidência técnica de acompanhamento. & Reavaliar regras, inventário de dados, retenção e controles diante de mudanças de contexto. \\
+Operação e evolução & Reexecutar após mudanças e usar relatórios como evidência técnica de acompanhamento. & Reavaliar regras, inventário de dados, retenção e controles diante de mudanças de contexto. \\
 \hline
 \end{tabular}
-\end{center}
+\fonte{elaboração própria com base em Cavoukian (2011), Pressman e Maxim (2016) e Souppaya, Scarfone e Dodson (2022)}
+\end{quadro}
+
+\begin{quadro}[htbp]
+\centering
+\small
+\captionquadro{Aplicação do artefato nos modelos e práticas comparados}
+\label{qua:modelos-aplicacao}
+\begin{tabular}{|P{2.8cm}|P{3.4cm}|P{3.7cm}|P{3.4cm}|}
+\hline
+\textbf{Modelo ou prática} & \textbf{Execução principal} & \textbf{Repetição prevista} & \textbf{Decisão humana} \\
+\hline
+Preditivo / cascata & Durante a implementação, após existir código ou esquema analisável. & Antes da transição para testes e nos marcos de entrega. & Revisar achados e registrar correção ou justificativa. \\
+\hline
+Espiral / iterativo & Em cada ciclo que produza protótipo ou incremento analisável. & Após mudanças relevantes e antes de planejar o ciclo seguinte. & Incorporar os achados à avaliação de riscos da iteração. \\
+\hline
+Ágil / Scrum & Durante o desenvolvimento do incremento. & Antes de atender aos critérios técnicos da \textit{Definition of Done}. & Avaliar contexto e devolver pendências ao trabalho do produto. \\
+\hline
+DevSecOps / SSDF & Localmente e na esteira automatizada de integração. & Em solicitações de integração, construções, testes e evolução. & Triar resultados; não usar o indicador como certificação automática. \\
+\hline
+\end{tabular}
+\fonte{elaboração própria com base em Boehm (1988), Beck et al. (2001), Schwaber e Sutherland (2020), Souppaya, Scarfone e Dodson (2022) e OWASP Foundation ([s. d.]d)}
+\end{quadro}
 
 \chapter{METODOLOGIA}
 
-A presente pesquisa adota como método a Design Science Research (DSR), abordagem metodológica consolidada na área de Sistemas de Informação e Engenharia de Software que orienta a produção de conhecimento científico por meio da construção e da avaliação de artefatos práticos (HEVNER et al., 2004). A DSR é adequada ao objetivo deste trabalho porque a pesquisa visa à construção de uma ferramenta funcional capaz de identificar indícios técnicos de risco à privacidade em código-fonte e em esquemas de banco de dados, com distribuição como extensão para o Visual Studio Code.
+A presente pesquisa adota como método científico a Design Science Research (DSR), abordagem metodológica da área de Sistemas de Informação que orienta a produção de conhecimento por meio da construção e da avaliação de artefatos (Hevner et al., 2004). A DSR é adequada ao objetivo deste trabalho porque a pesquisa visa à construção de uma ferramenta funcional capaz de identificar indícios técnicos de risco à privacidade em código-fonte e em esquemas de banco de dados, com distribuição como extensão para o Visual Studio Code. Essa metodologia de pesquisa não se confunde com os modelos e práticas de desenvolvimento comparados na Seção 2: cascata e espiral organizam o ciclo de vida; Scrum estrutura trabalho ágil; e DevSecOps integra práticas de desenvolvimento, segurança e operação.
 
 A pesquisa é conduzida em quatro fases principais, descritas a seguir. A construção e a avaliação são registradas de modo que outra pessoa possa reproduzir o benchmark a partir do repositório, da versão do código, do gabarito e do ambiente de execução.
 
 \section{Fase 1: Revisão da Literatura}
 
-A primeira fase compreende o levantamento e a análise crítica da literatura existente sobre Privacy by Design, vulnerabilidades de privacidade em software, ferramentas de análise estática de código e requisitos técnicos associados à LGPD e ao GDPR. A busca utiliza IEEE Xplore, ACM Digital Library, Scopus e Google Scholar com os descritores ``Privacy by Design'', ``privacy vulnerabilities'', ``static code analysis'', ``LGPD'', ``privacy engineering'' e ``software development lifecycle''. Foram incluídos artigos revisados por pares, livros de referência e documentos normativos ou técnicos oficiais publicados entre 2009 e 2026; foram excluídos textos sem autoria identificável, duplicados, materiais sem relação com desenvolvimento de software ou alegações sem fonte verificável.
+A revisão teve caráter narrativo e foi orientada à fundamentação e à construção do artefato. Foram consultadas IEEE Xplore, ACM Digital Library, Scopus e Google Scholar com combinações dos descritores ``Privacy by Design'', ``privacy vulnerabilities'', ``static code analysis'', ``LGPD'', ``privacy engineering'', ``software development lifecycle'', ``waterfall'', ``spiral model'', ``agile'', ``Scrum'', ``DevSecOps'' e ``secure software development framework''. Priorizaram-se publicações de 2009 a 2026, sem excluir obras anteriores reconhecidas como fundacionais para privacidade, Design Science e engenharia de software. Foram considerados artigos revisados por pares, livros de referência e documentos normativos ou técnicos oficiais relacionados ao problema. Como não foi conduzida revisão sistemática com protocolo de seleção e síntese, o levantamento não pretende esgotar a literatura nem demonstrar a inexistência de outras abordagens.
 
-Nessa fase, também são levantadas e analisadas as ferramentas atualmente disponíveis no mercado com finalidade similar à proposta, como Veracode, SonarQube, Checkmarx, Snyk Code, Semgrep e GitHub Code Scanning, com o objetivo de identificar a lacuna existente em relação à verificação específica de padrões técnicos de privacidade. Esse mapeamento subsidia a definição dos requisitos funcionais da ferramenta desenvolvida.
+Nessa fase, foram realizados dois mapeamentos documentais. O primeiro comparou cascata, espiral, desenvolvimento ágil com Scrum e práticas DevSecOps/SSDF, selecionados por representarem, respectivamente, fluxo preditivo, ciclos orientados a risco, incrementos frequentes e automação contínua. O critério de comparação foi o ponto em que passam a existir código ou esquemas analisáveis, a frequência de repetição e a decisão humana esperada; não foram comparadas produtividade, velocidade ou qualidade geral das abordagens. O segundo mapeamento analisou ferramentas disponíveis no mercado com finalidade correlata, como Veracode, SonarQube, Checkmarx, Snyk Code, Semgrep e GitHub Code Scanning, para identificar a lacuna relativa à verificação específica de padrões técnicos de privacidade. Os dois mapeamentos subsidiaram os requisitos funcionais e o posicionamento do artefato.
 
 \subsection{Rastreabilidade e Ameaças à Validade}
 
-Os resultados do benchmark são reproduzidos pelo script versionado em \texttt{evaluation/run\_benchmark.py}, pelo gabarito em \texttt{evaluation/benchmark/gabarito.json} e pela suíte automatizada. Cada execução registra data, versão do scanner, commit do repositório, sistema operacional, versão do Python e escopo analisado. A principal ameaça à validade interna é que as fixtures foram elaboradas para exercitar regras conhecidas. Na avaliação externa, a classificação manual por um único revisor introduz subjetividade, e a amostra de três projetos não representa a diversidade de sistemas reais. Essas ameaças são tratadas como limites do estudo, e não como resultados favoráveis ao artefato.
+Os resultados do benchmark são reproduzidos pelo script versionado em \path{evaluation/run_benchmark.py}, pelo gabarito em \path{evaluation/benchmark/gabarito.json} e pela suíte automatizada. Cada execução registra data, versão do scanner e unidade de avaliação; a avaliação externa acrescenta commit do repositório, hashes dos escopos, achados brutos e arquivos de adjudicação. A principal ameaça à validade interna é que as fixtures foram elaboradas para exercitar regras conhecidas. Na avaliação externa, a classificação primária por um único revisor introduz subjetividade, e as pequenas amostras de projetos não representam a diversidade de sistemas reais. Além disso, um conjunto que orienta a correção de heurísticas deixa de ser evidência independente para a versão resultante. Essas ameaças são tratadas como limites do estudo, e não como resultados favoráveis ao artefato.
 
 \section{Fase 2: Definição do Escopo Técnico}
 
 Com base no referencial teórico construído na fase anterior, esta fase define as decisões técnicas fundamentais para o desenvolvimento da ferramenta, a saber:
 
 \begin{itemize}
-\item Python foi adotado no backend por permitir implementação rápida de analisadores estáticos, manipulação de arquivos e integração com uma API local em Flask;
+\item Python foi adotado no módulo servidor por permitir implementação rápida de analisadores estáticos, manipulação de arquivos e integração com uma API local em Flask;
 \item O suporte a código-fonte contempla Python, por meio de análise baseada em AST, e Java, por meio de análise léxica conservadora voltada a padrões de privacidade;
 \item SQLite foi selecionado como primeiro banco suportado por sua simplicidade, disponibilidade nativa no Python e facilidade de inspeção de esquemas durante a avaliação;
-\item A distribuição foi implementada como extensão para o Visual Studio Code, por ser um ambiente amplamente utilizado por desenvolvedores e permitir exibição de achados no editor, na sidebar e em relatórios exportáveis.
+\item A distribuição foi implementada como extensão para o Visual Studio Code porque essa arquitetura permite apresentar achados no mesmo ambiente de edição e integrar ações, estado e relatórios ao fluxo definido para o artefato.
 \end{itemize}
 
-As decisões desta fase são documentadas e justificadas nesta metodologia e retomadas no capítulo de resultados, com base em critérios técnicos e no alinhamento com os princípios do Privacy by Design.
+As decisões desta fase são documentadas e justificadas nesta metodologia e retomadas na seção de resultados, com base em critérios técnicos e no alinhamento com os princípios do Privacy by Design.
 
 \section{Fase 3: Construção do Artefato}
 
 A terceira fase compreende o desenvolvimento da ferramenta. O artefato é composto por dois módulos principais:
 
 \begin{itemize}
-\item Módulo de análise de código-fonte: realiza a varredura estática de arquivos de código em busca de padrões associados a riscos de privacidade, como dados pessoais hardcoded, criptografia fraca, registro de dados pessoais em logs, coleta excessiva, transferência externa sem marcador de base legal e ausência de mecanismos de exclusão ou anonimização;
-\item Módulo de análise de esquema de banco de dados: inspeciona a estrutura de tabelas e colunas de bancos SQLite, identificando indícios como ausência de proteção aparente em campos sensíveis, uso de dados pessoais como chave primária, ausência de evidência de retenção ou exclusão lógica e mistura excessiva entre dados identificáveis e dados operacionais.
+\item Módulo de análise de código-fonte: realiza a varredura estática de arquivos de código em busca de padrões associados a riscos de privacidade, como dados pessoais codificados diretamente no código-fonte, criptografia fraca, registro de dados pessoais em logs, coleta excessiva, transferência externa sem marcador de base legal e ausência de mecanismos de exclusão ou anonimização;
+\item Módulo de análise de esquema de banco de dados: inspeciona tabelas, colunas e índices de bancos SQLite, identificando indícios como ausência de proteção aparente em campos sensíveis, uso de dados pessoais como chave primária ou índice único, ausência de evidência de retenção ou exclusão lógica e mistura excessiva entre dados identificáveis e dados operacionais.
 \end{itemize}
 
-Ao final da análise, a ferramenta gera um relatório técnico com a indicação dos achados, a classificação por nível de risco, um indicador operacional de severidade e recomendações de correção alinhadas à LGPD e aos sete princípios do PbD. O relatório não possui natureza de certificação jurídica; sua finalidade é apoiar a revisão técnica e priorizar pontos que exigem validação contextual. O desenvolvimento segue práticas de engenharia de software documentadas, com controle de versão via Git e registro das decisões de projeto ao longo do processo.
+Ao final da análise, a ferramenta gera um relatório técnico com a indicação dos achados, a classificação por nível de risco, um indicador operacional de severidade e recomendações de correção alinhadas à LGPD e aos sete princípios do PbD. A partir da versão 1.1, perfis conservador, equilibrado e completo passaram a controlar categorias, confiança mínima e severidade exibida sem apagar a severidade-base. Na versão 1.2.0, o contrato foi ampliado para distinguir achados brutos dos exibidos pelo perfil, manter os dois indicadores técnicos e registrar supressões por identificadores estáveis. Essa separação permite auditar o efeito da configuração sem apresentar um resultado filtrado como se fosse o universo integral da análise.
+
+A extensão foi evoluída para que o fluxo principal seja executado por ações clicáveis na barra lateral, no título do editor, nos menus de contexto do editor e do Explorer e na barra de status. Um assistente permite configurar o perfil por pasta, inclusive em espaços de trabalho com múltiplas pastas, e somente grava alterações após confirmação. A análise automática usa um intervalo de estabilização (\textit{debounce}), respeita tempo limite configurável e não substitui o resumo canônico de uma varredura completa por resultados isolados de arquivos abertos ou salvos. Na análise de diretório, dependências, artefatos gerados, testes e exemplos intencionalmente vulneráveis podem ser excluídos por \texttt{.privacyignore}; esses arquivos permanecem analisáveis individualmente.
+
+O relatório não possui natureza de certificação jurídica; sua finalidade é apoiar a revisão técnica e priorizar pontos que exigem validação contextual. O desenvolvimento segue práticas de engenharia de software documentadas, com controle de versão via Git, sincronização entre o módulo servidor e a extensão e registro das decisões de projeto ao longo do processo.
 
 \section{Fase 4: Avaliação do Artefato}
 
 A quarta fase destina-se à avaliação da ferramenta desenvolvida. A avaliação é conduzida por meio da aplicação da ferramenta em cenários de teste com código e esquemas de banco de dados elaborados especificamente para conter padrões de risco conhecidos, verificando a capacidade de detecção do artefato e a consistência dos relatórios gerados.
 
-Os resultados são comparados com achados esperados definidos manualmente para cada fixture e categoria de regra. Essa comparação mede consistência interna do comportamento implementado e capacidade de detectar regressões no conjunto controlado; ela não estima, por si só, precisão ou recall em projetos reais. A avaliação externa preserva a classificação manual separadamente dos achados brutos para permitir auditoria de TP, FP e FN sem sobrescrever a revisão anterior.
+Os resultados são comparados com achados esperados definidos manualmente para cada caso de teste (\textit{fixture}) e categoria de regra. Essa comparação mede consistência interna do comportamento implementado e capacidade de detectar regressões no conjunto controlado; ela não estima, por si só, precisão ou recall em projetos reais. A avaliação externa preserva a classificação manual separadamente dos achados brutos para permitir auditoria de TP, FP e FN sem sobrescrever a revisão anterior.
 
-Para evitar ajustar regras com base em todos os projetos avaliados, o backend Java PEAK foi definido como conjunto de ajuste. Os falsos positivos observados nesse conjunto orientaram correções conservadoras antes do congelamento da versão 1.0.4. Em seguida, Flasky, com 39 arquivos Python, e Chinook, com um banco SQLite, foram tratados como conjuntos independentes de validação. Não foram realizadas alterações nas regras Python ou SQLite após a observação de seus resultados. Os repositórios, commits, hashes dos escopos, achados brutos, adjudicações e falsos negativos permanecem versionados no diretório \texttt{evaluation/real\_projects}.
+Para evitar ajustar regras com base em todos os projetos avaliados, o módulo servidor Java PEAK, no commit abreviado \texttt{7503f50}, foi definido como conjunto de ajuste (PEAK-TCC, 2026). Os falsos positivos observados nesse conjunto orientaram correções conservadoras antes do congelamento da versão 1.0.4. Em seguida, Flasky, no commit \texttt{3beedd6}, com 39 arquivos Python, e Chinook, no commit \texttt{7f67772}, com um banco SQLite, foram tratados como conjuntos independentes de validação (Grinberg, 2025; Rocha, 2025). Não foram realizadas alterações nas regras Python ou SQLite após a observação de seus resultados. Os endereços completos, commits, hashes dos escopos, achados brutos, adjudicações e falsos negativos permanecem versionados no registro \path{evaluation/real_projects/projects.json}.
 
-Os erros documentados nessa primeira validação passaram a constituir evidência de ajuste para a versão 1.1, sem apagar a linha de base 1.0.4. Para evitar reutilizar como validação os mesmos projetos que orientaram a evolução, foram pré-registrados três novos escopos: Django Oscar para Python, Spring PetClinic para Java e Northwind para SQLite. Após o congelamento das regras e a aprovação da matriz inicial de integração contínua, esses escopos foram habilitados e executados uma única vez. A execução e a adjudicação primária permanecem versionadas, mas seus indicadores quantitativos não são incorporados a este texto enquanto a amostra estratificada de revisão independente estiver pendente. Os resultados observados não podem orientar novo ajuste heurístico na versão 1.1, preservando o papel do conjunto como validação final.
+Os erros documentados nessa primeira validação passaram a constituir evidência de ajuste para a versão 1.1, sem apagar a linha de base 1.0.4. Para reduzir a reutilização dos mesmos projetos, foram pré-registrados três novos escopos: Django Oscar, no commit \texttt{8bbd588}, para Python; Spring PetClinic, no commit \texttt{51045d1}, para Java; e Northwind SQLite, no commit \texttt{4f56e7f}, para banco de dados (Django Oscar, 2026; Spring Projects, 2026; White, 2025). Após o congelamento das regras da versão 1.1 e a aprovação da matriz inicial de integração contínua, esses escopos foram habilitados e executados uma única vez. A execução e a adjudicação primária permanecem versionadas.
+
+Os erros encontrados nesse conjunto de retenção (\textit{holdout}) da versão 1.1 orientaram posteriormente os filtros contextuais da versão 1.2.0. Por essa razão, o conjunto é tratado neste trabalho como análise de erros e evidência de evolução, e não como validação externa independente da versão 1.2.0. Seus indicadores quantitativos não são incorporados ao texto enquanto a amostra estratificada de revisão independente estiver pendente. A avaliação atual da versão 1.2.0 fica, portanto, limitada à regressão controlada, às suítes automatizadas e aos testes de integração; não se afirma que as correções tenham produzido determinada precisão ou recall em sistemas reais.
 
 \chapter{RESULTADOS OBTIDOS E DISCUSSÃO}
 
-Com o desenvolvimento da pesquisa, foi obtido um artefato funcional denominado Privacy Scanner LGPD, composto por analisadores de código e banco de dados, API local, geração de relatórios e extensão para o Visual Studio Code. Os resultados apresentados neste capítulo devem ser interpretados como avaliação técnica do artefato, e não como prova de conformidade jurídica com a LGPD.
+Com o desenvolvimento da pesquisa, foi obtido um artefato funcional denominado Privacy Scanner LGPD, composto por analisadores de código e banco de dados, API local, geração de relatórios e extensão para o Visual Studio Code. Os resultados apresentados nesta seção primária devem ser interpretados como avaliação técnica do artefato, e não como prova de conformidade jurídica com a LGPD.
 
 \section{Ferramenta Funcional de Análise Técnica de Privacidade}
 
-O principal resultado obtido é a entrega de uma ferramenta funcional capaz de identificar indícios técnicos de risco à privacidade em código-fonte e em esquemas de banco de dados. A distribuição foi implementada como extensão para o Visual Studio Code, integrada a um backend Python executado localmente. A ferramenta cobre as seguintes categorias de achados:
+O principal resultado obtido é a entrega de uma ferramenta funcional capaz de identificar indícios técnicos de risco à privacidade em código-fonte e em esquemas de banco de dados. A distribuição foi implementada como extensão para o Visual Studio Code, integrada a um módulo servidor Python executado localmente. A ferramenta cobre as seguintes categorias de achados:
 
 \begin{itemize}
 \item Armazenamento ou atribuição de dados pessoais sem evidência de proteção em variáveis, arquivos ou tabelas;
@@ -465,48 +619,46 @@ O principal resultado obtido é a entrega de uma ferramenta funcional capaz de i
 \item Transferência de dados pessoais a serviços externos sem marcador de base legal.
 \end{itemize}
 
-Ao final da análise, a ferramenta gera relatórios em terminal, JSON, HTML e PDF com a identificação das ocorrências encontradas, classificação por nível de risco, recomendações de correção e um indicador técnico de severidade. O termo indicador técnico é utilizado para evitar interpretação equivocada de que o resultado numérico represente certificação de conformidade legal. A fórmula adotada aplica penalizações crescentes por severidade, atribuindo maior peso a achados de risco alto, peso intermediário a achados de risco médio e peso menor a achados de risco baixo. Essa escolha tem finalidade operacional de priorização e comparação entre execuções, não correspondendo a uma métrica oficial ou jurídica de adequação à LGPD.
+Ao final da análise, a ferramenta gera relatórios em terminal, JSON, HTML e PDF com a identificação das ocorrências encontradas, classificação por nível de risco, recomendações de correção e indicador técnico de severidade. A versão 1.2.0 expõe separadamente totais e indicadores brutos e exibidos, além da quantidade ocultada pelo perfil. O termo indicador técnico é utilizado para evitar interpretação equivocada de que o resultado numérico represente certificação de conformidade legal. A fórmula adotada aplica penalizações crescentes por severidade, atribuindo maior peso a achados de risco alto, peso intermediário a achados de risco médio e peso menor a achados de risco baixo. Essa escolha tem finalidade operacional de priorização e comparação entre execuções, não correspondendo a uma métrica oficial ou jurídica de adequação à LGPD.
+
+Na extensão, a seção \texttt{Ações rápidas} reúne análise do arquivo atual, varredura do projeto, seleção de banco SQLite, exportação e configuração assistida do perfil. O arquivo ativo, o perfil predefinido e o estado do módulo servidor permanecem visíveis no painel. Ações equivalentes são oferecidas no editor e no Explorer, enquanto mensagens de falha permitem abrir configurações, preparar dependências, reiniciar o módulo servidor ou consultar logs. Esse desenho foi concebido para reduzir a dependência da Paleta de Comandos e aproximar a revisão de privacidade das atividades ordinárias de implementação e teste; o trabalho não realizou estudo de usabilidade para medir esse efeito.
 
 \section{Ferramentas Correlatas e Identificação da Lacuna}
 
-Foi produzido um levantamento das ferramentas atualmente disponíveis no mercado com premissa semelhante à proposta deste trabalho: utilizar análise automatizada de código para identificar problemas técnicos antes que o sistema chegue ao ambiente de produção. A comparação considerou ferramentas de SAST, revisão automatizada de código e code scanning, pois todas se relacionam com a ideia de antecipar falhas durante o ciclo de desenvolvimento. Entretanto, o critério central da análise não foi apenas verificar se a ferramenta encontra vulnerabilidades, mas observar se ela trata de forma explícita os riscos técnicos de privacidade associados à LGPD e aos princípios do Privacy by Design.
+Foi realizada uma comparação documental de seis ferramentas selecionadas por sua presença em fluxos de SAST, revisão automatizada ou \textit{code scanning}. A análise considerou as funções declaradas em documentação pública consultada em julho de 2026; não foram executados ensaios comparativos de cobertura, precisão ou desempenho.
 
 \subsection{Critérios de comparação}
 
-Para organizar o mapeamento, foram adotados cinco critérios de comparação: finalidade principal, tipo de análise, momento de aplicação no ciclo de desenvolvimento, relação explicitamente documentada com privacidade e diferença de escopo em relação ao artefato. A comparação foi baseada na documentação pública consultada em julho de 2026; ela não afirma que ferramentas extensíveis não possam ser configuradas com regras adicionais de privacidade.
+Para organizar o mapeamento, foram adotados cinco critérios de comparação: finalidade principal, tipo de análise, momento de aplicação no ciclo de desenvolvimento, relação explicitamente documentada com privacidade e diferença de escopo em relação ao artefato. A comparação foi baseada na documentação pública consultada em julho de 2026; ela não afirma que ferramentas extensíveis não possam ser configuradas com regras adicionais de privacidade. O Quadro~\ref{qua:ferramentas-correlatas} apresenta a síntese.
 
-\begin{center}
+\begin{quadro}[htbp]
+\centering
 \small
-\begin{tabular}{|p{2.8cm}|p{3.0cm}|p{2.7cm}|p{4.4cm}|}
+\captionquadro{Síntese documental das ferramentas correlatas}
+\label{qua:ferramentas-correlatas}
+\begin{tabular}{|P{2.8cm}|P{3.0cm}|P{2.7cm}|P{4.4cm}|}
 \hline
 \textbf{Ferramenta} & \textbf{Escopo documentado} & \textbf{Aplicação típica} & \textbf{Delimitação frente ao artefato} \\
 \hline
-Veracode / Checkmarx / Snyk Code & SAST e gestão de falhas de segurança. & IDE, pull request, CI/CD ou plataforma. & O estudo não os compara em cobertura geral; destaca o recorte local de indícios técnicos de privacidade. \\
+Veracode / Checkmarx / Snyk Code & SAST e gestão de falhas de segurança. & IDE, solicitação de integração, CI/CD ou plataforma. & O estudo não os compara em cobertura geral; destaca o recorte local de indícios técnicos de privacidade. \\
 \hline
 SonarQube & Qualidade, confiabilidade e recursos de segurança. & IDE, análise contínua e CI/CD. & Pode apoiar regras adicionais; o artefato organiza regras e recomendações já voltadas ao contexto de privacidade. \\
 \hline
 Semgrep & Regras extensíveis de análise estática e segurança. & Local, IDE, pré-commit e CI/CD. & É flexível para regras próprias; o diferencial do estudo é o conjunto inicial de categorias, linguagem e relatórios técnicos. \\
 \hline
-GitHub Code Scanning & Alertas de código e integração com repositórios. & Pull request e repositório. & O artefato privilegia execução local no VS Code e análise inicial de schema SQLite. \\
+GitHub Code Scanning & Alertas de código e integração com repositórios. & Solicitação de integração e repositório. & O artefato privilegia execução local no VS Code e análise inicial de esquema SQLite. \\
 \hline
 \end{tabular}
-\end{center}
+\fonte{elaboração própria com base em Veracode (2026), Checkmarx ([s. d.]), Snyk ([s. d.]), SonarSource ([s. d.]), Semgrep ([s. d.]) e GitHub ([s. d.])}
+\end{quadro}
 
 Esses critérios delimitam uma contribuição complementar, e não superioridade geral do artefato proposto.
 
 \subsection{Ferramentas analisadas}
 
-O Veracode Static Analysis é uma solução de Static Application Security Testing voltada à identificação e correção de falhas de segurança em aplicações. A ferramenta analisa código, frameworks e fluxos de desenvolvimento com foco em vulnerabilidades de aplicação e gestão de achados de segurança (VERACODE, 2026). A premissa é semelhante à deste trabalho porque ambas as soluções utilizam análise estática para antecipar problemas técnicos. A diferença está no recorte: o Veracode tem foco amplo em segurança de aplicação, enquanto o Privacy Scanner LGPD concentra-se em indícios técnicos de privacidade, como dados pessoais hardcoded, ausência de proteção aparente em campos sensíveis, registro de dados pessoais em logs e transferência externa sem marcador de base legal.
+Na documentação consultada, Veracode, Checkmarx e Snyk Code são apresentados como soluções de análise de segurança integradas ao desenvolvimento (Veracode, 2026; Checkmarx, [s. d.]; Snyk, [s. d.]); SonarQube reúne qualidade e recursos de segurança (SonarSource, [s. d.]); Semgrep enfatiza regras extensíveis e execução em diferentes pontos do fluxo (Semgrep, [s. d.]); e GitHub Code Scanning integra resultados de analisadores aos repositórios (GitHub, [s. d.]).
 
-O SonarQube é uma plataforma de revisão automatizada de código que combina qualidade, confiabilidade, manutenibilidade e recursos de segurança. Em suas capacidades de segurança, a documentação apresenta SAST, análise de fluxo de dados, detecção de segredos e análise de infraestrutura como código (SONARSOURCE, 2026). Sua contribuição está na melhoria contínua da qualidade e segurança do código, com aplicação em diferentes etapas do desenvolvimento. O diferencial do Privacy Scanner LGPD é tratar os achados sob a perspectiva de privacidade: em vez de apontar apenas vulnerabilidades clássicas, o artefato associa padrões técnicos de tratamento de dados pessoais a princípios como necessidade, segurança, prevenção, exclusão e retenção.
-
-O Checkmarx SAST também se enquadra como solução de análise estática de segurança, com foco em cobertura de linguagens, frameworks, priorização de achados e apoio à remediação no fluxo de desenvolvimento (CHECKMARX, 2026). A semelhança com este trabalho está no uso da análise de código como mecanismo preventivo. A diferença é que o Checkmarx se posiciona como plataforma empresarial de Application Security, enquanto o Privacy Scanner LGPD foi concebido como artefato acadêmico e prático, de escopo mais restrito, voltado a apoiar desenvolvedores brasileiros na revisão técnica de privacidade alinhada à LGPD.
-
-O Snyk Code apresenta abordagem de SAST voltada ao desenvolvedor, com análise em tempo próximo ao desenvolvimento e recomendações de correção dentro de fluxos como IDE e pull requests (SNYK, 2026). Essa orientação ao desenvolvedor aproxima-se da proposta deste trabalho, especialmente pela intenção de deslocar a identificação de problemas para fases iniciais. Contudo, o foco do Snyk Code permanece na identificação de código inseguro e vulnerabilidades de segurança. O Privacy Scanner LGPD diferencia-se por mapear seus achados a artigos e princípios da LGPD, além de gerar relatórios voltados à revisão técnica de privacidade.
-
-O Semgrep é uma ferramenta de segurança de software que oferece SAST, análise de dependências, detecção de segredos e uso de regras semânticas customizáveis, podendo ser executado localmente, em IDEs, antes de commits ou em pipelines de CI/CD (SEMGREP, 2026). Entre as ferramentas analisadas, é uma das mais próximas em termos de flexibilidade por permitir regras específicas. Ainda assim, sua proposta é genérica e extensível para múltiplos domínios de segurança. O Privacy Scanner LGPD, por sua vez, já nasce especializado em padrões de privacidade: as regras, categorias, recomendações e relatórios são direcionados ao contexto de dados pessoais e à interpretação técnica da LGPD no desenvolvimento de software.
-
-O GitHub Code Scanning, frequentemente utilizado com CodeQL ou ferramentas de terceiros, permite analisar repositórios para localizar vulnerabilidades e erros de código, exibindo alertas diretamente no ambiente do GitHub (GITHUB, 2026). Sua principal contribuição está na integração com repositórios e fluxos de revisão. A diferença em relação ao artefato proposto está no escopo: o GitHub Code Scanning apoia segurança de código em repositórios, enquanto o Privacy Scanner LGPD atua localmente no ambiente do desenvolvedor e gera relatórios específicos de privacidade, com categorias relacionadas a dados pessoais, schema de banco SQLite e artigos da LGPD.
+Frente a esse conjunto documental, o Privacy Scanner LGPD diferencia-se pelo recorte declarado: categorias e relatórios previamente organizados para revisão técnica de dados pessoais, execução local no Visual Studio Code e inspeção inicial de esquemas SQLite. Essa diferença de recorte não estabelece exclusividade nem superioridade geral.
 
 \subsection{Síntese comparativa}
 
@@ -517,50 +669,60 @@ A análise das ferramentas correlatas permite organizar a diferença do artefato
 \item SonarQube amplia o foco para qualidade e segurança do código, enquanto o Privacy Scanner LGPD delimita seu escopo a padrões de risco à privacidade;
 \item Semgrep oferece alta flexibilidade por meio de regras, mas não é, por padrão, uma ferramenta especializada em LGPD ou Privacy by Design;
 \item GitHub Code Scanning integra alertas de segurança ao repositório, enquanto o Privacy Scanner LGPD integra a revisão de privacidade ao Visual Studio Code e a relatórios HTML, PDF e JSON;
-\item as ferramentas consolidadas podem apoiar indiretamente programas de proteção de dados, mas não substituem uma análise específica de padrões como coleta excessiva, ausência de exclusão, ausência de retenção, dados pessoais em logs e schema de banco sem evidência de controles de privacidade.
+\item as ferramentas consolidadas podem apoiar indiretamente programas de proteção de dados, mas não substituem uma análise específica de padrões como coleta excessiva, ausência de exclusão, ausência de retenção, dados pessoais em logs e esquema de banco sem evidência de controles de privacidade.
 \end{itemize}
 
-Desse modo, a lacuna identificada é um espaço para uma ferramenta simples, local e orientada ao desenvolvedor que traduza princípios de privacidade em verificações técnicas iniciais aplicáveis ao código-fonte e ao schema. O Privacy Scanner LGPD busca contribuir nesse espaço como apoio preliminar à revisão técnica, sem pretensão de substituir plataformas consolidadas, auditorias jurídicas, programas de governança ou avaliações humanas contextualizadas.
+Desse modo, a lacuna identificada é um espaço para uma ferramenta simples, local e orientada ao desenvolvedor que traduza princípios de privacidade em verificações técnicas iniciais aplicáveis ao código-fonte e ao esquema. O Privacy Scanner LGPD busca contribuir nesse espaço como apoio preliminar à revisão técnica, sem pretensão de substituir plataformas consolidadas, auditorias jurídicas, programas de governança ou avaliações humanas contextualizadas.
 
 \section{Definição da Etapa do SDLC para Aplicação da Ferramenta}
 
-Com base no mapeamento apresentado no Capítulo 2, a ferramenta foi posicionada principalmente nas fases de implementação, revisão de código e testes. A integração com o Visual Studio Code permite que os achados sejam apresentados no mesmo ambiente em que o código é produzido; a decisão de correção, aceitação ou encaminhamento permanece humana e contextual.
+O mapeamento apresentado na Seção 2 mostra que o nome e a duração das etapas variam entre os modelos, mas o requisito técnico para execução permanece o mesmo: o Privacy Scanner LGPD precisa receber código-fonte Python ou Java, um diretório de projeto ou um banco SQLite com esquema inspecionável. Por isso, requisitos e modelagem preparam as categorias de dados, a finalidade, a retenção e o perfil de análise, mas não constituem a etapa principal de execução automática.
+
+No modelo preditivo ou em cascata, a análise deve ocorrer durante a implementação e novamente antes do marco de entrada em testes. No modelo espiral, deve acompanhar cada ciclo que produza protótipo ou incremento analisável, para que os achados retornem à avaliação de riscos. Em Scrum, pode ser executada durante o \textit{Sprint} e incorporada pela equipe aos critérios técnicos da \textit{Definition of Done}, sem ser apresentada como exigência original do framework. Em DevSecOps, pode ser usada localmente e repetida em solicitações de integração, construções e testes da esteira automatizada.
+
+Desse modo, a etapa principal definida para a ferramenta é a implementação, porque é quando surgem os artefatos que a análise estática consegue observar. A execução deve ser repetida na revisão de código, nos testes e na integração, bem como após mudanças relevantes durante manutenção e evolução. A integração com o Visual Studio Code aproxima a primeira execução do momento em que o código é produzido; a decisão de corrigir, aceitar justificadamente ou encaminhar cada achado permanece humana e contextual. Dadas as limitações observadas na validação externa, o indicador técnico não deve atuar sozinho como bloqueio automático de entrega.
 
 \section{Justificativa Técnica das Escolhas de Implementação}
 
-Foram documentadas as decisões relativas ao uso de Python no backend, ao suporte a arquivos Python e Java, à análise inicial de bancos SQLite e à distribuição como extensão para o Visual Studio Code. A escolha por Python favoreceu a prototipação e a análise AST da própria linguagem; o suporte Java foi implementado de forma léxica e conservadora; e o SQLite foi adotado como primeiro banco por permitir inspeção direta de esquemas sem dependências externas complexas.
+Foram documentadas as decisões relativas ao uso de Python no módulo servidor, ao suporte a arquivos Python e Java, à análise inicial de bancos SQLite e à distribuição como extensão para o Visual Studio Code. A escolha por Python favoreceu a prototipação e a análise AST da própria linguagem; o suporte Java foi implementado de forma léxica e conservadora; e o SQLite foi adotado como primeiro banco por permitir inspeção direta de esquemas sem dependências externas complexas. A evolução para a versão 1.2.0 priorizou redução contextual de falsos positivos e qualidade de uso, preservando categorias, comandos públicos e contratos anteriores. Dessa forma, as melhorias de interface e filtragem não eliminam a rastreabilidade necessária para comparar resultados entre versões.
 
 \section{Validação Controlada}
 
-A validação automatizada contempla testes unitários e de integração para os analisadores Python, Java, SQLite, geração de relatórios, avaliação externa, contrato da API Flask, fonte do TCC e sincronização de versão. Na linha de base 1.0.4, a suíte automatizada executou 135 testes com sucesso. Após a implementação dos perfis, confiança, contexto estrutural, protocolo versionado e recomposição auditável da revisão da versão 1.1, a suíte Python passou a 164 testes, complementada por 29 verificações TypeScript, teste real no Extension Host, simulação de conflito de porta com serviço incompatível e instalação isolada do VSIX. O benchmark controlado 2 contém 18 fixtures sintéticas, seis para cada tipo de análise, e explicita o contexto estrutural de persistência acrescentado às fixtures de modelo e schema; o benchmark 1 permanece preservado na tag 1.0.4. O resultado de 24 positivos corretos, 96 negativos corretos e nenhuma divergência corresponde a 120 decisões \emph{caso--categoria}; portanto, o valor de 100\% descreve consistência interna com esse gabarito, e não desempenho generalizável em sistemas reais.
+A validação automatizada contempla testes unitários e de integração para os analisadores Python, Java e SQLite, geração de relatórios, perfis, avaliação externa, contrato da API Flask, fonte do TCC e sincronização de versão. Na linha de base 1.0.4, a suíte automatizada executou 135 testes com sucesso. Na versão 1.2.0, a suíte Python alcançou 181 testes aprovados. A extensão foi validada por testes TypeScript de contrato, perfil, assistente, coordenação de análises, estado de achados, comunicação HTTP, descoberta do módulo servidor e contribuições de interface, além de compilação, lint, teste real no Extension Host, simulação de conflito de porta e instalação isolada do VSIX.
+
+O benchmark controlado 2 contém 18 fixtures sintéticas, seis para cada tipo de análise, e permanece fixo para permitir comparação histórica; o benchmark 1 está preservado na tag 1.0.4. Reproduzido com o scanner 1.2.0 em 20 de julho de 2026, o corpus resultou em 24 positivos corretos, 96 negativos corretos e nenhuma divergência, totalizando 120 decisões \emph{caso--categoria}. A nova verificação de identificador pessoal em índice único é coberta pela suíte automatizada, mas não foi adicionada retroativamente ao universo do benchmark 2. Assim, o valor de 100\% descreve aderência ao gabarito fixado, e não desempenho generalizável em sistemas reais.
 
 O conjunto controlado foi construído para validar regras conhecidas e detectar regressões durante a evolução do artefato. Ele não representa a diversidade de arquiteturas, frameworks, políticas de retenção ou finalidades presentes em projetos reais. Por essa razão, as métricas de precisão, recall, F1 e especificidade só podem ser interpretadas como métricas do benchmark controlado.
 
 \section{Validação Externa}
 
-A avaliação externa foi concluída em três escopos fixados por commit e hash. O PEAK foi usado exclusivamente como conjunto de ajuste; Flasky e Chinook foram avaliados após o congelamento das respectivas regras. Todos os 56 achados foram classificados manualmente como verdadeiros ou falsos positivos, e a revisão do escopo registrou 21 falsos negativos ainda abertos. A Tabela~\ref{tab:validacao-externa} apresenta os resultados sem estabelecer meta mínima ou excluir resultados desfavoráveis.
+A avaliação externa histórica da versão 1.0.4 foi concluída em três escopos fixados por commit e hash. O PEAK foi usado exclusivamente como conjunto de ajuste; Flasky e Chinook foram avaliados após o congelamento das respectivas regras. Todos os 56 achados foram classificados manualmente como verdadeiros ou falsos positivos, e a revisão do escopo registrou 21 falsos negativos. A Tabela~\ref{tab:validacao-externa} apresenta os resultados sem estabelecer meta mínima ou excluir resultados desfavoráveis.
 
 \begin{table}[ht]
 \centering
-\caption{Resultados da validação externa por projeto}
+\captiontabela{Resultados da validação externa por projeto}
 \label{tab:validacao-externa}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{l l r r r r r r r}
+\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}P{2.6cm}P{3.8cm}P{2.7cm}P{2.0cm}P{2.9cm}@{}}
 \hline
-\textbf{Projeto} & \textbf{Papel} & \textbf{Escopo} & \textbf{Achados} & \textbf{TP} & \textbf{FP} & \textbf{FN} & \textbf{Precisão} & \textbf{Recall / F1} \\
+\textbf{Projeto} & \textbf{Papel e escopo} & \textbf{Achados (TP/FP/FN)} & \textbf{Precisão} & \textbf{Recall / F1} \\
 \hline
-PEAK back-end & ajuste & 130 Java & 8 & 8 & 0 & 1 & 100,00\% & 88,89\% / 94,12\% \\
-Flasky & validação & 39 Python & 16 & 3 & 13 & 3 & 18,75\% & 50,00\% / 27,27\% \\
-Chinook & validação & 1 SQLite & 32 & 16 & 16 & 17 & 50,00\% & 48,48\% / 49,23\% \\
+PEAK back-end & ajuste; 130 arquivos Java & 8 / 0 / 1 & 100,00\% & 88,89\% / 94,12\% \\
+Flasky & validação; 39 arquivos Python & 3 / 13 / 3 & 18,75\% & 50,00\% / 27,27\% \\
+Chinook & validação; 1 banco SQLite & 16 / 16 / 17 & 50,00\% & 48,48\% / 49,23\% \\
 \hline
-\end{tabular}}
+\end{tabular}
+\fonte{dados da pesquisa (2026)}
 \end{table}
 
 No PEAK, as correções orientadas pelo conjunto de ajuste removeram alertas de coleta em classes \texttt{Seeder} e limitaram a indicação de proteção não evidenciada a campos de maior risco. A revisão ainda encontrou um falso negativo em transferência de foto de perfil para serviço externo, pois a análise Java não acompanha o dado binário entre instruções. Esse resultado não é combinado com os projetos de validação para estimar generalização.
 
-Nos dois conjuntos independentes foram classificados 19 TP, 29 FP e 20 FN, correspondendo a precisão de 39,58\%, recall de 48,72\% e F1 de 43,68\%. No Flasky, formulários transitórios foram confundidos com modelos persistentes e setters que aplicam hash não foram reconhecidos em todo o fluxo. No Chinook, colunas genéricas chamadas \texttt{Name} em tabelas de catálogo foram confundidas com dados pessoais, enquanto componentes contextuais de endereço, como cidade e código postal, deixaram de ser reconhecidos. A diferença em relação ao benchmark controlado demonstra que o artefato é útil para triagem, mas ainda depende fortemente de contexto e revisão humana.
+Nos dois conjuntos independentes foram classificados 19 TP, 29 FP e 20 FN, correspondendo a precisão de 39,58\%, recall de 48,72\% e F1 de 43,68\%. No Flasky, formulários transitórios foram confundidos com modelos persistentes e setters que aplicam hash não foram reconhecidos em todo o fluxo. No Chinook, colunas genéricas chamadas \texttt{Name} em tabelas de catálogo foram confundidas com dados pessoais, enquanto componentes contextuais de endereço, como cidade e código postal, deixaram de ser reconhecidos. A diferença em relação ao benchmark evidencia que a aderência ao corpus controlado não se transfere automaticamente para projetos reais. Diante das métricas observadas, qualquer uso como triagem depende de revisão contextual; os dados não permitem afirmar eficácia geral.
 
-A infraestrutura preserva a adjudicação manual em arquivo separado dos achados brutos, usa identificadores estáveis inclusive para achados SQLite sem número de linha e mantém execuções imutáveis. As métricas descrevem somente os projetos e commits registrados; não constituem estimativa geral para sistemas Python, Java ou SQLite.
+A infraestrutura preserva a adjudicação manual em arquivo separado dos achados brutos, usa identificadores estáveis inclusive para achados SQLite sem número de linha e mantém execuções imutáveis. As métricas descrevem somente os projetos, commits e versão registrados; não constituem estimativa geral para sistemas Python, Java ou SQLite.
+
+Na etapa seguinte, Django Oscar, Spring PetClinic e Northwind foram executados como conjunto de retenção da versão 1.1. A adjudicação primária permitiu localizar novos erros de contexto em código Python, Java e esquemas SQLite, que serviram de insumo para as correções da versão 1.2.0. Como a revisão independente da amostra estratificada permanece pendente e o conjunto passou a orientar o desenvolvimento, seus indicadores não são publicados como evidência de eficácia da versão atual. Essa separação evita converter um conjunto de ajuste em validação e mantém explícita a necessidade de uma nova avaliação externa independente.
 
 \section{Contribuição para o Apoio Técnico à LGPD}
 
@@ -568,7 +730,7 @@ A ferramenta pode apoiar a identificação antecipada de riscos técnicos de pri
 
 \section{Contribuição Acadêmica}
 
-Por fim, este trabalho contribui com a produção acadêmica nacional sobre privacidade em engenharia de software, área ainda incipiente no contexto brasileiro. O artefato desenvolvido, as decisões de projeto documentadas, o benchmark controlado e o mapeamento das ferramentas existentes podem servir de referência para pesquisas futuras e para iniciativas de formação de profissionais de tecnologia da informação.
+A contribuição acadêmica consiste em documentar, no contexto brasileiro, a construção e a avaliação de um artefato de apoio à revisão técnica de privacidade. As decisões de projeto, o benchmark controlado, os resultados externos desfavoráveis e o mapeamento documental oferecem material reproduzível para trabalhos posteriores e atividades de formação.
 
 \chapter{LIMITAÇÕES E TRABALHOS FUTUROS}
 
@@ -576,76 +738,113 @@ Por fim, este trabalho contribui com a produção acadêmica nacional sobre priv
 
 Apesar dos resultados obtidos, o artefato possui limitações importantes. A ferramenta realiza análise estática e, portanto, não executa o sistema analisado nem observa o comportamento real em tempo de execução. O suporte a Python é mais estruturado por utilizar AST, enquanto o suporte a Java é inicial e baseado em análise léxica conservadora, sem compilação, resolução de tipos ou acompanhamento completo de fluxo de dados entre métodos.
 
-As regras de banco SQLite analisam o schema e inferem riscos a partir de nomes de tabelas, colunas e tipos declarados. Essa abordagem pode indicar ausência de evidência de controles, mas não consegue provar que o controle inexiste em outra camada da aplicação, em rotinas externas, em políticas organizacionais ou em documentação de governança. Por esse motivo, achados como base legal não evidenciada, retenção a revisar e exclusão lógica não evidenciada devem ser tratados como indícios técnicos que exigem revisão contextual.
+As regras de banco SQLite analisam o esquema e inferem riscos a partir de nomes de tabelas, colunas e tipos declarados. Essa abordagem pode indicar ausência de evidência de controles, mas não consegue provar que o controle inexiste em outra camada da aplicação, em rotinas externas, em políticas organizacionais ou em documentação de governança. Por esse motivo, achados como base legal não evidenciada, retenção a revisar e exclusão lógica não evidenciada devem ser tratados como indícios técnicos que exigem revisão contextual.
 
-A validação independente evidenciou limitações concretas das heurísticas por nomes. No Flasky, classes de formulário foram confundidas com modelos persistentes; no Chinook, nomes de artistas, gêneros e faixas foram tratados como nomes de titulares, ao mesmo tempo que componentes de endereço não foram reconhecidos sem contexto de tabela. A adjudicação foi realizada por um único revisor e não houve cálculo de concordância entre avaliadores, o que limita a reprodutibilidade da classificação manual.
+A validação independente da linha de base evidenciou limitações concretas das heurísticas por nomes. No Flasky, classes de formulário foram confundidas com modelos persistentes; no Chinook, nomes de artistas, gêneros e faixas foram tratados como nomes de titulares, ao mesmo tempo que componentes de endereço não foram reconhecidos sem contexto de tabela. A versão 1.2.0 introduziu filtros para vários desses padrões, mas ainda não foi submetida a um novo corpus externo independente. Além disso, a adjudicação disponível foi realizada por um revisor primário e a revisão cega da amostra estratificada permanece pendente, impedindo o cálculo de concordância entre avaliadores.
 
-Outra limitação está no indicador técnico de severidade. A fórmula utilizada facilita comparação entre execuções e priorização de achados, mas seus pesos são definidos de forma operacional: achados altos reduzem mais a pontuação por indicarem maior possibilidade de exposição ou proteção insuficiente de dados pessoais; achados médios reduzem a pontuação em grau intermediário por indicarem ausência de controles relevantes; e achados baixos reduzem menos por representarem pontos de governança ou desenho a revisar. Esses pesos não correspondem a uma métrica oficial de conformidade LGPD. Assim, o indicador não deve ser interpretado como nota jurídica ou certificação de adequação.
+Outra limitação está no indicador técnico de severidade. A fórmula utilizada facilita comparação entre execuções e priorização de achados, mas seus pesos são definidos de forma operacional: achados altos reduzem mais a pontuação por indicarem maior possibilidade de exposição ou proteção insuficiente de dados pessoais; achados médios reduzem a pontuação em grau intermediário por indicarem ausência de controles relevantes; e achados baixos reduzem menos por representarem pontos de governança ou desenho a revisar. Os perfis também podem alterar o conjunto exibido e a severidade técnica apresentada, embora o resultado bruto seja preservado para auditoria. Esses pesos e escolhas de exibição não correspondem a uma métrica oficial de conformidade LGPD. Assim, nenhum dos indicadores deve ser interpretado como nota jurídica ou certificação de adequação.
 
 \section{Trabalhos Futuros}
 
-Como trabalhos futuros, propõe-se ampliar a validação externa com mais projetos reais e com pelo menos dois revisores independentes, permitindo medir concordância e reduzir subjetividade. Também se recomenda usar informação estrutural para distinguir formulários, configurações e modelos persistentes, propagar contexto de tabela para componentes de endereço, evoluir o suporte Java para análise semântica entre instruções, adicionar suporte a JavaScript e TypeScript, incluir PostgreSQL e MySQL e melhorar a rastreabilidade entre achados, recomendações e evidências.
+Como trabalhos futuros, propõe-se concluir a revisão cega já preparada e realizar uma nova validação externa da versão 1.2.0 em projetos que não tenham orientado suas heurísticas, com pelo menos dois revisores independentes. Isso permitirá medir concordância, precisão e recall sem reutilizar conjuntos de ajuste. Também se recomenda ampliar a análise estrutural e de fluxo, evoluir o suporte Java para análise semântica entre instruções, adicionar suporte a JavaScript e TypeScript, incluir PostgreSQL e MySQL e melhorar a rastreabilidade entre achados, recomendações e evidências.
 
-Os perfis configuráveis foram incorporados na versão 1.1 com presets conservador, equilibrado e completo, limiar de confiança, habilitação por categoria e severidade exibida, preservando a severidade-base para auditoria. Como evolução futura, recomenda-se avaliar esses perfis com equipes diferentes e investigar configuração assistida por contexto de domínio, sem permitir que preferências locais sejam apresentadas como classificação jurídica.
+Os perfis configuráveis foram incorporados com opções predefinidas conservadora, equilibrada e completa, limiar de confiança, habilitação por categoria e severidade exibida, preservando a severidade-base para auditoria. A versão 1.2.0 acrescentou configuração assistida e recuperação de perfis inválidos. Como evolução futura, recomenda-se avaliar esses perfis com equipes diferentes, medir seu efeito sobre carga de revisão e investigar configuração assistida por contexto de domínio, sem permitir que preferências locais sejam apresentadas como classificação jurídica.
 
 \chapter{CONCLUSÃO}
 
-Este trabalho investigou de que forma uma ferramenta de análise estática orientada por Privacy by Design pode apoiar a identificação de indícios técnicos de risco à privacidade no ciclo de desenvolvimento de software. Como resultado, foi desenvolvido o Privacy Scanner LGPD, composto por analisadores para Python, Java e schema SQLite, API local, relatórios e extensão para o Visual Studio Code.
+Este trabalho investigou de que forma uma ferramenta de análise estática orientada por Privacy by Design pode apoiar a identificação de indícios técnicos de risco à privacidade no ciclo de desenvolvimento de software. Como resultado, foi desenvolvido o Privacy Scanner LGPD 1.2.0, composto por analisadores para Python, Java e esquema SQLite, API local, relatórios e extensão para o Visual Studio Code. O artefato integra perfis configuráveis, indicadores brutos e exibidos, supressões auditáveis e ações clicáveis no fluxo de trabalho do desenvolvedor.
 
-Os objetivos de construir o artefato, posicioná-lo em implementação, revisão e testes, documentar suas escolhas técnicas e compará-lo com ferramentas correlatas foram atendidos no recorte definido. A fundamentação também delimitou a relação entre as regras e os princípios de PbD: o scanner apoia uma revisão preventiva de evidências técnicas, mas não verifica finalidade, base legal, governança, transparência ou conformidade jurídica.
+Os objetivos de construir o artefato, comparar modelos e práticas de desenvolvimento, definir suas etapas de aplicação, documentar as escolhas técnicas e compará-lo com ferramentas correlatas foram atendidos no recorte definido. A fundamentação também delimitou a relação entre as regras e os princípios de PbD: o scanner apoia uma revisão preventiva de evidências técnicas, mas não verifica finalidade, base legal, governança, transparência ou conformidade jurídica.
 
-A hipótese é parcialmente sustentada. O benchmark controlado mostra que as regras se comportaram de acordo com o gabarito em 18 fixtures e 120 decisões caso--categoria, o que demonstra consistência interna e protege contra regressões. Entretanto, nos conjuntos independentes Flasky e Chinook, a precisão foi de 39,58\%, o recall de 48,72\% e o F1 de 43,68\%. Esses resultados não sustentam uma alegação de detecção generalizável ou baixa taxa de falsos positivos; sustentam somente a utilidade do artefato como mecanismo inicial de triagem e como base experimental para evolução das heurísticas.
+A hipótese é parcialmente sustentada. Reproduzido com a versão 1.2.0, o benchmark controlado mostra que as regras se comportaram de acordo com o gabarito em 18 fixtures e 120 decisões caso--categoria, sem divergências. A suíte atual também aprovou 181 testes Python, testes TypeScript, integração real no Extension Host e instalação isolada do VSIX. Esses resultados demonstram consistência interna, integração do artefato e proteção contra regressões, mas não medem eficácia generalizável.
 
-Conclui-se que a ferramenta pode integrar práticas de revisão técnica de privacidade ao cotidiano do desenvolvimento como apoio preliminar, desde que seus achados sejam interpretados como indícios e acompanhados de análise humana e contextual. A principal contribuição não é certificar conformidade, mas tornar verificações de privacidade reproduzíveis no ambiente do desenvolvedor e explicitar, por meio da validação externa, onde as heurísticas ainda falham.
+Na validação externa histórica da versão 1.0.4, os conjuntos independentes Flasky e Chinook apresentaram precisão de 39,58\%, recall de 48,72\% e F1 de 43,68\%. O conjunto de retenção da versão 1.1 revelou outros erros que orientaram os filtros da versão 1.2.0 e, por isso, não é utilizado como validação independente da versão atual. Não se afirma que as melhorias tenham produzido baixa taxa geral de falsos positivos; essa conclusão exige novo corpus externo e revisão independente.
 
-\chapter*{REFERÊNCIAS}
+Conclui-se que a preparação do uso da ferramenta começa em requisitos e modelagem, com a definição das categorias de dados, da finalidade, da retenção e do perfil. Sua execução principal deve ocorrer durante a implementação, quando já existem código e esquemas analisáveis, e deve ser repetida na revisão de código, nos testes, na integração e após mudanças de manutenção ou evolução. Esse posicionamento pode ser adaptado a cascata, espiral, Scrum e DevSecOps sem afirmar que o projeto adotou formalmente qualquer uma dessas abordagens. Em todos os casos, a ferramenta atua como apoio preliminar: seus achados devem ser interpretados como indícios e submetidos à análise humana. Sua contribuição não é certificar conformidade, mas tornar verificações reproduzíveis, configuráveis e auditáveis no ambiente do desenvolvedor.
+
+\clearpage
+\phantomsection
+\begin{center}
+\textbf{REFERÊNCIAS}
+\end{center}
 \addcontentsline{toc}{chapter}{REFERÊNCIAS}
+\begingroup
 \setstretch{1.0}
 \setlength{\parindent}{0pt}
-\setlength{\parskip}{12pt}
+\setlength{\parskip}{\baselineskip}
+\RaggedRight
+\urlstyle{same}
 
-ANPD -- AUTORIDADE NACIONAL DE PROTEÇÃO DE DADOS. Relatório de atividades 2023. Brasília, DF: ANPD, 2023a. Disponível em: https://www.gov.br/anpd/pt-br. Acesso em: 05 mai. 2026.
+AUTORIDADE NACIONAL DE PROTEÇÃO DE DADOS (ANPD). \tituloref{Tratamento de dados pessoais para fins acadêmicos e para a realização de estudos e pesquisas: guia orientativo}. Versão 1.0. Brasília, DF: ANPD, 2023a. Disponível em: \url{https://www.gov.br/anpd/pt-br/centrais-de-conteudo/materiais-educativos-e-publicacoes/web-guia-anpd-tratamento-de-dados-para-fins-academicos.pdf/@@display-file/file}. Acesso em: 23 jul. 2026.
 
-ANPD -- AUTORIDADE NACIONAL DE PROTEÇÃO DE DADOS. Guia orientativo: tratamento de dados pessoais para fins acadêmicos e para a realização de estudos e pesquisas. Brasília, DF: ANPD, 2023b. Disponível em: https://www.gov.br/anpd/pt-br/centrais-de-conteudo/materiais-educativos-e-publicacoes/web-guia-anpd-tratamento-de-dados-para-fins-academicos.pdf. Acesso em: 09 jul. 2026.
+AUTORIDADE NACIONAL DE PROTEÇÃO DE DADOS (ANPD). \tituloref{Relatório de Ciclo de Monitoramento: 1º semestre de 2023}. Versão 1.0. Brasília, DF: ANPD, 2023b. Disponível em: \href{https://www.gov.br/anpd/pt-br/acesso-a-informacao/acoes-e-programas/governanca/governanca-estrategica/2023-11-07-relatorio-do-ciclo-de-monitoramento-2023-versao-final.pdf/%40%40display-file/file}{\nolinkurl{https://www.gov.br/anpd/pt-br/assuntos/noticias/anpd-publica-o-segundo-relatorio-de-ciclo-de-monitoramento}}. Acesso em: 23 jul. 2026.
 
-BOEHM, Barry W. Software Engineering Economics. Englewood Cliffs: Prentice-Hall, 1981.
+BECK, Kent et al. \tituloref{Manifesto for Agile Software Development}. 2001. Disponível em: \url{https://agilemanifesto.org/}. Acesso em: 26 jul. 2026.
 
-BRASIL. Lei n. 13.709, de 14 de agosto de 2018. Lei Geral de Proteção de Dados Pessoais (LGPD). Brasília, DF: Presidência da República, 2018. Disponível em:
+BOEHM, Barry W. \tituloref{Software Engineering Economics}. Englewood Cliffs: Prentice-Hall, 1981.
 
-https://www.planalto.gov.br/ccivil\_03/\_ato2015-2018/2018/lei/l13709.htm. Acesso em: 05 mai. 2026.
+BOEHM, Barry W. A spiral model of software development and enhancement. \tituloref{Computer}, [S. l.], v. 21, n. 5, p. 61--72, maio 1988. DOI: 10.1109/2.59. Disponível em: \url{https://doi.org/10.1109/2.59}. Acesso em: 26 jul. 2026.
 
-BRASIL. Constituição da República Federativa do Brasil de 1988. Brasília, DF: Presidência da República, 1988. Disponível em: https://www.planalto.gov.br/ccivil\_03/constituicao/constituicao.htm. Acesso em: 05 jul. 2026.
+BRASIL. [Constituição (1988)]. \tituloref{Constituição da República Federativa do Brasil de 1988}. Brasília, DF: Presidência da República, 1988. Disponível em: \url{https://www.planalto.gov.br/ccivil_03/constituicao/constituicao.htm}. Acesso em: 23 jul. 2026.
 
-CAVOUKIAN, Ann. Privacy by Design: The 7 Foundational Principles. Information and Privacy Commissioner of Ontario, 2009. Disponível em: https://www.ipc.on.ca/wp-content/uploads/resources/7foundationalprinciples.pdf. Acesso em: 05 mai. 2026.
+BRASIL. Emenda Constitucional n. 115, de 10 de fevereiro de 2022. \tituloref{Altera a Constituição Federal para incluir a proteção de dados pessoais entre os direitos e garantias fundamentais e para fixar a competência privativa da União para legislar sobre proteção e tratamento de dados pessoais}. Diário Oficial da União: seção 1, Brasília, DF, ed. 30, p. 2, 11 fev. 2022. Disponível em: \url{https://www.planalto.gov.br/ccivil_03/constituicao/emendas/emc/emc115.htm}. Acesso em: 23 jul. 2026.
 
-CHESS, Brian; WEST, Jacob. Secure Programming with Static Analysis. Boston: Addison-Wesley, 2007.
+BRASIL. Lei n. 13.709, de 14 de agosto de 2018. \tituloref{Lei Geral de Proteção de Dados Pessoais (LGPD)}. Diário Oficial da União: seção 1, Brasília, DF, n. 157, p. 59, 15 ago. 2018. Disponível em: \url{https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709compilado.htm}. Acesso em: 23 jul. 2026.
 
-CHECKMARX. CxSAST source code scanning. Checkmarx, 2026. Disponível em: https://checkmarx.com/cxsast-source-code-scanning/. Acesso em: 03 jul. 2026.
+CAVOUKIAN, Ann. \tituloref{Privacy by Design in law, policy and practice: a white paper for regulators, decision-makers and policy-makers}. Toronto: Information and Privacy Commissioner of Ontario, 2011. Disponível em: \url{https://www.ipc.on.ca/en/media/1779/download?attachment=}. Acesso em: 23 jul. 2026.
 
-GITHUB. About code scanning. GitHub Docs, 2026. Disponível em: https://docs.github.com/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/about-code-scanning. Acesso em: 03 jul. 2026.
+CHECKMARX. \tituloref{SAST tool for enterprise code security}. [S. l.]: Checkmarx, [s. d.]. Disponível em: \url{https://checkmarx.com/cxsast-source-code-scanning/}. Acesso em: 23 jul. 2026.
 
-HEVNER, Alan R.; MARCH, Salvatore T.; PARK, Jinsoo; RAM, Sudha. Design science in information systems research. MIS Quarterly, v. 28, n. 1, p. 75--105, 2004.
+CHESS, Brian; WEST, Jacob. \tituloref{Secure Programming with Static Analysis}. Boston: Addison-Wesley, 2007.
 
-OWASP -- OPEN WEB APPLICATION SECURITY PROJECT. OWASP Top 10 Privacy Risks. 2021. Disponível em: https://owasp.org/www-project-top-10-privacy-risks/. Acesso em: 05 mai. 2026.
+DJANGO OSCAR. \tituloref{django-oscar}. Versão do commit 8bbd588298ae, 8 jul. 2026. GitHub. Disponível em: \href{https://github.com/django-oscar/django-oscar/tree/8bbd588298ae139edc0e8114e9b567b3973fd397}{\nolinkurl{https://github.com/django-oscar/django-oscar/tree/8bbd588298ae}}. Acesso em: 23 jul. 2026.
 
-PONEMON INSTITUTE. Cost of a Data Breach Report 2023. Traverse City: Ponemon Institute, 2023.
+GITHUB. \tituloref{Code scanning}. GitHub Docs. [S. l.]: GitHub, [s. d.]. Disponível em: \url{https://docs.github.com/en/code-security/concepts/code-scanning/code-scanning}. Acesso em: 23 jul. 2026.
 
-PRESSMAN, Roger S.; MAXIM, Bruce R. Engenharia de Software: uma abordagem profissional. 8. ed. Porto Alegre: AMGH, 2016.
+GRINBERG, Miguel. \tituloref{Flasky}. Versão do commit 3beedd640b91, 6 abr. 2025. GitHub. Disponível em: \href{https://github.com/miguelgrinberg/flasky/tree/3beedd640b9146b0bd65c8c2ecf402b01798bc33}{\nolinkurl{https://github.com/miguelgrinberg/flasky/tree/3beedd640b91}}. Acesso em: 23 jul. 2026.
 
-SEMGREP. Introduction to Semgrep. Semgrep Docs, 2026. Disponível em: https://docs.semgrep.dev/introduction. Acesso em: 03 jul. 2026.
+HEVNER, Alan R.; MARCH, Salvatore T.; PARK, Jinsoo; RAM, Sudha. \tituloref{Design science in information systems research}. MIS Quarterly, [S. l.], v. 28, n. 1, p. 75--105, 2004. DOI: 10.2307/25148625.
 
-SNYK. Snyk Code. Snyk User Docs, 2026. Disponível em: https://docs.snyk.io/scan-fix-and-prevent/scan-with-snyk/snyk-code. Acesso em: 03 jul. 2026.
+IBM. \tituloref{IBM report: half of breached organizations unwilling to increase security spend despite soaring breach costs}. Armonk, NY: IBM, 24 jul. 2023. Disponível em: \href{https://newsroom.ibm.com/2023-07-24-IBM-Report-Half-of-Breached-Organizations-Unwilling-to-Increase-Security-Spend-Despite-Soaring-Breach-Costs}{\nolinkurl{https://newsroom.ibm.com/}}. Acesso em: 23 jul. 2026.
 
-SONARSOURCE. Introduction: SonarQube Server Advanced Security. Sonar Documentation, 2026. Disponível em: https://docs.sonarsource.com/sonarqube-server/advanced-security/introduction. Acesso em: 03 jul. 2026.
+OWASP FOUNDATION. \tituloref{Cryptographic Storage Cheat Sheet}. OWASP Cheat Sheet Series. [S. l.]: OWASP Foundation, [s. d.]a. Disponível em:\linebreak \url{https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html}. Acesso em: 23 jul. 2026.
 
-SOLOVE, Daniel J. A taxonomy of privacy. University of Pennsylvania Law Review, v. 154, n. 3, p. 477-564, jan. 2006.
+OWASP FOUNDATION. \tituloref{Logging Cheat Sheet}. OWASP Cheat Sheet Series. [S. l.]: OWASP Foundation, [s. d.]b. Disponível em: \url{https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html}. Acesso em: 23 jul. 2026.
 
-SPIEKERMANN, Sarah; CRANOR, Lorrie Faith. Engineering Privacy. IEEE Transactions on Software Engineering, v. 35, n. 1, p. 67-82, jan./fev. 2009.
+OWASP FOUNDATION. \tituloref{Password Storage Cheat Sheet}. OWASP Cheat Sheet Series. [S. l.]: OWASP Foundation, [s. d.]c. Disponível em: \url{https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html}. Acesso em: 23 jul. 2026.
 
-UNIÃO EUROPEIA. Regulamento (UE) 2016/679 do Parlamento Europeu e do Conselho, de 27 de abril de 2016. Regulamento Geral sobre a Proteção de Dados (GDPR). Jornal Oficial da União Europeia, Bruxelas, 4 mai. 2016.
+OWASP FOUNDATION. \tituloref{OWASP Software Assurance Maturity Model (SAMM): version 2.0}. [S. l.]: OWASP Foundation, [s. d.]d. Disponível em: \url{https://owaspsamm.org/model/}. Acesso em: 26 jul. 2026.
 
-VERACODE. Scan code: Static Analysis. Veracode Docs, 2026. Disponível em: \url{https://docs.veracode.com/r/c_static_overview}. Acesso em: 03 jul. 2026.
+PEAK-TCC. \tituloref{back-end}. Versão do commit 7503f50c8d78, 3 jun. 2026. GitHub. Disponível em: \href{https://github.com/PEAK-TCC/back-end/tree/7503f50c8d785f1ef60a557a4cb780d004108f3a}{\nolinkurl{https://github.com/PEAK-TCC/back-end/tree/7503f50c8d78}}. Acesso em: 23 jul. 2026.
 
-WESTIN, Alan F. Privacy and Freedom. New York: Atheneum, 1967.
+PRESSMAN, Roger S.; MAXIM, Bruce R. \tituloref{Engenharia de Software: uma abordagem profissional}. 8. ed. Porto Alegre: AMGH, 2016.
+
+ROCHA, Luis. \tituloref{Chinook Database}. Versão do commit 7f67772503d7, 5 out. 2025. GitHub. Disponível em: \href{https://github.com/lerocha/chinook-database/tree/7f67772503d71ba90f19283c38e93923addb43fa}{\nolinkurl{https://github.com/lerocha/chinook-database/tree/7f67772503d7}}. Acesso em: 23 jul. 2026.
+
+SCHWABER, Ken; SUTHERLAND, Jeff. \tituloref{The Scrum Guide}. [S. l.]: autores, nov. 2020. Disponível em: \url{https://scrumguides.org/docs/scrumguide/v2020/2020-Scrum-Guide-US.pdf}. Acesso em: 26 jul. 2026.
+
+SEMGREP. \tituloref{Introduction to Semgrep}. [S. l.]: Semgrep, [s. d.]. Disponível em: \url{https://docs.semgrep.dev/introduction}. Acesso em: 23 jul. 2026.
+
+SNYK. \tituloref{Snyk Code}. [S. l.]: Snyk, [s. d.]. Disponível em: \url{https://docs.snyk.io/scan-with-snyk/snyk-code}. Acesso em: 23 jul. 2026.
+
+SOLOVE, Daniel J. \tituloref{A taxonomy of privacy}. University of Pennsylvania Law Review, [S. l.], v. 154, n. 3, p. 477--564, jan. 2006. DOI: 10.2307/40041279.
+
+SONARSOURCE. \tituloref{Advanced Security: SonarQube Server}. [S. l.]: SonarSource, [s. d.]. Disponível em: \url{https://docs.sonarsource.com/sonarqube-server/advanced-security}. Acesso em: 23 jul. 2026.
+
+SOUPPAYA, Murugiah; SCARFONE, Karen; DODSON, Donna. \tituloref{Secure Software Development Framework (SSDF) Version 1.1: recommendations for mitigating the risk of software vulnerabilities}. Gaithersburg, MD: National Institute of Standards and Technology, 2022. (NIST Special Publication 800-218). DOI: 10.6028/NIST.SP.800-218. Disponível em: \url{https://doi.org/10.6028/NIST.SP.800-218}. Acesso em: 26 jul. 2026.
+
+SPIEKERMANN, Sarah; CRANOR, Lorrie Faith. \tituloref{Engineering Privacy}. IEEE Transactions on Software Engineering, [S. l.], v. 35, n. 1, p. 67--82, jan./fev. 2009. DOI: 10.1109/TSE.2008.88. Disponível em: \url{https://doi.org/10.1109/TSE.2008.88}. Acesso em: 23 jul. 2026.
+
+SPRING PROJECTS. \tituloref{Spring PetClinic}. Versão do commit 51045d1648da, 6 jul. 2026. GitHub. Disponível em: \href{https://github.com/spring-projects/spring-petclinic/tree/51045d1648dad955df586150c1a1a6e22ef400c2}{\nolinkurl{https://github.com/spring-projects/spring-petclinic/tree/51045d1648da}}. Acesso em: 23 jul. 2026.
+
+UNIÃO EUROPEIA. Regulamento (UE) 2016/679 do Parlamento Europeu e do Conselho, de 27 de abril de 2016. \tituloref{Regulamento Geral sobre a Proteção de Dados}. Jornal Oficial da União Europeia, Luxemburgo, L 119, p. 1--88, 4 maio 2016. Disponível em: \url{https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32016R0679}. Acesso em: 23 jul. 2026.
+
+VERACODE. \tituloref{Scan code}. Veracode Docs. [S. l.]: Veracode, 8 jun. 2026. Disponível em: \url{https://docs.veracode.com/r/c_static_overview}. Acesso em: 23 jul. 2026.
+
+WESTIN, Alan F. \tituloref{Privacy and Freedom}. New York: Atheneum, 1967.
+
+WHITE, J. P. \tituloref{Northwind-SQLite3}. Versão do commit 4f56e7f5906d, 15 jan. 2025. GitHub. Disponível em: \href{https://github.com/jpwhite3/northwind-SQLite3/tree/4f56e7f5906dfd23b25244c5bfe8fb5da6402efd}{\nolinkurl{https://github.com/jpwhite3/northwind-SQLite3/tree/4f56e7f5906d}}. Acesso em: 23 jul. 2026.
+
+\endgroup
 
 \end{document}

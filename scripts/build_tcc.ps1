@@ -32,14 +32,33 @@ foreach ($term in $blockedTerms) {
         throw "O fonte canônico contém o termo obsoleto: $term"
     }
 }
-if (-not $AllowBancaPlaceholders -and $sourceText.Contains("Prof. Xxxxxxxxxxxxxxxxxxxxxxx")) {
-    throw "Preencha a banca ou use -AllowBancaPlaceholders apenas para gerar uma prova de revisão."
+if (-not $AllowBancaPlaceholders) {
+    $finalBlockers = @()
+    if ($sourceText.Contains("Prof. Xxxxxxxxxxxxxxxxxxxxxxx")) {
+        $finalBlockers += "nomes dos dois membros convidados da banca"
+    }
+    if ($sourceText.Contains("\newcommand{\dataAprovacaoTCC}{}")) {
+        $finalBlockers += "data de aprovação"
+    }
+    if (
+        $sourceText.Contains("\newcommand{\instituicaoMembroUm}{}") -or
+        $sourceText.Contains("\newcommand{\instituicaoMembroDois}{}")
+    ) {
+        $finalBlockers += "instituições dos membros convidados"
+    }
+    if (-not (Test-Path (Join-Path (Split-Path $source) "assets\ficha_catalografica.pdf"))) {
+        $finalBlockers += "ficha catalográfica oficial"
+    }
+    if ($finalBlockers.Count -gt 0) {
+        $details = $finalBlockers -join ", "
+        throw "O PDF definitivo está bloqueado por: $details. Use -AllowBancaPlaceholders apenas para gerar uma prova de revisão."
+    }
 }
 
 New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 Push-Location (Split-Path $source)
 try {
-    1..2 | ForEach-Object {
+    1..3 | ForEach-Object {
         & $xelatexPath "-interaction=nonstopmode" "-halt-on-error" "-output-directory=$OutputDir" "main.tex"
         if ($LASTEXITCODE -ne 0) {
             throw "XeLaTeX falhou na passagem $_. Consulte o log em $OutputDir."

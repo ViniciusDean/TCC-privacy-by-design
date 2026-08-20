@@ -34,6 +34,9 @@ def test_analyze_directory_combines_code_and_database(tmp_path):
     arquivos = {item["arquivo"] for item in data["achados"]}
     assert any(arquivo.endswith("app.py") for arquivo in arquivos)
     assert any(arquivo.endswith("dados.db") for arquivo in arquivos)
+    assert data["escopo"]["bancos_sqlite_analisados"] == [
+        str((tmp_path / "dados.db").resolve())
+    ]
 
 
 def test_analyze_directory_respects_privacyignore_for_code_and_database(tmp_path):
@@ -68,7 +71,7 @@ def test_health_exposes_backend_identity():
     assert response.get_json() == {
         "status": "ok",
         "service": "privacy-scanner",
-        "version": "1.2.0",
+        "version": "1.2.1",
         "api_version": 1,
     }
 
@@ -196,6 +199,45 @@ def test_export_json_is_sanitized(tmp_path):
     exported = json.loads(data["content"])
     assert exported["achados"] == exported["vulnerabilities"]
     assert exported["achados"][0]["trecho"] == exported["achados"][0]["evidencia_segura"]
+
+
+def test_export_html_identifies_sqlite_analyzed_in_directory(tmp_path):
+    (tmp_path / "app.py").write_text('cpf = "111.222.333-44"\n', encoding="utf-8")
+    database = tmp_path / "dados.db"
+    criar_banco_vulneravel(database)
+
+    response = app.test_client().post(
+        "/api/export",
+        json={"directory": str(tmp_path), "format": "html"},
+    )
+    data = response.get_json()
+
+    assert response.status_code == 200
+    assert str(database.resolve()) in data["content"]
+    assert "Banco SQLite</span><code>Nao informado" not in data["content"]
+    assert data["escopo"]["bancos_sqlite_analisados"] == [str(database.resolve())]
+
+
+def test_export_includes_explicit_sqlite_outside_workspace(tmp_path):
+    workspace = tmp_path / "codigo"
+    workspace.mkdir()
+    (workspace / "app.py").write_text('cpf = "111.222.333-44"\n', encoding="utf-8")
+    database = tmp_path / "externo.db"
+    criar_banco_vulneravel(database)
+
+    response = app.test_client().post(
+        "/api/export",
+        json={
+            "directory": str(workspace),
+            "databases": [str(database)],
+            "format": "html",
+        },
+    )
+    data = response.get_json()
+
+    assert response.status_code == 200
+    assert str(database.resolve()) in data["content"]
+    assert any(item["arquivo"].endswith("externo.db") for item in data["achados"])
 
 
 def test_analysis_applies_profile_and_exposes_audit_metadata(tmp_path):

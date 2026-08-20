@@ -54,8 +54,8 @@ function assertMenuContribution(menu: string, expected: MenuContribution): void 
     );
 }
 
-run('declara a versao 1.2.0 e ativa a view de acoes rapidas', () => {
-    assert.strictEqual(manifest.version, '1.2.0');
+run('declara a versao 1.2.1 e ativa a view de acoes rapidas', () => {
+    assert.strictEqual(manifest.version, '1.2.1');
     assert.ok(
         manifest.activationEvents?.includes('onView:privacy-scanner-actions'),
         'A extensao deve ativar quando a view de acoes rapidas for aberta.'
@@ -79,11 +79,11 @@ run('ordena Acoes rapidas antes de Achados e Resumo', () => {
     assert.deepStrictEqual(
         views.map(view => view.when),
         [
-            'privacy-scanner:showActions',
-            'privacy-scanner:showVulnerabilities',
-            'privacy-scanner:showSummary'
+            'config.privacy-scanner.enableSidebar',
+            'config.privacy-scanner.enableSidebar',
+            'config.privacy-scanner.enableSidebar'
         ],
-        'Cada view deve obedecer ao contexto atualizado por privacy-scanner.enableSidebar.'
+        'As views devem estar registradas antes da ativacao e obedecer diretamente à configuração da sidebar.'
     );
 });
 

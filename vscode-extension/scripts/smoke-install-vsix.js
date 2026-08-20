@@ -40,15 +40,29 @@ async function main() {
             .filter(entry => entry.isDirectory())
             .map(entry => path.join(extensionsDir, entry.name, 'package.json'))
             .filter(candidate => fs.existsSync(candidate))
-            .map(candidate => JSON.parse(fs.readFileSync(candidate, 'utf8')))
+            .map(candidate => ({
+                packagePath: candidate,
+                manifest: JSON.parse(fs.readFileSync(candidate, 'utf8'))
+            }))
         : [];
-    const expectedInstalled = installed.some(candidate =>
-        candidate.name === manifest.name
-        && candidate.version === manifest.version
-        && candidate.publisher === manifest.publisher
+    const expectedInstalled = installed.find(candidate =>
+        candidate.manifest.name === manifest.name
+        && candidate.manifest.version === manifest.version
+        && candidate.manifest.publisher === manifest.publisher
     );
     if (!expectedInstalled) {
         throw new Error(`O pacote instalado nao corresponde a ${manifest.publisher}.${manifest.name}@${manifest.version}.`);
+    }
+    const installedMain = path.resolve(
+        path.dirname(expectedInstalled.packagePath),
+        expectedInstalled.manifest.main
+    );
+    const installedSource = fs.readFileSync(installedMain, 'utf8');
+    if (
+        !installedSource.includes('activate: () => activate')
+        || !installedSource.includes('deactivate: () => deactivate')
+    ) {
+        throw new Error('O JavaScript empacotado nao exporta activate e deactivate para o VS Code.');
     }
     console.log(`VSIX ${vsix} instalado com sucesso em ambiente isolado.`);
 }

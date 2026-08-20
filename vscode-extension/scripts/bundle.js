@@ -9,11 +9,10 @@ const extensionRoot = path.resolve(__dirname, '..');
 
 esbuild.build({
     absWorkingDir: extensionRoot,
-    stdin: {
-        contents: "import './src/extension.ts';",
-        resolveDir: extensionRoot,
-        sourcefile: 'extension-entry.ts'
-    },
+    // Usar o módulo da extensão como entrada preserva os exports activate e
+    // deactivate exigidos pelo VS Code. Um import apenas por efeito colateral
+    // executava o arquivo, mas gerava um VSIX sem função de ativação exportada.
+    entryPoints: [path.join(extensionRoot, 'src', 'extension.ts')],
     bundle: true,
     platform: 'node',
     format: 'cjs',

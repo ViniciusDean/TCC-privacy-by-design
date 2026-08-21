@@ -12,20 +12,25 @@ O Privacy Scanner LGPD ajuda desenvolvedores a identificar riscos de privacidade
 
 Os achados são evidências técnicas para revisão preliminar. Eles não comprovam, sozinhos, conformidade ou desconformidade jurídica com a LGPD, pois a conclusão depende de finalidade, base legal, políticas internas, arquitetura e processos fora do código-fonte.
 
-## Fonte Canônica do TCC
+## Instalar a release
 
-O texto canônico é `latex_tcc/main.tex`. Os PDFs e DOCX históricos na raiz não
-devem ser entregues como versão final. Para gerar o PDF atual, com XeLaTeX
-instalado, execute:
+1. Baixe `privacy-scanner-lgpd-1.2.1.vsix` na página da
+   [release v1.2.1](https://github.com/ViniciusDean/TCC-privacy-by-design/releases/tag/v1.2.1).
+2. No VS Code, abra `Extensões`, clique no menu `...` e escolha
+   `Instalar do VSIX...`.
+3. Selecione o arquivo baixado e, ao final, execute
+   `Developer: Reload Window` ou reinicie o VS Code.
+4. Abra a Paleta de Comandos (`Ctrl+Shift+P`) e execute
+   `Privacy Scanner: Configurar dependências do backend`.
+
+Também é possível instalar pelo terminal, na pasta onde o arquivo foi baixado:
 
 ```powershell
-.\scripts\build_tcc.ps1
+code --install-extension .\privacy-scanner-lgpd-1.2.1.vsix --force
 ```
 
-O script bloqueia termos obsoletos e marcadores de banca por padrão, gera o PDF
-em `output/pdf/` e exige revisão visual posterior. O DOCX restaurado é fonte de
-consulta; ele não deve ser regenerado automaticamente, pois o conversor atual
-não preserva integralmente a estrutura.
+Pré-requisitos: VS Code 1.85 ou superior e Python 3.8 ou superior. A release já
+inclui o backend da ferramenta; não é necessário clonar este repositório.
 
 Principais recursos:
 
@@ -84,7 +89,7 @@ TCC/
 |   |-- FASE_1_ESTABILIZACAO.md
 ```
 
-## Quick Start
+## Desenvolvimento local
 
 ### 1. Instalar dependências Python
 
@@ -470,22 +475,13 @@ Implementado:
 - validação externa adjudicada em PEAK, Flasky e Chinook SQLite;
 - apresentação e roteiro de defesa em `output/presentation/`.
 
-### Entrega 1.2.0 e artefatos históricos
+### Release 1.2.1
 
-- `output/release/privacy-scanner-lgpd-1.2.0.vsix`: pacote atual, com redução
-  de falsos positivos, indicadores bruto/exibido, UX clicável e backend incluído.
-  SHA-256: `88A02458FE00E4F658BA723F4B6D40D9AF499F1B6CF59F058FE0D490C39F95C6`.
-- `output/release/privacy-scanner-lgpd-1.1.1.vsix`: pacote anterior da UX
-  clicável, preservado como histórico.
-- `output/release/privacy-scanner-lgpd-1.1.0.vsix`: release 1.1 anterior,
-  preservada como histórico.
-- `output/release/privacy-scanner-lgpd-1.0.4.vsix`: baseline histórica da
-  extensão preservada na tag `v1.0.4`.
-- `output/presentation/TCC_Privacy_by_Design_Banca.pptx`: apresentação de 10
-  slides, acompanhada de roteiro para 12–15 minutos.
-- `output/pdf/TCC_Privacy_by_Design_2026_PROVA_COM_PLACEHOLDERS.pdf`: somente
-  prova visual enquanto os dois nomes da banca não forem preenchidos.
-- `output/release/SHA256SUMS.txt`: hashes dos artefatos entregáveis.
+- `output/release/privacy-scanner-lgpd-1.2.1.vsix`: pacote instalável atual,
+  com o backend incluído.
+- SHA-256:
+  `523BBFDF65DB6FB073358DA1EC7497F6C3851C31BCF8627C6382416ACBAF57A1`.
+- `output/release/SHA256SUMS.txt`: hashes dos artefatos da release.
 
 ### Gerar extensão instalável
 
@@ -493,7 +489,7 @@ Implementado:
 cd vscode-extension
 npm install
 npm run package
-code --install-extension .\privacy-scanner-lgpd-1.2.0.vsix --force
+code --install-extension .\privacy-scanner-lgpd-1.2.1.vsix --force
 ```
 
 O VSIX inclui o backend Python e funciona sem manter o repositório do TCC

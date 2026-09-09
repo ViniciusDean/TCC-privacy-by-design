@@ -201,6 +201,7 @@ def analisar_bancos_diretorio_com_escopo(directory: str) -> tuple[list, dict]:
     raiz = os.path.realpath(os.path.abspath(directory))
     escopo = novo_escopo_varredura(raiz, "diretorio")
     resultados = []
+    bancos_analisados = []
     padroes_ignorados = carregar_padroes_ignorados(raiz)
 
     def registrar_erro_walk(erro: OSError) -> None:
@@ -244,6 +245,8 @@ def analisar_bancos_diretorio_com_escopo(directory: str) -> tuple[list, dict]:
 
             achados_arquivo, escopo_arquivo = analisar_banco_com_escopo(caminho)
             resultados.extend(achados_arquivo)
+            if escopo_arquivo.get("arquivos_analisados", 0) > 0:
+                bancos_analisados.append(caminho_real)
             for chave in (
                 "arquivos_elegiveis",
                 "arquivos_analisados",
@@ -253,6 +256,7 @@ def analisar_bancos_diretorio_com_escopo(directory: str) -> tuple[list, dict]:
                 escopo[chave] += escopo_arquivo[chave]
             escopo["erros"].extend(escopo_arquivo["erros"])
 
+    escopo["bancos_sqlite_analisados"] = bancos_analisados
     return resultados, finalizar_escopo_varredura(escopo)
 
 
@@ -261,7 +265,40 @@ def _analisar_diretorio(directory: str) -> tuple[list, dict]:
     achados_banco, escopo_banco = analisar_bancos_diretorio_com_escopo(directory)
     escopo = combinar_escopos([escopo_codigo, escopo_banco], directory)
     escopo["tipo"] = "diretorio"
+    escopo["bancos_sqlite_analisados"] = escopo_banco.get(
+        "bancos_sqlite_analisados", []
+    )
     return achados_codigo + achados_banco, escopo
+
+
+def _bancos_exportacao(data: dict) -> tuple[list[str] | None, tuple | None]:
+    valores = data.get("databases", [])
+    if valores is None:
+        return [], None
+    if not isinstance(valores, list) or any(not isinstance(item, str) for item in valores):
+        return None, (
+            400,
+            "FORMATO_INVALIDO",
+            "O campo 'databases' deve ser uma lista de caminhos SQLite.",
+        )
+
+    bancos = []
+    vistos = set()
+    for valor in valores:
+        caminho, erro = _alvo({"database": valor}, "database", "arquivo")
+        if erro:
+            return None, erro
+        if not caminho.lower().endswith(DB_EXTENSIONS):
+            return None, (
+                422,
+                "TIPO_DE_ALVO_INVALIDO",
+                "O banco deve usar extensão .db, .sqlite ou .sqlite3.",
+            )
+        chave = os.path.normcase(os.path.realpath(caminho))
+        if chave not in vistos:
+            vistos.add(chave)
+            bancos.append(os.path.realpath(caminho))
+    return bancos, None
 
 
 def _resposta_varredura(resultados, escopo: dict, profile: AnalysisProfile | None = None):
@@ -356,6 +393,9 @@ def export_report():
     directory, erro_alvo = _alvo(data, "directory", "diretorio")
     if erro_alvo:
         return _erro(*erro_alvo)
+    bancos_solicitados, erro_bancos = _bancos_exportacao(data)
+    if erro_bancos:
+        return _erro(*erro_bancos)
 
     format_type = data.get("format", "html")
     if not isinstance(format_type, str) or format_type.lower() not in {"html", "json", "pdf"}:
@@ -364,6 +404,26 @@ def export_report():
 
     try:
         resultados, escopo = _analisar_diretorio(directory)
+        bancos_analisados = list(escopo.get("bancos_sqlite_analisados", []))
+        bancos_conhecidos = {
+            os.path.normcase(os.path.realpath(caminho))
+            for caminho in bancos_analisados
+        }
+        escopos_extras = []
+        for banco in bancos_solicitados or []:
+            chave = os.path.normcase(os.path.realpath(banco))
+            if chave in bancos_conhecidos:
+                continue
+            achados_banco, escopo_banco = analisar_banco_com_escopo(banco)
+            resultados.extend(achados_banco)
+            escopos_extras.append(escopo_banco)
+            if escopo_banco.get("arquivos_analisados", 0) > 0:
+                bancos_analisados.append(os.path.realpath(banco))
+                bancos_conhecidos.add(chave)
+        if escopos_extras:
+            escopo = combinar_escopos([escopo, *escopos_extras], directory)
+            escopo["tipo"] = "misto"
+        escopo["bancos_sqlite_analisados"] = bancos_analisados
     except OSError:
         return _erro(422, "ALVO_INACESSIVEL", "O diretório não pôde ser percorrido para análise.")
     if escopo["status"] not in {"complete", "partial"}:
@@ -372,7 +432,10 @@ def export_report():
     resultados_brutos = deduplicar_achados(resultados)
     resultados = deduplicar_achados(apply_profile(resultados_brutos, profile))
 
-    reporter = Reporter(alvo_codigo=directory)
+    reporter = Reporter(
+        alvo_codigo=directory,
+        alvo_banco="; ".join(escopo.get("bancos_sqlite_analisados", [])) or None,
+    )
     reporter.resultados = resultados
     reporter.resultados_brutos = resultados_brutos
     reporter.escopo = escopo

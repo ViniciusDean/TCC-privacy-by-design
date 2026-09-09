@@ -83,6 +83,7 @@ let canonicalSummary: AnalysisSummary | undefined;
 let currentScope: ScopeMetadata | undefined;
 let currentScopeNotice: string | undefined;
 let canonicalAnalysisOrigin: CanonicalAnalysisOrigin | undefined;
+const analyzedDatabasePaths = new Set<string>();
 let sidebarEnabled: boolean = true;
 let diagnosticsEnabled: boolean = true;
 const analysisCoordinator = new AnalysisCoordinator();
@@ -707,15 +708,20 @@ async function showQuickActionsOnboarding(context: vscode.ExtensionContext): Pro
     }
 }
 
-export async function activate(context: vscode.ExtensionContext) {
+export function activate(context: vscode.ExtensionContext) {
     console.log('🔒 Privacy Scanner LGPD ativado');
     extensionContext = context;
     outputChannel = vscode.window.createOutputChannel('Privacy Scanner');
     context.subscriptions.push(outputChannel);
-    log('Extensao v1.2.0 ativada. Logs nao incluem codigo-fonte.');
+    log('Extensao v1.2.1 ativada. Logs nao incluem codigo-fonte.');
     // A chave anterior podia conter o trecho usado como identificador. Ela é
     // removida na migração para não manter código-fonte bruto no estado local.
-    await context.workspaceState.update(LEGACY_IGNORED_VULNERABILITIES_KEY, undefined);
+    // A limpeza não pode bloquear o registro da interface: alguns workspaces
+    // restaurados podem demorar para confirmar a gravação do estado.
+    void context.workspaceState.update(LEGACY_IGNORED_VULNERABILITIES_KEY, undefined).then(
+        undefined,
+        error => log(`Falha ao limpar estado legado: ${error instanceof Error ? error.name : 'erro desconhecido'}.`)
+    );
     findingState.replaceIgnored(
         context.workspaceState.get<string[]>(IGNORED_FINDINGS_KEY, [])
     );
@@ -770,24 +776,33 @@ export async function activate(context: vscode.ExtensionContext) {
         log(`Falha ao exibir apresentação da nova UX: ${error instanceof Error ? error.name : 'erro desconhecido'}.`);
     });
 
-    // Iniciar servidor Flask
-    await startFlaskServer(context);
-    if (!serverRunning) {
-        setAnalyzing(false);
-    }
-
-    // Listeners
+    // A interface deve concluir a ativação mesmo quando o Python ou outra
+    // extensão atrasar o host. O backend é inicializado em segundo plano.
     registerListeners(context);
+    void initializeBackendAfterActivation(context);
+}
 
-    const activeEditor = vscode.window.activeTextEditor;
-    if (activeEditor && (isSupportedCodeDocument(activeEditor.document) || isDatabaseUri(activeEditor.document.uri))) {
-        await analyzeFile(activeEditor.document.uri);
-    } else {
+async function initializeBackendAfterActivation(context: vscode.ExtensionContext): Promise<void> {
+    try {
+        await startFlaskServer(context);
+        if (!serverRunning) {
+            setAnalyzing(false);
+        }
+
+        const activeEditor = vscode.window.activeTextEditor;
+        if (activeEditor && (isSupportedCodeDocument(activeEditor.document) || isDatabaseUri(activeEditor.document.uri))) {
+            await analyzeFile(activeEditor.document.uri);
+        } else {
+            setAnalyzing(false);
+        }
+
+        if (!isAnalyzing) {
+            updateStatusBar('Privacy Scanner pronto', 'pass');
+        }
+    } catch (error) {
         setAnalyzing(false);
-    }
-
-    if (!isAnalyzing) {
-        updateStatusBar('Privacy Scanner pronto', 'pass');
+        updateStatusBar('Backend indisponível', 'error');
+        log(`Falha ao inicializar backend: ${error instanceof Error ? error.name : 'erro desconhecido'}.`);
     }
 }
 
@@ -930,6 +945,7 @@ function registerCommands(context: vscode.ExtensionContext) {
             currentScope = undefined;
             currentScopeNotice = undefined;
             canonicalAnalysisOrigin = undefined;
+            analyzedDatabasePaths.clear();
             diagnosticCollection.clear();
             refreshViews();
             updateStatusBar('Resultados limpos', 'pass');
@@ -1386,6 +1402,7 @@ async function analyzeDatabaseFromPicker(preselected?: readonly vscode.Uri[]) {
                     continue;
                 }
                 total += result.resumo?.total ?? result.achados.length;
+                analyzedDatabasePaths.add(path.normalize(file.fsPath));
                 responses.push(result);
             } catch (error) {
                 if (isCancellation(error) || !isCurrentSession(session)) {
@@ -1969,7 +1986,12 @@ async function exportReport(format: 'html' | 'json' | 'pdf', targetUri?: vscode.
 
         const response = await postBackend<any>(
             '/api/export',
-            { directory: workspacePath, format, profile },
+            {
+                directory: workspacePath,
+                databases: [...analyzedDatabasePaths],
+                format,
+                profile
+            },
             { timeout: analysisTimeoutMs() }
         );
 

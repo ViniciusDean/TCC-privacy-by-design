@@ -3,6 +3,8 @@
 import json
 import sqlite3
 
+import pytest
+
 from server import app
 
 
@@ -199,6 +201,45 @@ def test_export_json_is_sanitized(tmp_path):
     exported = json.loads(data["content"])
     assert exported["achados"] == exported["vulnerabilities"]
     assert exported["achados"][0]["trecho"] == exported["achados"][0]["evidencia_segura"]
+
+
+@pytest.mark.parametrize(
+    "profile, displayed_count, displayed_indicator",
+    [
+        ({"preset": "conservador"}, 0, 100),
+        ({"preset": "completo"}, 1, 90),
+        ({
+            "preset": "completo",
+            "categories": {"DADO_HARDCODED": {"severity": "BAIXO"}},
+        }, 1, 98),
+    ],
+    ids=["filtered", "unfiltered", "custom-severity"],
+)
+def test_export_preserves_raw_and_displayed_analysis_summary(
+    tmp_path, profile, displayed_count, displayed_indicator,
+):
+    (tmp_path / "fixture.py").write_text('email = "fixture"\n', encoding="utf-8")
+    client = app.test_client()
+    request = {"directory": str(tmp_path), "profile": profile}
+
+    analysis_response = client.post("/api/analyze-directory", json=request)
+    export_response = client.post("/api/export", json={**request, "format": "json"})
+
+    assert analysis_response.status_code == export_response.status_code == 200
+    analysis = analysis_response.get_json()
+    exported_response = export_response.get_json()
+    document = json.loads(exported_response["content"])
+    summary = exported_response["resumo"]
+
+    assert summary == analysis["resumo"] == document["resumo"]
+    assert exported_response["resumo_bruto"] == analysis["resumo_bruto"]
+    assert summary["total_bruto"] == 1
+    assert summary["total_exibido"] == displayed_count
+    assert summary["ocultos_por_perfil"] == 1 - displayed_count
+    assert summary["indicador_tecnico_bruto"] == 90
+    assert summary["indicador_tecnico_exibido"] == displayed_indicator
+    assert exported_response["indicador_tecnico_bruto"] == 90
+    assert exported_response["achados"] == document["achados"]
 
 
 def test_export_html_identifies_sqlite_analyzed_in_directory(tmp_path):

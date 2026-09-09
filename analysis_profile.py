@@ -66,7 +66,7 @@ def parse_profile(value: Any = None, *, source: str = "requisicao") -> AnalysisP
             f"schemaVersion deve ser {SCHEMA_VERSION}; recebido: {version!r}."
         )
     preset = value.get("preset", "conservador")
-    if preset not in PRESETS:
+    if not isinstance(preset, str) or preset not in PRESETS:
         raise ProfileValidationError(
             "preset deve ser conservador, equilibrado ou completo."
         )
@@ -92,11 +92,13 @@ def parse_profile(value: Any = None, *, source: str = "requisicao") -> AnalysisP
         severity = raw_options.get("severity")
         if not isinstance(enabled, bool):
             raise ProfileValidationError(f"enabled de {raw_name} deve ser booleano.")
-        if confidence not in CONFIANCA_ORDEM:
+        if not isinstance(confidence, str) or confidence not in CONFIANCA_ORDEM:
             raise ProfileValidationError(
                 f"minimumConfidence de {raw_name} deve ser ALTA, MEDIA ou BAIXA."
             )
-        if severity is not None and severity not in RISCOS:
+        if severity is not None and (
+            not isinstance(severity, str) or severity not in RISCOS
+        ):
             raise ProfileValidationError(
                 f"severity de {raw_name} deve ser ALTO, MEDIO ou BAIXO."
             )

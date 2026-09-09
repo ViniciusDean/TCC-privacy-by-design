@@ -7,6 +7,7 @@ from analysis_profile import (
     apply_profile,
     parse_profile,
 )
+from server import app
 
 
 def finding(category="DADO_EM_LOG", confidence="ALTA", risk="ALTO"):
@@ -62,3 +63,38 @@ def test_invalid_profile_is_rejected(value):
 def test_schema_version_requires_a_real_integer(version):
     with pytest.raises(ProfileValidationError):
         parse_profile({"schemaVersion": version})
+
+
+@pytest.mark.parametrize("field", ["preset", "minimumConfidence", "severity"])
+@pytest.mark.parametrize("value", [[], {}, True, 1, 1.5])
+def test_profile_choices_reject_non_text_values(field, value):
+    profile = (
+        {"preset": value}
+        if field == "preset"
+        else {"categories": {"DADO_EM_LOG": {field: value}}}
+    )
+    with pytest.raises(ProfileValidationError):
+        parse_profile(profile)
+
+
+def test_null_severity_preserves_default_risk():
+    profile = parse_profile({"categories": {"DADO_EM_LOG": {"severity": None}}})
+    assert "severity" not in profile.categories["DADO_EM_LOG"]
+    assert apply_profile([finding(risk="MEDIO")], profile)[0].risco == "MEDIO"
+
+
+@pytest.mark.parametrize("profile", [
+    {"preset": []},
+    {"categories": {"DADO_EM_LOG": {"minimumConfidence": []}}},
+    {"categories": {"DADO_EM_LOG": {"severity": {}}}},
+])
+def test_invalid_profile_types_return_structured_400(tmp_path, profile):
+    response = app.test_client().post(
+        "/api/analyze-directory",
+        json={"directory": str(tmp_path), "profile": profile},
+    )
+    assert response.status_code == 400
+    assert response.is_json
+    data = response.get_json()
+    assert data["success"] is False
+    assert data["error"]["codigo"] == "PERFIL_INVALIDO"

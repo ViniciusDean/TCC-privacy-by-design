@@ -463,7 +463,7 @@ def export_report():
     except (OSError, RuntimeError, ValueError):
         return _erro(500, "EXPORTACAO_INDISPONIVEL", "Não foi possível gerar o relatório solicitado.", escopo)
 
-    payload = _envelope(resultados, escopo, success=True, profile=profile)
+    payload = _envelope(resultados_brutos, escopo, success=True, profile=profile)
     payload.update({"content": content, "format": format_type, "encoding": encoding})
     return jsonify(payload)
 

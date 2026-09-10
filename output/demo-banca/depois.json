@@ -1,0 +1,111 @@
+{
+  "ferramenta": "Privacy Scanner — TCC FATEC",
+  "versao": "1.2.2",
+  "timestamp": "2026-09-09 01:13:04",
+  "status": "complete",
+  "aviso_escopo": "Os resultados representam indícios técnicos identificados por análise estática. Eles apoiam revisão de privacidade, mas não comprovam, sozinhos, conformidade ou desconformidade jurídica com a LGPD.",
+  "criterio_indicador": "Indicador operacional: 100 - (ALTO * 10 + MEDIO * 5 + BAIXO * 2). Os pesos priorizam revisão por severidade e não representam métrica jurídica, estatística ou regulatória de conformidade.",
+  "escopo": {
+    "tipo": "diretorio",
+    "alvo": "C:\\Users\\deanv\\OneDrive\\Documents\\TCC\\output\\demo-banca\\workspace",
+    "status": "complete",
+    "arquivos_elegiveis": 1,
+    "arquivos_analisados": 1,
+    "arquivos_ignorados": 0,
+    "arquivos_falhos": 0,
+    "erros": [],
+    "bancos_sqlite_analisados": []
+  },
+  "perfil_analise": {
+    "preset": "conservador",
+    "origem": "requisicao",
+    "hash": "fd73b5a9d808fae4"
+  },
+  "resumo": {
+    "total": 0,
+    "por_risco": {
+      "ALTO": 0,
+      "MEDIO": 0,
+      "BAIXO": 0
+    },
+    "por_categoria": {},
+    "indicador_tecnico": 100,
+    "score_conformidade": 100,
+    "criterio_indicador": "Indicador operacional: 100 - (ALTO * 10 + MEDIO * 5 + BAIXO * 2). Os pesos priorizam revisão por severidade e não representam métrica jurídica, estatística ou regulatória de conformidade.",
+    "aviso_escopo": "Os resultados representam indícios técnicos identificados por análise estática. Eles apoiam revisão de privacidade, mas não comprovam, sozinhos, conformidade ou desconformidade jurídica com a LGPD.",
+    "total_exibido": 0,
+    "total_bruto": 0,
+    "ocultos_por_perfil": 0,
+    "por_risco_exibido": {
+      "ALTO": 0,
+      "MEDIO": 0,
+      "BAIXO": 0
+    },
+    "por_risco_bruto": {
+      "ALTO": 0,
+      "MEDIO": 0,
+      "BAIXO": 0
+    },
+    "indicador_tecnico_exibido": 100,
+    "indicador_tecnico_bruto": 100
+  },
+  "sumario": {
+    "total": 0,
+    "por_risco": {
+      "ALTO": 0,
+      "MEDIO": 0,
+      "BAIXO": 0
+    },
+    "por_categoria": {},
+    "indicador_tecnico": 100,
+    "score_conformidade": 100,
+    "criterio_indicador": "Indicador operacional: 100 - (ALTO * 10 + MEDIO * 5 + BAIXO * 2). Os pesos priorizam revisão por severidade e não representam métrica jurídica, estatística ou regulatória de conformidade.",
+    "aviso_escopo": "Os resultados representam indícios técnicos identificados por análise estática. Eles apoiam revisão de privacidade, mas não comprovam, sozinhos, conformidade ou desconformidade jurídica com a LGPD.",
+    "total_exibido": 0,
+    "total_bruto": 0,
+    "ocultos_por_perfil": 0,
+    "por_risco_exibido": {
+      "ALTO": 0,
+      "MEDIO": 0,
+      "BAIXO": 0
+    },
+    "por_risco_bruto": {
+      "ALTO": 0,
+      "MEDIO": 0,
+      "BAIXO": 0
+    },
+    "indicador_tecnico_exibido": 100,
+    "indicador_tecnico_bruto": 100
+  },
+  "summary": {
+    "total": 0,
+    "por_risco": {
+      "ALTO": 0,
+      "MEDIO": 0,
+      "BAIXO": 0
+    },
+    "por_categoria": {},
+    "indicador_tecnico": 100,
+    "score_conformidade": 100,
+    "criterio_indicador": "Indicador operacional: 100 - (ALTO * 10 + MEDIO * 5 + BAIXO * 2). Os pesos priorizam revisão por severidade e não representam métrica jurídica, estatística ou regulatória de conformidade.",
+    "aviso_escopo": "Os resultados representam indícios técnicos identificados por análise estática. Eles apoiam revisão de privacidade, mas não comprovam, sozinhos, conformidade ou desconformidade jurídica com a LGPD.",
+    "total_exibido": 0,
+    "total_bruto": 0,
+    "ocultos_por_perfil": 0,
+    "por_risco_exibido": {
+      "ALTO": 0,
+      "MEDIO": 0,
+      "BAIXO": 0
+    },
+    "por_risco_bruto": {
+      "ALTO": 0,
+      "MEDIO": 0,
+      "BAIXO": 0
+    },
+    "indicador_tecnico_exibido": 100,
+    "indicador_tecnico_bruto": 100
+  },
+  "achados": [],
+  "vulnerabilidades": [],
+  "vulnerabilities": []
+}

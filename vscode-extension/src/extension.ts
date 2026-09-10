@@ -13,8 +13,14 @@ import { resolvePythonCommand, runProcess } from './processUtils';
 import { postWithSingleRecovery } from './httpClient';
 import {
     AnalysisCoordinator,
+    AnalysisSnapshot,
+    AnalysisTarget,
     CanonicalAnalysisOrigin,
     CoordinatedAnalysisSession,
+    discardQueuedAnalysesInTarget,
+    documentChangedSinceRequest,
+    saveDirtyAnalysisDocuments,
+    shouldAutomaticallyAnalyze,
     shouldPreserveCanonicalWorkspaceState
 } from './analysisCoordinator';
 import { FindingStateStore } from './findingState';
@@ -83,6 +89,9 @@ let canonicalSummary: AnalysisSummary | undefined;
 let currentScope: ScopeMetadata | undefined;
 let currentScopeNotice: string | undefined;
 let canonicalAnalysisOrigin: CanonicalAnalysisOrigin | undefined;
+let canonicalSnapshot: AnalysisSnapshot | undefined;
+let savePreparationCount = 0;
+const pendingAutomatic = new Map<string, vscode.Uri>();
 const analyzedDatabasePaths = new Set<string>();
 let sidebarEnabled: boolean = true;
 let diagnosticsEnabled: boolean = true;
@@ -424,12 +433,6 @@ function isSupportedCodeUri(uri: vscode.Uri): boolean {
     return filePath.endsWith('.py') || filePath.endsWith('.java');
 }
 
-function isSupportedCodeDocument(document: vscode.TextDocument): boolean {
-    return document.languageId === 'python'
-        || document.languageId === 'java'
-        || document.uri.fsPath.toLowerCase().endsWith('.java');
-}
-
 function vulnerabilityKey(vulnerability: Vulnerability): string {
     return findingState.key(vulnerability);
 }
@@ -531,7 +534,11 @@ function setAnalyzing(value: boolean, message: string = 'Analisando...'): void {
 
 type AnalysisSession = CoordinatedAnalysisSession;
 
-function beginAnalysis(message: string, preserveCanonicalState: boolean = false): AnalysisSession {
+function beginAnalysis(
+    message: string,
+    preserveCanonicalState: boolean = false,
+    target?: AnalysisTarget
+): AnalysisSession {
     // Nenhum indicador de uma varredura anterior deve sobreviver enquanto o
     // novo escopo ainda não foi validado pelo backend.
     if (!preserveCanonicalState) {
@@ -539,6 +546,11 @@ function beginAnalysis(message: string, preserveCanonicalState: boolean = false)
         currentScope = undefined;
         currentScopeNotice = undefined;
         canonicalAnalysisOrigin = undefined;
+        canonicalSnapshot = target ? new AnalysisSnapshot(target) : undefined;
+        if (target) {
+            // A varredura já inclui os salvamentos que estavam aguardando na fila.
+            discardQueuedAnalysesInTarget(pendingAutomatic, target);
+        }
     }
     const session = analysisCoordinator.begin(message);
     setAnalyzing(true, message);
@@ -611,6 +623,32 @@ function updateCanonicalState(
     currentScope = result.escopo;
     currentScopeNotice = result.aviso_escopo;
     canonicalAnalysisOrigin = origin;
+    canonicalSnapshot?.complete();
+}
+
+async function prepareSavedDocuments(roots: readonly string[], action: 'analisar' | 'exportar'): Promise<boolean> {
+    savePreparationCount += 1;
+    try {
+        const result = await saveDirtyAnalysisDocuments(
+            () => vscode.workspace.textDocuments,
+            roots,
+            async count => {
+                const label = action === 'exportar' ? 'Salvar e exportar' : 'Salvar e analisar';
+                const choice = await vscode.window.showWarningMessage(
+                    `${count} arquivo${count === 1 ? '' : 's'} Python/Java de ${roots.map(workspaceLabelForRoot).join(', ')} com alterações não salvas. A análise usa a versão salva em disco.`,
+                    { modal: true },
+                    label
+                );
+                return choice === label;
+            }
+        );
+        if (result === 'unsaved') {
+            vscode.window.showWarningMessage('A operação foi cancelada porque ainda há arquivos do escopo com alterações não salvas.');
+        }
+        return result === 'ready';
+    } finally {
+        savePreparationCount -= 1;
+    }
 }
 
 function updateFailedScopeState(result: AnalysisResponse): void {
@@ -713,7 +751,7 @@ export function activate(context: vscode.ExtensionContext) {
     extensionContext = context;
     outputChannel = vscode.window.createOutputChannel('Privacy Scanner');
     context.subscriptions.push(outputChannel);
-    log('Extensao v1.2.1 ativada. Logs nao incluem codigo-fonte.');
+    log('Extensao v1.2.2 ativada. Logs nao incluem codigo-fonte.');
     // A chave anterior podia conter o trecho usado como identificador. Ela é
     // removida na migração para não manter código-fonte bruto no estado local.
     // A limpeza não pode bloquear o registro da interface: alguns workspaces
@@ -787,16 +825,19 @@ async function initializeBackendAfterActivation(context: vscode.ExtensionContext
         await startFlaskServer(context);
         if (!serverRunning) {
             setAnalyzing(false);
+            return;
         }
-
+        // Um comando executado durante a inicialização mantém seu estado final.
+        if (analysisCoordinator.isActive || canonicalSnapshot) {
+            return;
+        }
+        setAnalyzing(false);
         const activeEditor = vscode.window.activeTextEditor;
-        if (activeEditor && (isSupportedCodeDocument(activeEditor.document) || isDatabaseUri(activeEditor.document.uri))) {
-            await analyzeFile(activeEditor.document.uri);
+        const automaticEnabled = vscode.workspace.getConfiguration('privacy-scanner')
+            .get('autoAnalyzeOnSave', true);
+        if (activeEditor && shouldAutomaticallyAnalyze(activeEditor.document, automaticEnabled)) {
+            await analyzeFile(activeEditor.document.uri, true);
         } else {
-            setAnalyzing(false);
-        }
-
-        if (!isAnalyzing) {
             updateStatusBar('Privacy Scanner pronto', 'pass');
         }
     } catch (error) {
@@ -945,6 +986,7 @@ function registerCommands(context: vscode.ExtensionContext) {
             currentScope = undefined;
             currentScopeNotice = undefined;
             canonicalAnalysisOrigin = undefined;
+            canonicalSnapshot = undefined;
             analyzedDatabasePaths.clear();
             diagnosticCollection.clear();
             refreshViews();
@@ -1082,6 +1124,16 @@ async function analyzeFile(
     if (!isCode && !isDB) {
         return;
     }
+    const automaticDocumentIsEligible = (): boolean => {
+        const document = vscode.workspace.textDocuments.find(
+            item => profileWriteKey(item.uri.fsPath) === profileWriteKey(filePath)
+        );
+        const enabled = vscode.workspace.getConfiguration('privacy-scanner').get('autoAnalyzeOnSave', true);
+        return enabled && (!document || shouldAutomaticallyAnalyze(document, enabled));
+    };
+    if (automaticFileAnalysis && !automaticDocumentIsEligible()) {
+        return;
+    }
     if (!automaticFileAnalysis && isCode) {
         const document = vscode.workspace.textDocuments.find(
             item => profileWriteKey(item.uri.fsPath) === profileWriteKey(filePath)
@@ -1100,6 +1152,9 @@ async function analyzeFile(
     if (!await ensureBackendRunning()) {
         return;
     }
+    if (automaticFileAnalysis && !automaticDocumentIsEligible()) {
+        return;
+    }
     const profile = profileForRoot(workspaceRootForUri(uri));
     if (!profile) {
         return;
@@ -1109,7 +1164,14 @@ async function analyzeFile(
         canonicalAnalysisOrigin,
         automaticFileAnalysis
     );
-    const session = beginAnalysis('Analisando arquivo...', preserveWorkspaceState);
+    const requestDocumentVersion = vscode.workspace.textDocuments.find(
+        item => profileWriteKey(item.uri.fsPath) === profileWriteKey(filePath)
+    )?.version;
+    const session = beginAnalysis('Analisando arquivo...', preserveWorkspaceState, {
+        origin: 'single',
+        paths: [filePath],
+        label: `${isDB ? 'SQLite' : 'Arquivo'}: ${path.basename(filePath)}`
+    });
     try {
         const endpoint = isCode ? '/api/analyze-file' : '/api/analyze-database';
         const payload = isCode ? { filepath: filePath, profile } : { database: filePath, profile };
@@ -1123,8 +1185,21 @@ async function analyzeFile(
             return;
         }
 
+        const currentDocument = vscode.workspace.textDocuments.find(
+            item => profileWriteKey(item.uri.fsPath) === profileWriteKey(filePath)
+        );
+        if (automaticFileAnalysis && documentChangedSinceRequest(requestDocumentVersion, currentDocument)) {
+            canonicalSnapshot?.markChanged(filePath);
+            log('Resposta automática descartada: documento alterado durante a análise.');
+            updateStatusBar('Arquivo alterado; análise pendente', 'alert');
+            return;
+        }
+
         const result = normalizeAnalysisResponse(response.data);
         if (!result.success) {
+            if (preserveWorkspaceState) {
+                canonicalSnapshot?.markChanged(filePath);
+            }
             allVulnerabilities.delete(filePath);
             if (isCode) {
                 diagnosticCollection.delete(uri);
@@ -1135,6 +1210,11 @@ async function analyzeFile(
             showStructuredAnalysisFailure(result, 'A análise do arquivo não foi concluída.');
             updateStatusBar('Análise não concluída', 'error');
             return;
+        }
+
+        if (preserveWorkspaceState
+            && JSON.stringify(allVulnerabilities.get(filePath) ?? []) !== JSON.stringify(result.achados)) {
+            canonicalSnapshot?.markChanged(filePath);
         }
 
         // Atualizar diagnósticos para código; banco não tem linha útil no editor.
@@ -1164,6 +1244,9 @@ async function analyzeFile(
     } catch (error) {
         if (!isCurrentSession(session) || isCancellation(error)) {
             return;
+        }
+        if (preserveWorkspaceState) {
+            canonicalSnapshot?.markChanged(filePath);
         }
         const backendFailure = responseFromAxiosError(error);
         if (backendFailure) {
@@ -1376,7 +1459,11 @@ async function analyzeDatabaseFromPicker(preselected?: readonly vscode.Uri[]) {
         return;
     }
 
-    const session = beginAnalysis('Analisando banco SQLite...');
+    const session = beginAnalysis('Analisando banco SQLite...', false, {
+        origin: 'single',
+        paths: files.map(file => file.fsPath),
+        label: `SQLite: ${files.map(file => path.basename(file.fsPath)).join(', ')}`
+    });
     let total = 0;
     let failures = 0;
     let backendFailures = 0;
@@ -1505,9 +1592,18 @@ async function analyzeWorkspace(targetRoot?: string): Promise<void> {
         vscode.window.showWarningMessage('A pasta selecionada não pertence ao workspace atual.');
         return;
     }
+    if (!await prepareSavedDocuments(folders.map(folder => folder.uri.fsPath), 'analisar')) {
+        return;
+    }
     const scopedFolder = targetRoot && folders.length === 1 ? folders[0] : undefined;
     const session = beginAnalysis(
-        scopedFolder ? `Analisando ${scopedFolder.name}...` : 'Analisando projeto...'
+        scopedFolder ? `Analisando ${scopedFolder.name}...` : 'Analisando projeto...',
+        false,
+        {
+            origin: 'workspace',
+            paths: folders.map(folder => folder.uri.fsPath),
+            label: `Projeto${folders.length > 1 ? 's' : ''}: ${folders.map(folder => folder.name).join(', ')}`
+        }
     );
     try {
 
@@ -1631,7 +1727,6 @@ function registerListeners(context: vscode.ExtensionContext) {
         .getConfiguration('privacy-scanner')
         .get('autoAnalyzeOnSave', true);
 
-    const pendingAutomatic = new Map<string, vscode.Uri>();
     let automaticTimer: NodeJS.Timeout | undefined;
     const scheduleAutomaticDrain = (): void => {
         if (automaticTimer) {
@@ -1645,7 +1740,7 @@ function registerListeners(context: vscode.ExtensionContext) {
                 pendingAutomatic.clear();
                 return;
             }
-            if (isAnalyzing) {
+            if (isAnalyzing || savePreparationCount > 0) {
                 log('Analise automatica mantida na fila enquanto outra analise esta em andamento.');
                 scheduleAutomaticDrain();
                 return;
@@ -1663,9 +1758,7 @@ function registerListeners(context: vscode.ExtensionContext) {
     };
     const analyzeDocumentIfEnabled = async (document: vscode.TextDocument): Promise<void> => {
         if (
-            autoAnalyzeEnabled()
-            && !document.isUntitled
-            && (isSupportedCodeDocument(document) || isDatabaseUri(document.uri))
+            shouldAutomaticallyAnalyze(document, autoAnalyzeEnabled())
         ) {
             pendingAutomatic.set(profileWriteKey(document.uri.fsPath), document.uri);
             scheduleAutomaticDrain();
@@ -1676,6 +1769,13 @@ function registerListeners(context: vscode.ExtensionContext) {
         { dispose: () => automaticTimer && clearTimeout(automaticTimer) },
         vscode.workspace.onDidSaveTextDocument(analyzeDocumentIfEnabled),
         vscode.workspace.onDidOpenTextDocument(analyzeDocumentIfEnabled),
+        vscode.workspace.onDidChangeTextDocument(event => {
+            if (event.contentChanges.length > 0 && event.document.uri.scheme === 'file'
+                && isSupportedCodeUri(event.document.uri)
+                && canonicalSnapshot?.markChanged(event.document.uri.fsPath)) {
+                refreshViews();
+            }
+        }),
         vscode.window.onDidChangeActiveTextEditor(async (editor) => {
             refreshViews();
             if (editor) {
@@ -1872,7 +1972,7 @@ async function exportReportFromPicker() {
             {
                 label: 'HTML',
                 description: 'Disponivel agora',
-                detail: 'Gera um relatorio visual em HTML na raiz do workspace',
+                detail: 'Nova análise do projeto para gerar um relatório visual em HTML',
                 format: 'html' as const
             },
             {
@@ -1889,7 +1989,7 @@ async function exportReportFromPicker() {
             }
         ],
         {
-            title: 'Exportar relatorio LGPD',
+            title: 'Exportar relatório do projeto (nova análise)',
             placeHolder: 'Selecione o formato do relatorio'
         }
     );
@@ -1898,42 +1998,36 @@ async function exportReportFromPicker() {
         return;
     }
 
-    const saveUri = await vscode.window.showSaveDialog({
-        title: `Salvar relatorio ${choice.label}`,
-        defaultUri: getDefaultReportUri(choice.format),
-        filters: choice.format === 'html'
-            ? { 'Relatorio HTML': ['html', 'htm'] }
-            : choice.format === 'pdf'
-                ? { 'Relatorio PDF': ['pdf'] }
-                : { 'Relatorio JSON': ['json'] },
-        saveLabel: 'Exportar'
-    });
-
-    if (!saveUri) {
-        return;
-    }
-
-    await exportReport(choice.format, saveUri);
+    await exportReportWithSaveDialog(choice.format);
 }
 
-function getDefaultReportUri(format: 'html' | 'json' | 'pdf'): vscode.Uri | undefined {
-    if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
-        return undefined;
-    }
-
-    const workspacePath = vscode.workspace.workspaceFolders[0].uri.fsPath;
+function getDefaultReportUri(format: 'html' | 'json' | 'pdf', workspacePath: string): vscode.Uri {
     const timestamp = new Date().toISOString().split('T')[0];
     return vscode.Uri.file(path.join(workspacePath, `privacy-scan-${timestamp}.${format}`));
 }
 
-async function exportReportWithSaveDialog(format: 'html' | 'json') {
+async function exportReportWithSaveDialog(format: 'html' | 'json' | 'pdf') {
+    const folders = vscode.workspace.workspaceFolders ?? [];
+    if (folders.length === 0) {
+        vscode.window.showWarningMessage('Nenhuma pasta de trabalho aberta');
+        return;
+    }
+    const selectedFolder = folders.length === 1 ? folders[0] : (await vscode.window.showQuickPick(
+        folders.map(folder => ({ label: folder.name, description: folder.uri.fsPath, folder })),
+        { title: 'Selecionar projeto para nova análise e exportação' }
+    ))?.folder;
+    if (!selectedFolder) {
+        return;
+    }
     const filters: { [name: string]: string[] } = format === 'html'
         ? { 'Relatorio HTML': ['html', 'htm'] }
-        : { 'Relatorio JSON': ['json'] };
+        : format === 'pdf'
+            ? { 'Relatorio PDF': ['pdf'] }
+            : { 'Relatorio JSON': ['json'] };
 
     const saveUri = await vscode.window.showSaveDialog({
-        title: `Salvar relatorio ${format.toUpperCase()}`,
-        defaultUri: getDefaultReportUri(format),
+        title: `Salvar relatório ${format.toUpperCase()} de ${selectedFolder.name} (nova análise)`,
+        defaultUri: getDefaultReportUri(format, selectedFolder.uri.fsPath),
         filters,
         saveLabel: 'Exportar'
     });
@@ -1942,46 +2036,22 @@ async function exportReportWithSaveDialog(format: 'html' | 'json') {
         return;
     }
 
-    await exportReport(format, saveUri);
+    await exportReport(format, saveUri, selectedFolder.uri.fsPath);
 }
 
-async function exportReport(format: 'html' | 'json' | 'pdf', targetUri?: vscode.Uri) {
+async function exportReport(format: 'html' | 'json' | 'pdf', targetUri: vscode.Uri, workspacePath: string) {
     try {
         if (!await ensureBackendRunning()) {
             return;
         }
-        if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
-            vscode.window.showWarningMessage('Nenhuma pasta de trabalho aberta');
-            return;
-        }
-
-        let selectedFolder = vscode.workspace.workspaceFolders[0];
-        if (vscode.workspace.workspaceFolders.length > 1) {
-            const selected = await vscode.window.showQuickPick(
-                vscode.workspace.workspaceFolders.map(folder => ({
-                    label: folder.name,
-                    description: folder.uri.fsPath,
-                    folder
-                })),
-                { title: 'Selecionar pasta para exportar' }
-            );
-            if (!selected) {
-                return;
-            }
-            selectedFolder = selected.folder;
-        }
-        const workspacePath = selectedFolder.uri.fsPath;
         const profile = profileForRoot(workspacePath);
         if (!profile) {
             return;
         }
-        const filepath = targetUri?.fsPath || getDefaultReportUri(format)?.fsPath;
-
-        if (!filepath) {
-            vscode.window.showWarningMessage('Destino do relatorio nao informado');
+        if (!await prepareSavedDocuments([workspacePath], 'exportar')) {
             return;
         }
-
+        const filepath = targetUri.fsPath;
         const filename = path.basename(filepath);
 
         const response = await postBackend<any>(
@@ -2093,6 +2163,7 @@ class VulnerabilityTreeItem extends vscode.TreeItem {
             }
         } else if (type === 'summary') {
             this.iconPath = new vscode.ThemeIcon(data.icon);
+            this.tooltip = data.tooltip || label;
         } else if (type === 'loading') {
             this.iconPath = new vscode.ThemeIcon('loading~spin');
         }
@@ -2267,6 +2338,44 @@ class SummaryProvider implements vscode.TreeDataProvider<VulnerabilityTreeItem> 
                 { icon: 'eye' }
             )
         ];
+
+        if (canonicalSnapshot) {
+            const { target, completedAt, stale } = canonicalSnapshot;
+            const contextItems = [new VulnerabilityTreeItem(
+                `Resumo — ${target.label}`,
+                vscode.TreeItemCollapsibleState.None,
+                'summary',
+                { icon: 'target', tooltip: target.paths.join('\n') }
+            )];
+            if (completedAt !== undefined) {
+                contextItems.push(new VulnerabilityTreeItem(
+                    `Analisado em: ${new Date(completedAt).toLocaleString('pt-BR')}`,
+                    vscode.TreeItemCollapsibleState.None,
+                    'summary',
+                    { icon: 'history' }
+                ));
+            }
+            if (stale) {
+                contextItems.push(new VulnerabilityTreeItem(
+                    target.origin === 'workspace'
+                        ? 'Resumo desatualizado: reanalise o projeto'
+                        : 'Resultado desatualizado: reanalise o arquivo',
+                    vscode.TreeItemCollapsibleState.None,
+                    'summary',
+                    {
+                        icon: 'warning',
+                        tooltip: 'Os resultados se referem à versão salva em disco na última análise. Edições ou análises automáticas de arquivos não atualizam o resumo do projeto.'
+                    }
+                ));
+                contextItems.push(new VulnerabilityTreeItem(
+                    'Resultados referentes à versão salva na última análise',
+                    vscode.TreeItemCollapsibleState.None,
+                    'summary',
+                    { icon: 'info' }
+                ));
+            }
+            items.unshift(...contextItems);
+        }
 
         if (summary?.criterio_indicador) {
             items.push(new VulnerabilityTreeItem(

@@ -48,8 +48,12 @@ RECOMENDACOES = {
         "para a finalidade declarada (princípio da minimização — Art. 6º, III)."
     ),
     "AUSENCIA_EXCLUSAO": (
-        "Implemente método de exclusão ou anonimização na classe. "
-        "O titular tem direito à eliminação dos dados (Art. 18, IV LGPD)."
+        "Verifique como o sistema atende pedidos de anonimização, bloqueio ou "
+        "eliminação de dados desnecessários, excessivos ou tratados em desconformidade "
+        "(Art. 18, IV). Para dados tratados com consentimento, revise os pedidos de "
+        "eliminação conforme o Art. 18, VI, e as hipóteses de conservação do Art. 16. "
+        "O controle pode existir em outra camada; um método na classe, isoladamente, "
+        "não comprova o atendimento."
     ),
     "CAMPO_SEM_HASH": (
         "Verifique se o dado é realmente armazenado em texto puro. Quando "
@@ -58,9 +62,11 @@ RECOMENDACOES = {
         "use nomenclatura que evidencie o controle."
     ),
     "AUSENCIA_SOFT_DELETE": (
-        "Verifique onde o sistema atende pedidos de eliminação ou anonimização. "
-        "Se o controle depender do banco, adicione coluna 'deleted_at TIMESTAMP', "
-        "'is_deleted BOOLEAN' ou mecanismo equivalente."
+        "Revise o fluxo de atendimento aos pedidos previstos no Art. 18, IV e VI, "
+        "considerando a hipótese aplicável e a conservação autorizada pelo Art. 16. "
+        "Uma coluna 'deleted_at' ou 'is_deleted' apenas marca exclusão lógica; "
+        "por si só, não elimina os dados. Verifique a execução efetiva da medida "
+        "solicitada e os controles existentes nas demais camadas."
     ),
     "AUSENCIA_RETENCAO": (
         "Documente a política de retenção e verifique se há rotina externa de "
@@ -87,7 +93,7 @@ RECOMENDACOES = {
 }
 
 ORDEM_RISCO = {"ALTO": 0, "MEDIO": 1, "BAIXO": 2}
-VERSAO_FERRAMENTA = "1.2.1"
+VERSAO_FERRAMENTA = "1.2.2"
 
 AVISO_ESCOPO_ANALISE = (
     "Os resultados representam indícios técnicos identificados por análise "
@@ -142,9 +148,9 @@ REFERENCIAS_POTENCIAIS = {
     "DADO_EM_LOG": "Art. 46 — Segurança | Art. 6º, III — Necessidade",
     "TRANSFERENCIA_SEM_BASE_LEGAL": "Art. 7º — Hipóteses de tratamento | Art. 33 — Transferência internacional",
     "COLETA_EXCESSIVA": "Art. 6º, I e III — Finalidade e necessidade",
-    "AUSENCIA_EXCLUSAO": "Art. 18, IV — Direito à eliminação dos dados",
+    "AUSENCIA_EXCLUSAO": "Art. 18, IV e VI — Direitos conforme hipótese aplicável | Art. 16 — Conservação",
     "CAMPO_SEM_HASH": "Art. 46 — Segurança e prevenção",
-    "AUSENCIA_SOFT_DELETE": "Art. 18, IV — Direito à eliminação dos dados",
+    "AUSENCIA_SOFT_DELETE": "Art. 18, IV e VI — Direitos conforme hipótese aplicável | Art. 16 — Conservação",
     "AUSENCIA_RETENCAO": "Art. 15 — Término do tratamento | Art. 6º, I — Finalidade",
     "MISTURA_DADOS": "Art. 46 — Segurança | Privacy by Design — Separação",
     "AUSENCIA_CONSENTIMENTO": "Art. 7º — Bases legais para tratamento de dados pessoais",

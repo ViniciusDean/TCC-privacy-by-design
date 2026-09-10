@@ -1,0 +1,4 @@
+# Preserve bytes in generated documents, screenshots and extension packages.
+*.pdf binary
+*.png binary
+*.vsix binary

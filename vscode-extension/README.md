@@ -1,5 +1,19 @@
 # Privacy Scanner LGPD - Extensão VS Code
 
+## Ajustes da versão 1.2.2
+
+- O resumo identifica o alvo e o horário da análise e avisa quando ficou
+  desatualizado após uma edição ou mudança nos achados de um arquivo.
+- Análises automáticas aguardam o salvamento; respostas de uma versão anterior
+  do documento são descartadas quando ele muda durante a requisição.
+- Analisar o projeto ou exportar oferece salvar os arquivos Python/Java
+  modificados do escopo escolhido ou cancelar. Arquivos de outras pastas
+  permanecem como estão.
+- A exportação identifica que realiza uma nova análise e preserva os totais
+  brutos, os filtros e as severidades originais para auditoria.
+- Perfis inválidos retornam mensagem estruturada. As recomendações de
+  eliminação distinguem as hipóteses legais e os limites da exclusão lógica.
+
 Extensão do VS Code para executar o Privacy Scanner LGPD durante o desenvolvimento.
 
 A extensão conversa com o servidor Flask do projeto e exibe os resultados dentro do VS Code, sem executar o código analisado.
@@ -358,12 +372,12 @@ O comando:
 
 1. copia o backend Python necessário para dentro do pacote;
 2. compila o TypeScript;
-3. gera `privacy-scanner-lgpd-1.2.1.vsix`.
+3. gera `privacy-scanner-lgpd-1.2.2.vsix`.
 
 Para instalar pelo terminal:
 
 ```powershell
-code --install-extension .\privacy-scanner-lgpd-1.2.1.vsix --force
+code --install-extension .\privacy-scanner-lgpd-1.2.2.vsix --force
 ```
 
 Também é possível abrir a área de extensões do VS Code, clicar em `...`,

@@ -81,4 +81,30 @@ export async function run(): Promise<void> {
         vscode.languages.getDiagnostics(sampleUri).length > 0,
         'O comando legado analyzeNow deve continuar analisando o workspace.'
     );
+
+    const sampleDocument = await vscode.workspace.openTextDocument(sampleUri);
+    await vscode.window.showTextDocument(sampleDocument);
+    const edit = new vscode.WorkspaceEdit();
+    edit.replace(sampleUri, new vscode.Range(
+        sampleDocument.positionAt(0), sampleDocument.positionAt(sampleDocument.getText().length)
+    ), 'print("Operacao concluida")\n');
+    await vscode.workspace.applyEdit(edit);
+    assert.strictEqual(sampleDocument.isDirty, true);
+    await vscode.window.showTextDocument(notesDocument);
+    await vscode.window.showTextDocument(sampleDocument);
+    // O debounce automático é 500 ms; a troca de editor não pode analisar o buffer sujo.
+    await new Promise(resolve => setTimeout(resolve, 1200));
+    assert.ok(vscode.languages.getDiagnostics(sampleUri).length > 0,
+        'Editar sem salvar deve manter somente os diagnósticos da versão salva.');
+    assert.strictEqual(sampleDocument.isDirty, true, 'A análise automática não pode salvar o arquivo.');
+    assert.strictEqual(await sampleDocument.save(), true);
+    const deadline = Date.now() + 10000;
+    while (vscode.languages.getDiagnostics(sampleUri).length > 0 && Date.now() < deadline) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    assert.strictEqual(vscode.languages.getDiagnostics(sampleUri).length, 0,
+        'Salvar a correção deve disparar nova análise e retirar os diagnósticos antigos.');
+    await vscode.commands.executeCommand('privacy-scanner.analyzeAll');
+    assert.strictEqual(vscode.languages.getDiagnostics(sampleUri).length, 0);
+    console.log('Fluxo real validado: analisar, editar sem salvar, salvar e reanalisar.');
 }

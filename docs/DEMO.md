@@ -2,6 +2,54 @@
 
 Este roteiro serve para apresentar a ferramenta de forma simples e reproduzível.
 
+## Demonstração curta para a banca (1.2.2)
+
+Gerar novamente o exemplo e seus relatórios, sem modificar o benchmark:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\demo_banca.py
+```
+
+O script copia a fixture `py_hardcoded_log.py` para um workspace exclusivo em
+`output/demo-banca/workspace`, analisa a versão inicial, grava uma correção
+mínima e repete a análise. Ele usa os endpoints reais via cliente de teste
+Flask e verifica a igualdade entre o resumo de análise e os relatórios.
+
+| Etapa | Código do exemplo | Resultado esperado |
+|---|---|---|
+| Antes | Identificador pessoal fictício fixo e enviado a `print` | 2 achados altos; indicador 80 |
+| Depois | Apenas mensagem técnica estática, sem o identificador | 0 achados; indicador 100 |
+
+Os arquivos `antes.py` e `depois.py` ficam fora do workspace analisado. O
+workspace termina com a versão corrigida. Para demonstrar no VS Code:
+
+1. Abra somente `output/demo-banca/workspace` e copie o conteúdo de `antes.py`
+   para `app.py`; salve e analise o projeto.
+2. Mostre o alvo, o horário e os dois achados do resumo. Explique por que o
+   identificador e seu registro em log são desnecessários neste exemplo mínimo.
+3. Troque pelo conteúdo de `depois.py`, sem salvar. Mostre o aviso de resumo
+   desatualizado. A análise automática aguarda o salvamento.
+4. Solicite a análise do projeto e escolha salvar e continuar. Confirme que
+   os diagnósticos desaparecem e o resumo corresponde à nova análise.
+5. Exporte o relatório e mostre seu escopo e a ausência de achados. Se mudar
+   o arquivo novamente antes de exportar, a ferramenta oferece salvar ou cancelar.
+
+Relatórios verificados: [antes](../output/demo-banca/antes.html) e
+[depois](../output/demo-banca/depois.html), também disponíveis em JSON e PDF.
+O arquivo [verificacao.json](../output/demo-banca/verificacao.json) registra
+versão, perfil, hashes do código e resumos. As capturas reais do navegador
+estão em `output/playwright/relatorio-banca-antes.png` e
+`output/playwright/relatorio-banca-depois.png`.
+
+O indicador 100 significa ausência de achados neste escopo e perfil. A
+demonstração sintética não comprova conformidade jurídica nem eficácia geral.
+Ela não altera resultados históricos nem substitui a revisão independente.
+
+As recomendações de eliminação consideram as hipóteses dos arts. 18, IV e VI,
+e 16 da [LGPD](https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709compilado.htm).
+Uma coluna de exclusão lógica ou um método isolado não comprova o atendimento
+dos pedidos dos titulares.
+
 ## Objetivo da Demo
 
 Mostrar que a ferramenta consegue:

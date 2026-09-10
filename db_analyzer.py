@@ -262,7 +262,7 @@ class DBAnalyzer:
                 f"(ex: deleted_at, is_deleted, anonimizado). Verifique se o "
                 f"atendimento ao direito de eliminação existe em outra camada.",
                 "MEDIO",
-                "Art. 18, IV — Direito à eliminação dos dados",
+                "Art. 18, IV e VI — Direitos conforme hipótese aplicável | Art. 16 — Conservação",
                 f"Tabela: {tabela}",
                 "MEDIA",
             )

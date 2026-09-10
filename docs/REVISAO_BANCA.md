@@ -1,6 +1,6 @@
 # Revisão para a banca — progresso por partes
 
-Atualizado em 9 de setembro de 2026.
+Atualizado em 10 de setembro de 2026.
 
 Prioridade definida: apresentação à banca, usando as evidências existentes.
 Preservar arquitetura, linguagens, categorias, heurísticas e corpus. Concluir
@@ -27,23 +27,50 @@ Validação executada nesta parte:
 - `npm.cmd test`: versão, compilação TypeScript, lint e suítes aprovados.
 - `git diff --check`: sem erros de whitespace.
 
-O código tem a base 1.2.1 com ajustes locais. O VSIX histórico da release
-permanece histórico; um pacote com as novas correções será gerado e validado
-na parte 2. Esta parte não incluiu teste visual da interface, Extension Host,
-instalação de novo pacote ou publicação remota.
+Esta etapa consolidou a base 1.2.1 com ajustes locais, sem substituir o VSIX
+histórico. Os testes no Extension Host e o pacote atualizado foram concluídos
+na parte 2.
 
-## Parte 2 — Interface e demonstração: pendente
+## Parte 2 — Interface e demonstração: concluída
 
-- Mostrar alvo e horário do resumo e marcar quando ficar desatualizado após
-  alterações nos diagnósticos de um arquivo.
-- Antes de analisar o projeto/exportar, oferecer salvar arquivos suportados
-  modificados ou cancelar; a análise automática deve aguardar o salvamento.
-- Refinar recomendações de eliminação conforme art. 18, IV e VI, e art. 16;
-  não apresentar método de exclusão ou coluna `deleted_at` como suficiente.
-- Conferir o fluxo analisar → corrigir → salvar → reanalisar → exportar,
-  usando fixtures existentes, e obter captura real para o texto.
-- Executar testes pertinentes, Extension Host, empacotamento e instalação
-  isolada do novo VSIX. Não sobrescrever o artefato da release histórica.
+- Resumo com alvo, horário e aviso de desatualização. Alterações durante a
+  requisição permanecem sinalizadas; abrir novamente um arquivo sem mudança
+  nos achados não invalida o resumo do projeto.
+- Salvamento limitado aos arquivos Python/Java modificados nas raízes
+  selecionadas, com cancelamento e interrupção quando o salvamento falha.
+- Análise automática respeita a preferência desde a ativação, aguarda o
+  salvamento e descarta respostas de versões anteriores do documento.
+- A fila automática anterior é descartada somente no escopo já coberto pela
+  nova varredura; novos salvamentos durante a requisição são preservados.
+- Exportação escolhe o projeto antes do destino e informa que faz nova análise.
+- Recomendações de eliminação revisadas conforme art. 18, IV e VI, e art. 16;
+  método isolado ou coluna de exclusão lógica não são apresentados como suficientes.
+- Versão local sincronizada em **1.2.2**, distinguindo o pacote atualizado
+  da release histórica 1.2.1. Não houve publicação remota.
+
+Validação:
+
+- Suíte Python: **208 testes aprovados** na preparação desta parte.
+- TypeScript, lint e suítes aprovados; novas regressões para multirraiz,
+  arquivos modificados, respostas antigas, fila e salvamento/cancelamento.
+- Extension Host **VS Code 1.134.0**: análise real, conflito de porta,
+  edição sem salvar, salvamento e reanálise passaram. Diagnósticos antigos
+  desapareceram somente após salvar a correção. Os diálogos de confirmação
+  são cobertos pelo helper testado; não foi realizada sessão manual desses diálogos.
+- VSIX gerado e instalado em ambiente isolado, com versão e exports verificados.
+- Demonstração via API real: **2 achados antes, 0 depois**, com resumos iguais
+  na análise e nas exportações HTML/JSON/PDF. Filtro e ordenação HTML conferidos
+  no navegador; capturas e páginas dos PDFs inspecionadas visualmente.
+
+Artefatos:
+
+- `output/release/banca/privacy-scanner-lgpd-1.2.2.vsix` e `SHA256SUMS.txt`.
+- `output/demo-banca/`: código sintético, relatórios antes/depois e recibo com hashes.
+- `output/playwright/relatorio-banca-antes.png` e `relatorio-banca-depois.png`.
+- `scripts/demo_banca.py` reproduz a demonstração; `docs/DEMO.md` traz o roteiro.
+
+A instalação do teste usa perfil isolado; a extensão no perfil pessoal do
+VS Code não foi substituída automaticamente.
 
 ## Parte 3 — Texto e PDF: pendente
 

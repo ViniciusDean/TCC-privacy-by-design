@@ -708,7 +708,7 @@ def analisar_java(caminho: str):
                 f"({', '.join(campos[:3])}) mas não define método de exclusão "
                 "ou anonimização.",
                 "MEDIO",
-                "Art. 18, IV — Direito à eliminação dos dados",
+                "Art. 18, IV e VI — Direitos conforme hipótese aplicável | Art. 16 — Conservação",
                 confianca_classe,
             )
 

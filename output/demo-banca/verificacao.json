@@ -1,0 +1,90 @@
+{
+  "gerado_em": "2026-09-09T04:13:04.812305+00:00",
+  "versao": "1.2.2",
+  "fixture_original": "evaluation/benchmark/cases/python/py_hardcoded_log.py",
+  "perfil": {
+    "preset": "conservador"
+  },
+  "metodo": "API Flask real via test_client; relatórios renderizados pelo Reporter",
+  "limite": "Demonstração sintética; não é avaliação externa nem prova de conformidade.",
+  "sha256_backend": {
+    "server.py": "85c445597e98ec582fdbc46d48fc333d63dc29779a48cdc433f5cabccf210c95",
+    "reporter.py": "ebc253e12ce4da81921ec60e55ad4ccae55072ffc676de006685599c2be8365e",
+    "analysis_profile.py": "f60f42306b93546ba4419c9a6f8655c01d3ca203d88c065207756301bf991a73",
+    "code_analyzer.py": "010658cefc3230dbc8075b59dda29d2c87b2fb3221fbec7fd1b962a3abd4000e"
+  },
+  "etapas": [
+    {
+      "etapa": "antes",
+      "resumo": {
+        "aviso_escopo": "Os resultados representam indícios técnicos identificados por análise estática. Eles apoiam revisão de privacidade, mas não comprovam, sozinhos, conformidade ou desconformidade jurídica com a LGPD.",
+        "criterio_indicador": "Indicador operacional: 100 - (ALTO * 10 + MEDIO * 5 + BAIXO * 2). Os pesos priorizam revisão por severidade e não representam métrica jurídica, estatística ou regulatória de conformidade.",
+        "indicador_tecnico": 80,
+        "indicador_tecnico_bruto": 80,
+        "indicador_tecnico_exibido": 80,
+        "ocultos_por_perfil": 0,
+        "por_categoria": {
+          "DADO_EM_LOG": 1,
+          "DADO_HARDCODED": 1
+        },
+        "por_risco": {
+          "ALTO": 2,
+          "BAIXO": 0,
+          "MEDIO": 0
+        },
+        "por_risco_bruto": {
+          "ALTO": 2,
+          "BAIXO": 0,
+          "MEDIO": 0
+        },
+        "por_risco_exibido": {
+          "ALTO": 2,
+          "BAIXO": 0,
+          "MEDIO": 0
+        },
+        "score_conformidade": 80,
+        "total": 2,
+        "total_bruto": 2,
+        "total_exibido": 2
+      },
+      "categorias": [
+        "DADO_EM_LOG",
+        "DADO_HARDCODED"
+      ],
+      "sha256_codigo": "64f31bb66d2556a8ea07a70752fef15a9fcad0383b63c00f4f3bf8a6a1a93e82"
+    },
+    {
+      "etapa": "depois",
+      "resumo": {
+        "aviso_escopo": "Os resultados representam indícios técnicos identificados por análise estática. Eles apoiam revisão de privacidade, mas não comprovam, sozinhos, conformidade ou desconformidade jurídica com a LGPD.",
+        "criterio_indicador": "Indicador operacional: 100 - (ALTO * 10 + MEDIO * 5 + BAIXO * 2). Os pesos priorizam revisão por severidade e não representam métrica jurídica, estatística ou regulatória de conformidade.",
+        "indicador_tecnico": 100,
+        "indicador_tecnico_bruto": 100,
+        "indicador_tecnico_exibido": 100,
+        "ocultos_por_perfil": 0,
+        "por_categoria": {},
+        "por_risco": {
+          "ALTO": 0,
+          "BAIXO": 0,
+          "MEDIO": 0
+        },
+        "por_risco_bruto": {
+          "ALTO": 0,
+          "BAIXO": 0,
+          "MEDIO": 0
+        },
+        "por_risco_exibido": {
+          "ALTO": 0,
+          "BAIXO": 0,
+          "MEDIO": 0
+        },
+        "score_conformidade": 100,
+        "total": 0,
+        "total_bruto": 0,
+        "total_exibido": 0
+      },
+      "categorias": [],
+      "sha256_codigo": "7bd612528e09c7588d014fd988912ceec3cefbb2a4210f785a0b83091f75c5ec"
+    }
+  ]
+}

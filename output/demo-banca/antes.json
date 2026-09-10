@@ -1,0 +1,225 @@
+{
+  "ferramenta": "Privacy Scanner — TCC FATEC",
+  "versao": "1.2.2",
+  "timestamp": "2026-09-09 01:13:04",
+  "status": "complete",
+  "aviso_escopo": "Os resultados representam indícios técnicos identificados por análise estática. Eles apoiam revisão de privacidade, mas não comprovam, sozinhos, conformidade ou desconformidade jurídica com a LGPD.",
+  "criterio_indicador": "Indicador operacional: 100 - (ALTO * 10 + MEDIO * 5 + BAIXO * 2). Os pesos priorizam revisão por severidade e não representam métrica jurídica, estatística ou regulatória de conformidade.",
+  "escopo": {
+    "tipo": "diretorio",
+    "alvo": "C:\\Users\\deanv\\OneDrive\\Documents\\TCC\\output\\demo-banca\\workspace",
+    "status": "complete",
+    "arquivos_elegiveis": 1,
+    "arquivos_analisados": 1,
+    "arquivos_ignorados": 0,
+    "arquivos_falhos": 0,
+    "erros": [],
+    "bancos_sqlite_analisados": []
+  },
+  "perfil_analise": {
+    "preset": "conservador",
+    "origem": "requisicao",
+    "hash": "fd73b5a9d808fae4"
+  },
+  "resumo": {
+    "total": 2,
+    "por_risco": {
+      "ALTO": 2,
+      "MEDIO": 0,
+      "BAIXO": 0
+    },
+    "por_categoria": {
+      "DADO_HARDCODED": 1,
+      "DADO_EM_LOG": 1
+    },
+    "indicador_tecnico": 80,
+    "score_conformidade": 80,
+    "criterio_indicador": "Indicador operacional: 100 - (ALTO * 10 + MEDIO * 5 + BAIXO * 2). Os pesos priorizam revisão por severidade e não representam métrica jurídica, estatística ou regulatória de conformidade.",
+    "aviso_escopo": "Os resultados representam indícios técnicos identificados por análise estática. Eles apoiam revisão de privacidade, mas não comprovam, sozinhos, conformidade ou desconformidade jurídica com a LGPD.",
+    "total_exibido": 2,
+    "total_bruto": 2,
+    "ocultos_por_perfil": 0,
+    "por_risco_exibido": {
+      "ALTO": 2,
+      "MEDIO": 0,
+      "BAIXO": 0
+    },
+    "por_risco_bruto": {
+      "ALTO": 2,
+      "MEDIO": 0,
+      "BAIXO": 0
+    },
+    "indicador_tecnico_exibido": 80,
+    "indicador_tecnico_bruto": 80
+  },
+  "sumario": {
+    "total": 2,
+    "por_risco": {
+      "ALTO": 2,
+      "MEDIO": 0,
+      "BAIXO": 0
+    },
+    "por_categoria": {
+      "DADO_HARDCODED": 1,
+      "DADO_EM_LOG": 1
+    },
+    "indicador_tecnico": 80,
+    "score_conformidade": 80,
+    "criterio_indicador": "Indicador operacional: 100 - (ALTO * 10 + MEDIO * 5 + BAIXO * 2). Os pesos priorizam revisão por severidade e não representam métrica jurídica, estatística ou regulatória de conformidade.",
+    "aviso_escopo": "Os resultados representam indícios técnicos identificados por análise estática. Eles apoiam revisão de privacidade, mas não comprovam, sozinhos, conformidade ou desconformidade jurídica com a LGPD.",
+    "total_exibido": 2,
+    "total_bruto": 2,
+    "ocultos_por_perfil": 0,
+    "por_risco_exibido": {
+      "ALTO": 2,
+      "MEDIO": 0,
+      "BAIXO": 0
+    },
+    "por_risco_bruto": {
+      "ALTO": 2,
+      "MEDIO": 0,
+      "BAIXO": 0
+    },
+    "indicador_tecnico_exibido": 80,
+    "indicador_tecnico_bruto": 80
+  },
+  "summary": {
+    "total": 2,
+    "por_risco": {
+      "ALTO": 2,
+      "MEDIO": 0,
+      "BAIXO": 0
+    },
+    "por_categoria": {
+      "DADO_HARDCODED": 1,
+      "DADO_EM_LOG": 1
+    },
+    "indicador_tecnico": 80,
+    "score_conformidade": 80,
+    "criterio_indicador": "Indicador operacional: 100 - (ALTO * 10 + MEDIO * 5 + BAIXO * 2). Os pesos priorizam revisão por severidade e não representam métrica jurídica, estatística ou regulatória de conformidade.",
+    "aviso_escopo": "Os resultados representam indícios técnicos identificados por análise estática. Eles apoiam revisão de privacidade, mas não comprovam, sozinhos, conformidade ou desconformidade jurídica com a LGPD.",
+    "total_exibido": 2,
+    "total_bruto": 2,
+    "ocultos_por_perfil": 0,
+    "por_risco_exibido": {
+      "ALTO": 2,
+      "MEDIO": 0,
+      "BAIXO": 0
+    },
+    "por_risco_bruto": {
+      "ALTO": 2,
+      "MEDIO": 0,
+      "BAIXO": 0
+    },
+    "indicador_tecnico_exibido": 80,
+    "indicador_tecnico_bruto": 80
+  },
+  "achados": [
+    {
+      "finding_id": "e65fbfca5e5f0d18c681",
+      "finding_id_legacy": "04aab65063859746697a",
+      "suppression_id": "2a4eb21b8b4cd0bbad0dbb43",
+      "arquivo": "C:\\Users\\deanv\\OneDrive\\Documents\\TCC\\output\\demo-banca\\workspace\\app.py",
+      "linha": 1,
+      "categoria": "DADO_HARDCODED",
+      "categoria_publica": "DADO_HARDCODED",
+      "risco": "ALTO",
+      "risco_base": "ALTO",
+      "confianca": "ALTA",
+      "descricao": "Possível dado pessoal literal identificado por análise estática.",
+      "artigo_lgpd": "Art. 46 — Segurança e prevenção",
+      "recomendacao": "Remova valores literais de dados pessoais do código-fonte. Use variáveis de ambiente ou cofres de segredos (ex: .env, AWS Secrets Manager).",
+      "evidencia_segura": "A regra identificou uma atribuição literal a um identificador classificado; o conteúdo foi ocultado.",
+      "trecho": "A regra identificou uma atribuição literal a um identificador classificado; o conteúdo foi ocultado."
+    },
+    {
+      "finding_id": "fec00fb94a63dfe16cfe",
+      "finding_id_legacy": "eae10f9c368506410141",
+      "suppression_id": "93cafa25b7cd140555e043ca",
+      "arquivo": "C:\\Users\\deanv\\OneDrive\\Documents\\TCC\\output\\demo-banca\\workspace\\app.py",
+      "linha": 2,
+      "categoria": "DADO_EM_LOG",
+      "categoria_publica": "DADO_EM_LOG",
+      "risco": "ALTO",
+      "risco_base": "ALTO",
+      "confianca": "ALTA",
+      "descricao": "Possível exposição de dado pessoal em log identificada.",
+      "artigo_lgpd": "Art. 46 — Segurança | Art. 6º, III — Necessidade",
+      "recomendacao": "Remova dados pessoais de logs. Use IDs técnicos (UUID) no lugar de CPF/email. Se necessário logar, aplique mascaramento: '***.***.789-**'.",
+      "evidencia_segura": "A regra identificou possível registro de dado pessoal em mecanismo de log; o conteúdo foi ocultado.",
+      "trecho": "A regra identificou possível registro de dado pessoal em mecanismo de log; o conteúdo foi ocultado."
+    }
+  ],
+  "vulnerabilidades": [
+    {
+      "finding_id": "e65fbfca5e5f0d18c681",
+      "finding_id_legacy": "04aab65063859746697a",
+      "suppression_id": "2a4eb21b8b4cd0bbad0dbb43",
+      "arquivo": "C:\\Users\\deanv\\OneDrive\\Documents\\TCC\\output\\demo-banca\\workspace\\app.py",
+      "linha": 1,
+      "categoria": "DADO_HARDCODED",
+      "categoria_publica": "DADO_HARDCODED",
+      "risco": "ALTO",
+      "risco_base": "ALTO",
+      "confianca": "ALTA",
+      "descricao": "Possível dado pessoal literal identificado por análise estática.",
+      "artigo_lgpd": "Art. 46 — Segurança e prevenção",
+      "recomendacao": "Remova valores literais de dados pessoais do código-fonte. Use variáveis de ambiente ou cofres de segredos (ex: .env, AWS Secrets Manager).",
+      "evidencia_segura": "A regra identificou uma atribuição literal a um identificador classificado; o conteúdo foi ocultado.",
+      "trecho": "A regra identificou uma atribuição literal a um identificador classificado; o conteúdo foi ocultado."
+    },
+    {
+      "finding_id": "fec00fb94a63dfe16cfe",
+      "finding_id_legacy": "eae10f9c368506410141",
+      "suppression_id": "93cafa25b7cd140555e043ca",
+      "arquivo": "C:\\Users\\deanv\\OneDrive\\Documents\\TCC\\output\\demo-banca\\workspace\\app.py",
+      "linha": 2,
+      "categoria": "DADO_EM_LOG",
+      "categoria_publica": "DADO_EM_LOG",
+      "risco": "ALTO",
+      "risco_base": "ALTO",
+      "confianca": "ALTA",
+      "descricao": "Possível exposição de dado pessoal em log identificada.",
+      "artigo_lgpd": "Art. 46 — Segurança | Art. 6º, III — Necessidade",
+      "recomendacao": "Remova dados pessoais de logs. Use IDs técnicos (UUID) no lugar de CPF/email. Se necessário logar, aplique mascaramento: '***.***.789-**'.",
+      "evidencia_segura": "A regra identificou possível registro de dado pessoal em mecanismo de log; o conteúdo foi ocultado.",
+      "trecho": "A regra identificou possível registro de dado pessoal em mecanismo de log; o conteúdo foi ocultado."
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "finding_id": "e65fbfca5e5f0d18c681",
+      "finding_id_legacy": "04aab65063859746697a",
+      "suppression_id": "2a4eb21b8b4cd0bbad0dbb43",
+      "arquivo": "C:\\Users\\deanv\\OneDrive\\Documents\\TCC\\output\\demo-banca\\workspace\\app.py",
+      "linha": 1,
+      "categoria": "DADO_HARDCODED",
+      "categoria_publica": "DADO_HARDCODED",
+      "risco": "ALTO",
+      "risco_base": "ALTO",
+      "confianca": "ALTA",
+      "descricao": "Possível dado pessoal literal identificado por análise estática.",
+      "artigo_lgpd": "Art. 46 — Segurança e prevenção",
+      "recomendacao": "Remova valores literais de dados pessoais do código-fonte. Use variáveis de ambiente ou cofres de segredos (ex: .env, AWS Secrets Manager).",
+      "evidencia_segura": "A regra identificou uma atribuição literal a um identificador classificado; o conteúdo foi ocultado.",
+      "trecho": "A regra identificou uma atribuição literal a um identificador classificado; o conteúdo foi ocultado."
+    },
+    {
+      "finding_id": "fec00fb94a63dfe16cfe",
+      "finding_id_legacy": "eae10f9c368506410141",
+      "suppression_id": "93cafa25b7cd140555e043ca",
+      "arquivo": "C:\\Users\\deanv\\OneDrive\\Documents\\TCC\\output\\demo-banca\\workspace\\app.py",
+      "linha": 2,
+      "categoria": "DADO_EM_LOG",
+      "categoria_publica": "DADO_EM_LOG",
+      "risco": "ALTO",
+      "risco_base": "ALTO",
+      "confianca": "ALTA",
+      "descricao": "Possível exposição de dado pessoal em log identificada.",
+      "artigo_lgpd": "Art. 46 — Segurança | Art. 6º, III — Necessidade",
+      "recomendacao": "Remova dados pessoais de logs. Use IDs técnicos (UUID) no lugar de CPF/email. Se necessário logar, aplique mascaramento: '***.***.789-**'.",
+      "evidencia_segura": "A regra identificou possível registro de dado pessoal em mecanismo de log; o conteúdo foi ocultado.",
+      "trecho": "A regra identificou possível registro de dado pessoal em mecanismo de log; o conteúdo foi ocultado."
+    }
+  ]
+}

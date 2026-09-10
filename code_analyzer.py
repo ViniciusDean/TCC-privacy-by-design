@@ -821,7 +821,7 @@ class CodeAnalyzer(ast.NodeVisitor):
                     f"({', '.join(campos_na_classe[:3])}) mas não define "
                     f"método de exclusão ou anonimização.",
                     "MEDIO",
-                    "Art. 18, IV — Direito à eliminação dos dados",
+                    "Art. 18, IV e VI — Direitos conforme hipótese aplicável | Art. 16 — Conservação",
                     "ALTA" if herda_persistencia else "MEDIA",
                     f"classe:{node.name}:ausencia-exclusao",
                 )

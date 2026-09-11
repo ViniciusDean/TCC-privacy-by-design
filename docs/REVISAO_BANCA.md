@@ -1,6 +1,6 @@
 # Revisão para a banca — progresso por partes
 
-Atualizado em 10 de setembro de 2026.
+Atualizado em 11 de setembro de 2026.
 
 Prioridade definida: apresentação à banca, usando as evidências existentes.
 Preservar arquitetura, linguagens, categorias, heurísticas e corpus. Concluir
@@ -72,29 +72,49 @@ Artefatos:
 A instalação do teste usa perfil isolado; a extensão no perfil pessoal do
 VS Code não foi substituída automaticamente.
 
-## Parte 3 — Texto e PDF: em validação
+## Parte 3 — Texto e PDF: concluída
 
-Fonte revisado em 10/09/2026: definições e unidades de avaliação, fórmula e
-limites do indicador, versão 1.2.2 separada das métricas históricas,
-demonstração com captura real, limites de cobertura/usabilidade e conclusão
-mais concisa. O estilo textual agora restaura explicitamente os números.
-Cadastro, execução congelada e registro de FN foram conferidos separadamente.
-Falta compilar e inspecionar visualmente a prova antes da entrega.
+- Revisado o fonte canônico `latex_tcc/main.tex`, preservando a comparação
+  de modelos e práticas do SDLC.
+- Acrescentados quadro de TP/FP/FN/TN, fórmulas de precisão/recall/F1 e
+  especificidade e distinção entre decisão caso–categoria e achado externo.
+  Explicitadas as 120 decisões: 6×7 + 6×7 + 6×6.
+- Conferidos cadastro, execução histórica `20260710T024446Z-d034f8fc` e
+  registro separado de FN; corrigida a descrição de onde ficam as evidências.
+- Explicados fórmula, exemplo, severidade-base, perfil, escopo vazio,
+  saturação e limites de comparação dos indicadores.
+- Delimitados controle de acesso, finalidade e ausência de estudo de usabilidade.
+- Atualizados resumo, abstract, resultados e conclusão para distinguir
+  as verificações de 1.2.2 dos resultados históricos de 1.0.4 e 1.2.0.
+- Incluídos código antes/depois e recortes legíveis da captura real do HTML,
+  com versão 1.2.2, commit `8e76a09` e caminhos para reprodução.
+- Restaurada explicitamente a numeração de todas as páginas textuais;
+  conclusão reduzida a uma página. Acrescentada a lista de figuras.
 
-Checklist da etapa:
+Validação da parte:
 
-- Trabalhar em `latex_tcc/main.tex`, mantendo a comparação do SDLC existente.
-- Explicar TP/FP/FN, precisão/recall/F1, as 120 decisões caso–categoria e a
-  diferença entre a contagem do benchmark e dos achados externos.
-- Delimitar controle de acesso, finalidade e usabilidade ao alcance avaliado.
-- Explicar fórmula, exemplo e limites dos indicadores bruto e exibido.
-- Inserir o exemplo e a captura obtidos na parte 2; registrar versão/commit
-  da demonstração sem substituir as métricas históricas por números atuais.
-- Corrigir a numeração das páginas textuais e revisar a quebra da conclusão.
-- Recompilar e conferir visualmente todas as páginas, tabelas e sumário.
-- Manter revisão independente pendente como limitação; não ampliar corpus
-  nem preencher os sete itens como se existisse um segundo revisor.
-- Tratar nomes/instituições da banca, data e ficha catalográfica como dados
-  pendentes para a versão definitiva, sem inventar informações.
+- Sete testes de proteção do fonte aprovados; `git diff --check` sem erros.
+- XeLaTeX executado em três passagens, sem referências indefinidas nem
+  caixas excedendo a largura disponível.
+- **51 páginas** renderizadas e inspecionadas; quadro de métricas e figura
+  também conferidos em resolução maior.
+- **61 entradas** do sumário e das listas conferidas contra os destinos do PDF.
+- Numeração impressa contínua de **11 a 50**, pré-textuais sem número visível,
+  conclusão na página impressa **46**, referências a partir da **47**.
+- A recompilação após ajustar o recorte alterou somente a imagem da página
+  física 37; as outras 50 páginas renderizadas permaneceram idênticas.
+
+Entrega:
+
+- `output/pdf/TCC_Privacy_by_Design_2026_REVISAO_BANCA_PROVA.pdf`.
+- `output/pdf/TCC_Privacy_by_Design_2026_REVISAO_BANCA_VERIFICACAO.json`,
+  com hashes do fonte/PDF e resultados da conferência.
+- Ponto de retomada do texto salvo antes da compilação no commit `185c1bc`.
+
+As três partes previstas estão concluídas no escopo autorizado. A versão
+definitiva depende dos nomes/instituições dos convidados da banca, data
+de aprovação e ficha catalográfica oficial. A revisão independente permanece
+explicitamente pendente como limitação: os sete itens não foram preenchidos
+como se existisse um segundo revisor, e nenhum novo corpus foi criado.
 
 As alterações prévias dos PDFs locais pertencem ao usuário e foram preservadas.

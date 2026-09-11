@@ -44,10 +44,7 @@
 
 % Cabeçalhos do modelo: páginas pré-textuais sem número aparente;
 % páginas textuais com numeração no canto superior direito.
-\pagestyle{fancy}
-\fancyhf{}
-\fancyhead[R]{\footnotesize\thepage}
-\renewcommand{\headrulewidth}{0pt}
+\fancypagestyle{textual}{\fancyhf{}\fancyhead[R]{\footnotesize\thepage}\renewcommand{\headrulewidth}{0pt}}
 \fancypagestyle{plain}{\fancyhf{}\fancyhead[R]{\footnotesize\thepage}\renewcommand{\headrulewidth}{0pt}}
 \fancypagestyle{pretextual}{\fancyhf{}\renewcommand{\headrulewidth}{0pt}}
 
@@ -73,6 +70,15 @@
 \makeatletter
 \@removefromreset{table}{chapter}
 \renewcommand{\thetable}{\arabic{table}}
+\@removefromreset{figure}{chapter}
+\renewcommand{\thefigure}{\arabic{figure}}
+\newcommand{\listadefiguras}{%
+  \clearpage
+  \begin{center}\textbf{LISTA DE FIGURAS}\end{center}
+  \thispagestyle{pretextual}
+  \@starttoc{lof}
+  \clearpage
+}
 \newcommand{\l@quadro}{\@dottedtocline{1}{0em}{2.3em}}
 \newcommand{\listadequadros}{%
   \clearpage
@@ -103,6 +109,11 @@
   \refstepcounter{table}%
   \addcontentsline{lot}{table}{\protect\numberline{\thetable}#1}%
   \noindent\textbf{Tabela \thetable\ -- #1}\par\smallskip
+}
+\newcommand{\captionfigura}[1]{%
+  \refstepcounter{figure}%
+  \addcontentsline{lof}{figure}{\protect\numberline{\thefigure}#1}%
+  \noindent\textbf{Figura \thefigure\ -- #1}\par\smallskip
 }
 \newcommand{\fonte}[1]{%
   \par\smallskip
@@ -254,7 +265,7 @@ Professor convidado%
 \begin{resumomodelo}
 DEAN, Vinicius. \textbf{\tituloTCC}. Trabalho de Graduação. FATEC São Caetano do Sul -- Antônio Russo. 2026.
 
-Este trabalho investiga como o conceito de Privacy by Design pode ser incorporado ao ciclo de desenvolvimento de software por meio de uma ferramenta de análise estática voltada à identificação de indícios técnicos de risco à privacidade. Como artefato da pesquisa, foi desenvolvido o Privacy Scanner LGPD 1.2.0, composto por analisadores para Python, Java e esquemas SQLite, API local, relatórios e extensão para o Visual Studio Code. A ferramenta oferece perfis configuráveis, separação auditável entre achados brutos e exibidos, ações integradas ao ambiente de desenvolvimento e filtros contextuais destinados a reduzir falsos positivos. A avaliação combinou uma suíte automatizada de 181 testes Python, testes TypeScript, integração real no VS Code, instalação isolada do pacote VSIX e um benchmark controlado com 18 casos e 120 decisões caso--categoria, sem divergências em relação ao gabarito. Em uma validação externa histórica, entretanto, as heurísticas apresentaram limitações de precisão e recall em projetos reais. Conclui-se que o artefato pode apoiar a triagem preventiva e reproduzível de evidências técnicas de privacidade, desde que seus resultados sejam submetidos à revisão humana e não sejam interpretados como certificação de conformidade com a LGPD.
+Este trabalho investiga como o conceito de Privacy by Design pode ser incorporado ao ciclo de desenvolvimento de software por meio de uma ferramenta de análise estática voltada à identificação de indícios técnicos de risco à privacidade. Como artefato da pesquisa, foi desenvolvido o Privacy Scanner LGPD, apresentado na versão 1.2.2, composto por analisadores para Python, Java e esquemas SQLite, API local, relatórios e extensão para o Visual Studio Code. A ferramenta oferece perfis configuráveis, separação auditável entre achados brutos e exibidos, ações integradas ao ambiente de desenvolvimento e filtros contextuais destinados a reduzir falsos positivos. A verificação da versão 1.2.2 compreendeu 208 testes Python, testes TypeScript, integração real no VS Code e instalação isolada do pacote VSIX. Preservou-se o benchmark controlado executado com a versão 1.2.0: 18 casos e 120 decisões caso--categoria, sem divergências em relação ao gabarito. A validação externa histórica da versão 1.0.4, entretanto, revelou limitações de precisão e recall em projetos reais. Conclui-se que o artefato pode apoiar a triagem preventiva e reproduzível de evidências técnicas de privacidade, desde que seus resultados sejam submetidos à revisão humana e não sejam interpretados como certificação de conformidade com a LGPD.
 
 \noindent\textbf{Palavras-chave:} Privacy by Design; LGPD; análise estática; privacidade; desenvolvimento de software.
 \end{resumomodelo}
@@ -262,11 +273,12 @@ Este trabalho investiga como o conceito de Privacy by Design pode ser incorporad
 \begin{abstractmodelo}
 DEAN, Vinicius. \textbf{\tituloInglesTCC}. Undergraduate Final Paper. FATEC São Caetano do Sul -- Antônio Russo. 2026.
 
-This work investigates how Privacy by Design can be incorporated into the software development life cycle through a static analysis tool designed to identify technical indicators of privacy risk. The research artifact is Privacy Scanner LGPD 1.2.0, which comprises analyzers for Python, Java, and SQLite schemas, a local API, reports, and a Visual Studio Code extension. The tool provides configurable profiles, an auditable distinction between raw and displayed findings, actions integrated into the development environment, and contextual filters intended to reduce false positives. The evaluation combined an automated suite of 181 Python tests, TypeScript tests, real integration in VS Code, isolated installation of the VSIX package, and a controlled benchmark with 18 cases and 120 case--category decisions, with no divergence from the reference set. A historical external validation, however, revealed precision and recall limitations in real projects. The study concludes that the artifact can support preventive and reproducible triage of technical privacy evidence, provided that its results undergo human review and are not interpreted as certification of compliance with the Brazilian General Data Protection Law.
+This work investigates how Privacy by Design can be incorporated into the software development life cycle through a static analysis tool designed to identify technical indicators of privacy risk. The research artifact is Privacy Scanner LGPD, presented in version 1.2.2, which comprises analyzers for Python, Java, and SQLite schemas, a local API, reports, and a Visual Studio Code extension. The tool provides configurable profiles, an auditable distinction between raw and displayed findings, actions integrated into the development environment, and contextual filters intended to reduce false positives. Verification of version 1.2.2 comprised 208 Python tests, TypeScript tests, real integration in VS Code, and isolated installation of the VSIX package. The controlled benchmark executed with version 1.2.0 was preserved: 18 cases and 120 case--category decisions, with no divergence from the reference set. Historical external validation of version 1.0.4, however, revealed precision and recall limitations in real projects. The study concludes that the artifact can support preventive and reproducible triage of technical privacy evidence, provided that its results undergo human review and are not interpreted as certification of compliance with the Brazilian General Data Protection Law.
 
 \noindent\textbf{Keywords:} Privacy by Design; LGPD; static analysis; privacy; software development.
 \end{abstractmodelo}
 
+\listadefiguras
 \listadequadros
 \listadetabelas
 
@@ -294,7 +306,7 @@ This work investigates how Privacy by Design can be incorporated into the softwa
 \sumariomodelo
 \clearpage
 
-\pagestyle{fancy}
+\pagestyle{textual}
 
 \chapter{INTRODUÇÃO}
 
@@ -399,7 +411,7 @@ Problemas de privacidade e vulnerabilidades de segurança podem se sobrepor, mas
 
 Spiekermann e Cranor (2009) distinguem abordagens de engenharia apoiadas em políticas (\textit{privacy-by-policy}) e abordagens incorporadas à arquitetura (\textit{privacy-by-architecture}). Neste estudo, essa distinção é usada para delimitar o que pode deixar evidências técnicas em código e em esquemas de dados; ela não reduz os problemas de privacidade à dimensão técnica.
 
-As subseções seguintes apresentam as categorias operacionais selecionadas para o artefato a partir do referencial consultado e do escopo da pesquisa. Elas não constituem taxonomia exaustiva de vulnerabilidades de privacidade.
+As subseções seguintes apresentam riscos que fundamentam o recorte do artefato a partir do referencial consultado. Nem todos correspondem a verificações automatizadas: controle de acesso, por exemplo, contextualiza o problema, mas está fora da cobertura implementada. Essas subseções não constituem taxonomia exaustiva de vulnerabilidades de privacidade.
 
 \subsection{Proteção Criptográfica não Evidenciada no Armazenamento}
 
@@ -430,6 +442,8 @@ O risco depende do conteúdo registrado, dos perfis de acesso, do prazo de reten
 O controle de acesso busca restringir consulta, modificação e exclusão de dados às identidades e funções autorizadas. Contas com privilégios excessivos ou verificações ausentes nas camadas de aplicação podem ampliar o impacto de erro ou comprometimento de credenciais (Chess; West, 2007).
 
 No nível do banco de dados, essa vulnerabilidade se manifesta em contas com privilégios excessivos, na ausência de segregação entre perfis de acesso de leitura e escrita, e na inexistência de controles por linha ou coluna para dados especialmente sensíveis. No código-fonte, manifesta-se em rotas de API que não verificam a autorização do usuário antes de retornar dados pessoais, e em consultas que não filtram os resultados pelo identificador do usuário autenticado.
+
+O scanner não inspeciona permissões efetivas, políticas de autorização nem controles por linha ou coluna. Assim, a discussão desses riscos integra a fundamentação do trabalho e não deve ser interpretada como funcionalidade avaliada do artefato.
 
 \subsection{Transferência de Dados a Terceiros sem Base Legal}
 
@@ -596,11 +610,41 @@ A quarta fase destina-se à avaliação da ferramenta desenvolvida. A avaliaçã
 
 Os resultados são comparados com achados esperados definidos manualmente para cada caso de teste (\textit{fixture}) e categoria de regra. Essa comparação mede consistência interna do comportamento implementado e capacidade de detectar regressões no conjunto controlado; ela não estima, por si só, precisão ou recall em projetos reais. A avaliação externa preserva a classificação manual separadamente dos achados brutos para permitir auditoria de TP, FP e FN sem sobrescrever a revisão anterior.
 
-Para evitar ajustar regras com base em todos os projetos avaliados, o módulo servidor Java PEAK, no commit abreviado \texttt{7503f50}, foi definido como conjunto de ajuste (PEAK-TCC, 2026). Os falsos positivos observados nesse conjunto orientaram correções conservadoras antes do congelamento da versão 1.0.4. Em seguida, Flasky, no commit \texttt{3beedd6}, com 39 arquivos Python, e Chinook, no commit \texttt{7f67772}, com um banco SQLite, foram tratados como conjuntos independentes de validação (Grinberg, 2025; Rocha, 2025). Não foram realizadas alterações nas regras Python ou SQLite após a observação de seus resultados. Os endereços completos, commits, hashes dos escopos, achados brutos, adjudicações e falsos negativos permanecem versionados no registro \path{evaluation/real_projects/projects.json}.
+No benchmark, a unidade é a decisão \emph{caso--categoria}: para cada caso e categoria prevista no protocolo, compara-se a presença de pelo menos um alerta com o gabarito. Vários alertas da mesma categoria em um caso contam como uma única decisão. Na avaliação externa, a unidade é o achado individual revisado, e os falsos negativos são ocorrências esperadas registradas manualmente. Portanto, os totais dessas avaliações não são diretamente intercambiáveis. O Quadro~\ref{qua:metricas} explicita a classificação utilizada.
+
+\begin{quadro}
+\captionquadro{Definições operacionais da avaliação}
+\label{qua:metricas}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}P{2.2cm}P{6.2cm}P{6.8cm}@{}}
+\hline
+\textbf{Classe} & \textbf{Benchmark controlado} & \textbf{Avaliação externa} \\
+\hline
+TP: positivo correto & Categoria esperada e detectada no caso. & Alerta considerado pertinente na revisão manual do contexto. \\
+FP: falso positivo & Categoria detectada, mas ausente do gabarito. & Alerta considerado indevido na revisão manual do contexto. \\
+FN: falso negativo & Categoria esperada, mas não detectada. & Ocorrência esperada anotada na revisão, mas não sinalizada. \\
+TN: negativo correto & Categoria nem esperada nem detectada no caso. & Não contabilizado: não foi enumerado um universo de ocorrências negativas. \\
+\hline
+\end{tabular}
+\fonte{elaboração própria a partir dos protocolos de avaliação do artefato (2026)}
+\end{quadro}
+
+A precisão ($P$) mede a proporção de positivos corretos entre os alertas avaliados; o recall ($R$) mede a proporção detectada entre os positivos esperados. A medida F1 combina precisão e recall pela média harmônica:
+\[
+P=\frac{TP}{TP+FP},\qquad
+R=\frac{TP}{TP+FN},\qquad
+F1=\frac{2TP}{2TP+FP+FN}.
+\]
+As razões são apresentadas em porcentagem. A especificidade, $TN/(TN+FP)$, é calculada somente no benchmark, que possui universo negativo definido. Essas classificações avaliam a pertinência técnica dos indícios segundo o protocolo; não classificam conformidade jurídica.
+
+Para evitar ajustar regras com base em todos os projetos avaliados, o módulo servidor Java PEAK, no commit abreviado \texttt{7503f50}, foi definido como conjunto de ajuste (PEAK-TCC, 2026). Os falsos positivos observados nesse conjunto orientaram correções conservadoras antes do congelamento da versão 1.0.4. Em seguida, Flasky, no commit \texttt{3beedd6}, com 39 arquivos Python, e Chinook, no commit \texttt{7f67772}, com um banco SQLite, foram tratados como conjuntos independentes de validação (Grinberg, 2025; Rocha, 2025). Não foram realizadas alterações nas regras Python ou SQLite após a observação de seus resultados.
+
+O cadastro de projetos e commits está em \path{evaluation/real_projects/projects.json}. A execução histórica \texttt{20260710T024446Z-d034f8fc}, preservada em \path{evaluation/real_projects/results/runs/}, contém \texttt{findings.json}, \texttt{findings.csv} e \texttt{summary.md}, com proveniência, hashes agregados dos escopos, achados, adjudicações e totais de falsos negativos. As evidências e o estado de cada falso negativo são mantidos separadamente em \path{evaluation/real_projects/manual_false_negatives.csv}; a versão histórica desse arquivo preserva o conjunto original, enquanto a atual também inclui avaliações posteriores.
 
 Os erros documentados nessa primeira validação passaram a constituir evidência de ajuste para a versão 1.1, sem apagar a linha de base 1.0.4. Para reduzir a reutilização dos mesmos projetos, foram pré-registrados três novos escopos: Django Oscar, no commit \texttt{8bbd588}, para Python; Spring PetClinic, no commit \texttt{51045d1}, para Java; e Northwind SQLite, no commit \texttt{4f56e7f}, para banco de dados (Django Oscar, 2026; Spring Projects, 2026; White, 2025). Após o congelamento das regras da versão 1.1 e a aprovação da matriz inicial de integração contínua, esses escopos foram habilitados e executados uma única vez. A execução e a adjudicação primária permanecem versionadas.
 
-Os erros encontrados nesse conjunto de retenção (\textit{holdout}) da versão 1.1 orientaram posteriormente os filtros contextuais da versão 1.2.0. Por essa razão, o conjunto é tratado neste trabalho como análise de erros e evidência de evolução, e não como validação externa independente da versão 1.2.0. Seus indicadores quantitativos não são incorporados ao texto enquanto a amostra estratificada de revisão independente estiver pendente. A avaliação atual da versão 1.2.0 fica, portanto, limitada à regressão controlada, às suítes automatizadas e aos testes de integração; não se afirma que as correções tenham produzido determinada precisão ou recall em sistemas reais.
+Os erros encontrados nesse conjunto de retenção (\textit{holdout}) da versão 1.1 orientaram posteriormente os filtros contextuais da versão 1.2.0. Por essa razão, o conjunto é tratado neste trabalho como análise de erros e evidência de evolução, e não como validação externa independente da versão 1.2.0. Seus indicadores quantitativos não são incorporados ao texto enquanto a amostra estratificada de revisão independente estiver pendente. A avaliação das versões posteriores, inclusive a 1.2.2, permanece limitada às evidências de regressão, às suítes automatizadas e aos testes de integração aqui discriminados; não se afirma que as correções tenham produzido determinada precisão ou recall em sistemas reais. Também não foi realizado estudo com usuários: a facilidade de uso postulada na hipótese constitui intenção de projeto ainda não medida.
 
 \chapter{RESULTADOS OBTIDOS E DISCUSSÃO}
 
@@ -614,14 +658,54 @@ O principal resultado obtido é a entrega de uma ferramenta funcional capaz de i
 \item Armazenamento ou atribuição de dados pessoais sem evidência de proteção em variáveis, arquivos ou tabelas;
 \item Registro excessivo de informações identificáveis em logs de sistema;
 \item Ausência de mecanismos de exclusão, anonimização ou pseudonimização de dados em classes ou esquemas;
-\item Coleta ou retenção de dados além do necessário para a finalidade declarada;
+\item Sinais de coleta potencialmente excessiva e de retenção não evidenciada;
 \item Uso de dados pessoais como identificadores técnicos em bancos de dados;
 \item Transferência de dados pessoais a serviços externos sem marcador de base legal.
 \end{itemize}
 
-Ao final da análise, a ferramenta gera relatórios em terminal, JSON, HTML e PDF com a identificação das ocorrências encontradas, classificação por nível de risco, recomendações de correção e indicador técnico de severidade. A versão 1.2.0 expõe separadamente totais e indicadores brutos e exibidos, além da quantidade ocultada pelo perfil. O termo indicador técnico é utilizado para evitar interpretação equivocada de que o resultado numérico represente certificação de conformidade legal. A fórmula adotada aplica penalizações crescentes por severidade, atribuindo maior peso a achados de risco alto, peso intermediário a achados de risco médio e peso menor a achados de risco baixo. Essa escolha tem finalidade operacional de priorização e comparação entre execuções, não correspondendo a uma métrica oficial ou jurídica de adequação à LGPD.
+Ao final da análise, a ferramenta gera relatórios em terminal, JSON, HTML e PDF com a identificação das ocorrências encontradas, classificação por nível de risco e recomendações de correção. As categorias constituem sinais locais: a ferramenta não conhece a finalidade efetiva do tratamento nem demonstra que a coleta é excessiva ou que um controle inexiste em outras camadas.
+
+\subsection{Indicador Técnico de Severidade}
+\label{sec:indicador}
+
+Desde a versão 1.2.0, o relatório expõe separadamente totais e indicadores brutos e exibidos, além da quantidade ocultada pelo perfil. Para um escopo analisável, o indicador $I$ parte de 100 e desconta pesos operacionais segundo as quantidades de achados altos ($A$), médios ($M$) e baixos ($B$):
+\[
+I=\max\{0,\;100-10A-5M-2B\}.
+\]
+Por exemplo, um achado alto e dois médios produzem $I=80$. O indicador bruto utiliza os achados e suas severidades-base; o exibido utiliza o conjunto filtrado e as severidades resultantes do perfil. Se não houver escopo analisável, o indicador fica indefinido, em vez de atribuir 100 a uma análise vazia.
+
+Quanto menor o valor, maior a penalização acumulada, mas os pesos não foram calibrados por estudo empírico. A fórmula satura em zero e não normaliza por tamanho do projeto; portanto, não permite ordenar projetos distintos por adequação ou risco real. Comparações entre execuções exigem explicitar versão, alvo, perfil e mudanças no escopo. Um valor alto tampouco elimina a necessidade de revisar cada achado de severidade alta. O indicador não é porcentagem de conformidade, probabilidade de incidente ou métrica jurídica.
+
+\subsection{Fluxo no Ambiente de Desenvolvimento}
 
 Na extensão, a seção \texttt{Ações rápidas} reúne análise do arquivo atual, varredura do projeto, seleção de banco SQLite, exportação e configuração assistida do perfil. O arquivo ativo, o perfil predefinido e o estado do módulo servidor permanecem visíveis no painel. Ações equivalentes são oferecidas no editor e no Explorer, enquanto mensagens de falha permitem abrir configurações, preparar dependências, reiniciar o módulo servidor ou consultar logs. Esse desenho foi concebido para reduzir a dependência da Paleta de Comandos e aproximar a revisão de privacidade das atividades ordinárias de implementação e teste; o trabalho não realizou estudo de usabilidade para medir esse efeito.
+
+Na versão 1.2.2, o resumo também identifica alvo, horário de conclusão e estado de desatualização. A análise automática aguarda o salvamento, enquanto análise de projeto e exportação oferecem salvar os arquivos Python e Java modificados no escopo selecionado. A exportação informa que realiza nova análise. Esses ajustes tornam explícita a relação entre conteúdo salvo, escopo e resultado apresentado.
+
+\subsection{Demonstração Reproduzível de Revisão}
+
+A demonstração usa a versão 1.2.2, consolidada no commit \texttt{8e76a09}, com perfil conservador e uma cópia do caso sintético \texttt{py\_hardcoded\_log.py}. O script \path{scripts/demo_banca.py} gera os relatórios pela API local e pelo gerador real de relatórios, sem executar o código analisado nem alterar o benchmark. O trecho inicial contém um identificador fictício:
+\begin{verbatim}
+cpf = "123.456.789-00"
+print(cpf)
+\end{verbatim}
+A análise retorna dois achados altos: \texttt{DADO\_HARDCODED}, na linha 1, e \texttt{DADO\_EM\_LOG}, na linha 2. Totais bruto e exibido são iguais a dois, sem ocultações pelo perfil; ambos os indicadores valem 80. A Figura~\ref{fig:demo-banca} apresenta recortes da captura real do relatório HTML, ampliados para leitura.
+
+\begin{figure}[htbp]
+\centering
+\captionfigura{Contagem e identificação dos achados antes da correção}
+\label{fig:demo-banca}
+\includegraphics[width=0.95\textwidth,trim=120bp 815bp 605bp 257bp,clip]{../output/playwright/relatorio-banca-antes.png}
+\par\medskip
+\includegraphics[width=0.68\textwidth,trim=120bp 109bp 865bp 987bp,clip]{../output/playwright/relatorio-banca-antes.png}
+\fonte{captura do relatório HTML da demonstração, Privacy Scanner LGPD 1.2.2 (2026)}
+\end{figure}
+
+Neste exemplo mínimo, o identificador não é necessário à mensagem. A correção remove o literal e o registro do dado, preservando apenas a mensagem operacional:
+\begin{verbatim}
+print("Operação concluída")
+\end{verbatim}
+Após salvar e analisar novamente o mesmo escopo, os totais bruto e exibido passam a zero e os indicadores a 100. Os resumos da análise e das exportações HTML, JSON e PDF foram conferidos e coincidem em cada etapa. Código, relatórios e recibo com versão e hashes estão em \path{output/demo-banca/}. O resultado demonstra o ciclo de identificação, correção e reanálise deste caso conhecido; não comprova eficácia em projetos externos nem ausência de outros riscos quando não há alertas.
 
 \section{Ferramentas Correlatas e Identificação da Lacuna}
 
@@ -688,9 +772,9 @@ Foram documentadas as decisões relativas ao uso de Python no módulo servidor, 
 
 \section{Validação Controlada}
 
-A validação automatizada contempla testes unitários e de integração para os analisadores Python, Java e SQLite, geração de relatórios, perfis, avaliação externa, contrato da API Flask, fonte do TCC e sincronização de versão. Na linha de base 1.0.4, a suíte automatizada executou 135 testes com sucesso. Na versão 1.2.0, a suíte Python alcançou 181 testes aprovados. A extensão foi validada por testes TypeScript de contrato, perfil, assistente, coordenação de análises, estado de achados, comunicação HTTP, descoberta do módulo servidor e contribuições de interface, além de compilação, lint, teste real no Extension Host, simulação de conflito de porta e instalação isolada do VSIX.
+A validação automatizada contempla testes unitários e de integração para os analisadores Python, Java e SQLite, geração de relatórios, perfis, avaliação externa, contrato da API Flask, fonte do TCC e sincronização de versão. Na linha de base 1.0.4, a suíte automatizada executou 135 testes com sucesso. O Privacy Scanner LGPD 1.2.0 alcançou 181 testes Python aprovados. Na preparação da versão 1.2.2, foram aprovados 208 testes Python, incluindo regressões de exportação e perfis. A extensão passou por testes TypeScript, compilação, lint, integração real no Extension Host do VS Code 1.134.0 e instalação isolada do VSIX. A integração verificou análise de arquivo, conflito de porta, edição sem salvar e atualização dos diagnósticos após salvamento e reanálise. As confirmações de salvamento são cobertas por testes da lógica de coordenação; não se afirma avaliação manual desses diálogos.
 
-O benchmark controlado 2 contém 18 fixtures sintéticas, seis para cada tipo de análise, e permanece fixo para permitir comparação histórica; o benchmark 1 está preservado na tag 1.0.4. Reproduzido com o scanner 1.2.0 em 20 de julho de 2026, o corpus resultou em 24 positivos corretos, 96 negativos corretos e nenhuma divergência, totalizando 120 decisões \emph{caso--categoria}. A nova verificação de identificador pessoal em índice único é coberta pela suíte automatizada, mas não foi adicionada retroativamente ao universo do benchmark 2. Assim, o valor de 100\% descreve aderência ao gabarito fixado, e não desempenho generalizável em sistemas reais.
+O benchmark controlado 2 contém 18 fixtures sintéticas, seis para cada tipo de análise, e permanece fixo para permitir comparação histórica; o benchmark 1 está preservado na tag 1.0.4. São sete categorias avaliadas em Python, sete em Java e seis em SQLite: $(6\times7)+(6\times7)+(6\times6)=120$ decisões \emph{caso--categoria}, e não 120 projetos ou alertas individuais. Reproduzido com o scanner 1.2.0 em 20 de julho de 2026, o corpus resultou em 24 positivos corretos, 96 negativos corretos e nenhuma divergência ($FP=FN=0$). A nova verificação de identificador pessoal em índice único é coberta pela suíte automatizada, mas não foi adicionada retroativamente ao universo do benchmark 2. Assim, o valor de 100\% descreve aderência ao gabarito fixado, e não desempenho generalizável em sistemas reais. Essa execução histórica não foi substituída pela demonstração da versão 1.2.2.
 
 O conjunto controlado foi construído para validar regras conhecidas e detectar regressões durante a evolução do artefato. Ele não representa a diversidade de arquiteturas, frameworks, políticas de retenção ou finalidades presentes em projetos reais. Por essa razão, as métricas de precisão, recall, F1 e especificidade só podem ser interpretadas como métricas do benchmark controlado.
 
@@ -740,27 +824,25 @@ Apesar dos resultados obtidos, o artefato possui limitações importantes. A fer
 
 As regras de banco SQLite analisam o esquema e inferem riscos a partir de nomes de tabelas, colunas e tipos declarados. Essa abordagem pode indicar ausência de evidência de controles, mas não consegue provar que o controle inexiste em outra camada da aplicação, em rotinas externas, em políticas organizacionais ou em documentação de governança. Por esse motivo, achados como base legal não evidenciada, retenção a revisar e exclusão lógica não evidenciada devem ser tratados como indícios técnicos que exigem revisão contextual.
 
-A validação independente da linha de base evidenciou limitações concretas das heurísticas por nomes. No Flasky, classes de formulário foram confundidas com modelos persistentes; no Chinook, nomes de artistas, gêneros e faixas foram tratados como nomes de titulares, ao mesmo tempo que componentes de endereço não foram reconhecidos sem contexto de tabela. A versão 1.2.0 introduziu filtros para vários desses padrões, mas ainda não foi submetida a um novo corpus externo independente. Além disso, a adjudicação disponível foi realizada por um revisor primário e a revisão cega da amostra estratificada permanece pendente, impedindo o cálculo de concordância entre avaliadores.
+A validação independente da linha de base evidenciou limitações concretas das heurísticas por nomes. No Flasky, classes de formulário foram confundidas com modelos persistentes; no Chinook, nomes de artistas, gêneros e faixas foram tratados como nomes de titulares, ao mesmo tempo que componentes de endereço não foram reconhecidos sem contexto de tabela. A versão 1.2.0 introduziu filtros para vários desses padrões, mas nem ela nem a versão 1.2.2 foram submetidas a um novo corpus externo independente. Além disso, a adjudicação disponível foi realizada por um revisor primário e a revisão cega da amostra estratificada permanece pendente, impedindo o cálculo de concordância entre avaliadores.
 
-Outra limitação está no indicador técnico de severidade. A fórmula utilizada facilita comparação entre execuções e priorização de achados, mas seus pesos são definidos de forma operacional: achados altos reduzem mais a pontuação por indicarem maior possibilidade de exposição ou proteção insuficiente de dados pessoais; achados médios reduzem a pontuação em grau intermediário por indicarem ausência de controles relevantes; e achados baixos reduzem menos por representarem pontos de governança ou desenho a revisar. Os perfis também podem alterar o conjunto exibido e a severidade técnica apresentada, embora o resultado bruto seja preservado para auditoria. Esses pesos e escolhas de exibição não correspondem a uma métrica oficial de conformidade LGPD. Assim, nenhum dos indicadores deve ser interpretado como nota jurídica ou certificação de adequação.
+Outra limitação está no indicador técnico descrito na Subseção~\ref{sec:indicador}. Seus pesos são operacionais, a fórmula satura em zero e o total não é normalizado pelo tamanho do projeto. Os perfis podem alterar o conjunto e a severidade exibidos, embora o resultado bruto seja preservado. Por isso, uma melhora numérica deve ser confrontada com as alterações de código, escopo e configuração; nenhum dos indicadores equivale a nota jurídica ou certificação de adequação. A ausência de estudo com usuários também impede concluir que a integração ao editor reduz tempo, esforço ou dificuldade de revisão.
 
 \section{Trabalhos Futuros}
 
-Como trabalhos futuros, propõe-se concluir a revisão cega já preparada e realizar uma nova validação externa da versão 1.2.0 em projetos que não tenham orientado suas heurísticas, com pelo menos dois revisores independentes. Isso permitirá medir concordância, precisão e recall sem reutilizar conjuntos de ajuste. Também se recomenda ampliar a análise estrutural e de fluxo, evoluir o suporte Java para análise semântica entre instruções, adicionar suporte a JavaScript e TypeScript, incluir PostgreSQL e MySQL e melhorar a rastreabilidade entre achados, recomendações e evidências.
+Como trabalhos futuros, propõe-se concluir a revisão cega já preparada e realizar uma nova validação externa da versão 1.2.2 em projetos que não tenham orientado suas heurísticas, com pelo menos dois revisores independentes. Isso permitirá medir concordância, precisão e recall sem reutilizar conjuntos de ajuste. Também se recomenda ampliar a análise estrutural e de fluxo, evoluir o suporte Java para análise semântica entre instruções, adicionar suporte a JavaScript e TypeScript, incluir PostgreSQL e MySQL e melhorar a rastreabilidade entre achados, recomendações e evidências.
 
 Os perfis configuráveis foram incorporados com opções predefinidas conservadora, equilibrada e completa, limiar de confiança, habilitação por categoria e severidade exibida, preservando a severidade-base para auditoria. A versão 1.2.0 acrescentou configuração assistida e recuperação de perfis inválidos. Como evolução futura, recomenda-se avaliar esses perfis com equipes diferentes, medir seu efeito sobre carga de revisão e investigar configuração assistida por contexto de domínio, sem permitir que preferências locais sejam apresentadas como classificação jurídica.
 
 \chapter{CONCLUSÃO}
 
-Este trabalho investigou de que forma uma ferramenta de análise estática orientada por Privacy by Design pode apoiar a identificação de indícios técnicos de risco à privacidade no ciclo de desenvolvimento de software. Como resultado, foi desenvolvido o Privacy Scanner LGPD 1.2.0, composto por analisadores para Python, Java e esquema SQLite, API local, relatórios e extensão para o Visual Studio Code. O artefato integra perfis configuráveis, indicadores brutos e exibidos, supressões auditáveis e ações clicáveis no fluxo de trabalho do desenvolvedor.
+Este trabalho investigou como a análise estática orientada por Privacy by Design pode apoiar a revisão técnica de privacidade no ciclo de desenvolvimento de software. O resultado é o Privacy Scanner LGPD 1.2.2: analisadores para Python, Java e esquemas SQLite, API local, relatórios e extensão para o Visual Studio Code. O artefato reúne perfis configuráveis, indicadores brutos e exibidos e supressões auditáveis.
 
-Os objetivos de construir o artefato, comparar modelos e práticas de desenvolvimento, definir suas etapas de aplicação, documentar as escolhas técnicas e compará-lo com ferramentas correlatas foram atendidos no recorte definido. A fundamentação também delimitou a relação entre as regras e os princípios de PbD: o scanner apoia uma revisão preventiva de evidências técnicas, mas não verifica finalidade, base legal, governança, transparência ou conformidade jurídica.
+Os objetivos foram atendidos no recorte definido: construção do artefato, comparação documental de modelos de desenvolvimento e ferramentas correlatas, definição das etapas de aplicação e avaliação técnica. A hipótese tem apoio parcial. O benchmark da versão 1.2.0 apresentou 18 casos e 120 decisões caso--categoria sem divergências. Na preparação da versão 1.2.2, passaram 208 testes Python e as verificações da extensão, incluindo integração real e instalação isolada. Essas evidências demonstram consistência e integração nos cenários testados; não medem eficácia geral nem confirmam facilidade de uso, que exige estudo com usuários.
 
-A hipótese é parcialmente sustentada. Reproduzido com a versão 1.2.0, o benchmark controlado mostra que as regras se comportaram de acordo com o gabarito em 18 fixtures e 120 decisões caso--categoria, sem divergências. A suíte atual também aprovou 181 testes Python, testes TypeScript, integração real no Extension Host e instalação isolada do VSIX. Esses resultados demonstram consistência interna, integração do artefato e proteção contra regressões, mas não medem eficácia generalizável.
+Na validação externa histórica da versão 1.0.4, Flasky e Chinook apresentaram precisão de 39,58\%, recall de 48,72\% e F1 de 43,68\%. O conjunto de retenção da versão 1.1 orientou melhorias posteriores e deixou de ser independente para avaliá-las. A demonstração de correção na versão 1.2.2 ilustra o fluxo em um caso conhecido; não substitui novo corpus externo nem a revisão independente pendente. Não há evidência para afirmar baixa taxa geral de falsos positivos.
 
-Na validação externa histórica da versão 1.0.4, os conjuntos independentes Flasky e Chinook apresentaram precisão de 39,58\%, recall de 48,72\% e F1 de 43,68\%. O conjunto de retenção da versão 1.1 revelou outros erros que orientaram os filtros da versão 1.2.0 e, por isso, não é utilizado como validação independente da versão atual. Não se afirma que as melhorias tenham produzido baixa taxa geral de falsos positivos; essa conclusão exige novo corpus externo e revisão independente.
-
-Conclui-se que a preparação do uso da ferramenta começa em requisitos e modelagem, com a definição das categorias de dados, da finalidade, da retenção e do perfil. Sua execução principal deve ocorrer durante a implementação, quando já existem código e esquemas analisáveis, e deve ser repetida na revisão de código, nos testes, na integração e após mudanças de manutenção ou evolução. Esse posicionamento pode ser adaptado a cascata, espiral, Scrum e DevSecOps sem afirmar que o projeto adotou formalmente qualquer uma dessas abordagens. Em todos os casos, a ferramenta atua como apoio preliminar: seus achados devem ser interpretados como indícios e submetidos à análise humana. Sua contribuição não é certificar conformidade, mas tornar verificações reproduzíveis, configuráveis e auditáveis no ambiente do desenvolvedor.
+A preparação do uso começa em requisitos e modelagem, com definição dos dados, da finalidade, da retenção e do perfil. A execução ocorre principalmente na implementação e se repete na revisão de código, nos testes, na integração e na evolução do software. Esse posicionamento é adaptável a cascata, espiral, Scrum e DevSecOps, sem alegar adoção formal dessas abordagens. A contribuição consiste em tornar verificações técnicas reproduzíveis e auditáveis no ambiente do desenvolvedor. Finalidade, base legal, controles externos ao escopo e adequação jurídica continuam dependendo de análise humana contextual.
 
 \clearpage
 \phantomsection

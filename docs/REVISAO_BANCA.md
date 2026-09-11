@@ -72,7 +72,16 @@ Artefatos:
 A instalação do teste usa perfil isolado; a extensão no perfil pessoal do
 VS Code não foi substituída automaticamente.
 
-## Parte 3 — Texto e PDF: pendente
+## Parte 3 — Texto e PDF: em validação
+
+Fonte revisado em 10/09/2026: definições e unidades de avaliação, fórmula e
+limites do indicador, versão 1.2.2 separada das métricas históricas,
+demonstração com captura real, limites de cobertura/usabilidade e conclusão
+mais concisa. O estilo textual agora restaura explicitamente os números.
+Cadastro, execução congelada e registro de FN foram conferidos separadamente.
+Falta compilar e inspecionar visualmente a prova antes da entrega.
+
+Checklist da etapa:
 
 - Trabalhar em `latex_tcc/main.tex`, mantendo a comparação do SDLC existente.
 - Explicar TP/FP/FN, precisão/recall/F1, as 120 decisões caso–categoria e a

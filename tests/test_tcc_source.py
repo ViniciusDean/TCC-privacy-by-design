@@ -80,8 +80,8 @@ def test_canonical_tcc_keeps_abnt_structure_and_sources():
 
     assert document_body.index("\\paginaCapa") < document_body.index("\\pagenumbering{arabic}")
     assert document_body.index("\\pagenumbering{arabic}") < document_body.index("\\paginaFolhaRosto")
-    assert content.count("\\captionquadro{") == 5
-    assert content.count("\\fonte{") == 6
+    assert content.count("\\captionquadro{") == 6
+    assert content.count("\\fonte{") == 8
     assert "\\listadequadros" in content
     assert "\\listadetabelas" in content
     assert "\\captiontabela{Resultados da validação externa por projeto}" in content

@@ -312,7 +312,7 @@ This work investigates how Privacy by Design can be incorporated into the softwa
 
 \section{Contextualização}
 
-A produção e o consumo de dados pessoais em escala global intensificaram a digitalização das relações sociais, comerciais e institucionais. Nesse contexto, sistemas de software passaram a ocupar papel central na coleta, no armazenamento, no processamento e na transferência de informações pessoais, o que torna as decisões de projeto e de implementação desses sistemas diretamente relacionadas à proteção da privacidade dos indivíduos.
+Sistemas de informação realizam operações de transferência, armazenamento e processamento de dados que podem afetar a privacidade de maneiras distintas, conforme os dados envolvidos, os participantes e o contexto de uso (Spiekermann; Cranor, 2009, seção 3.1). Neste trabalho, essa relação fundamenta a investigação de decisões de projeto e de implementação observáveis no código-fonte e nos esquemas de dados.
 
 Em resposta a esse cenário, legislações específicas de proteção de dados foram promulgadas em diversas jurisdições. Na União Europeia, o Regulamento Geral sobre a Proteção de Dados (General Data Protection Regulation -- GDPR), aplicável desde maio de 2018, estabeleceu obrigações técnicas e organizacionais aos responsáveis pelo tratamento, com multas administrativas que podem alcançar 4\% do volume de negócios anual total mundial do exercício anterior, conforme as condições do artigo 83 (União Europeia, 2016). No Brasil, a Lei Geral de Proteção de Dados Pessoais (LGPD), promulgada em agosto de 2018 e com vigência geral a partir de setembro de 2020, determina, no artigo 46, a adoção de medidas técnicas e administrativas aptas a proteger dados pessoais, consideradas desde a fase de concepção do produto ou serviço (Brasil, 2018).
 
@@ -374,7 +374,7 @@ A privacidade, enquanto direito individual, precede a era digital, mas a expans�
 
 No ambiente digital, essa perspectiva direciona a análise para as escolhas que definem quais dados o sistema coleta, para que os utiliza, quem pode acessá-los e em quais condições são compartilhados. Cavoukian transpõe essa preocupação para o projeto de sistemas ao defender que a proteção da privacidade seja incorporada desde a concepção (Cavoukian, 2011).
 
-A Lei Geral de Proteção de Dados Pessoais (LGPD) define dado pessoal como informação relacionada a pessoa natural identificada ou identificável (Brasil, 2018, art. 5º, I). O enquadramento não se limita a nome e CPF: identificadores digitais, dados de localização e combinações de atributos também podem ser pessoais quando permitem relacionar a informação a alguém, avaliação que depende do contexto e dos meios disponíveis (União Europeia, 2016, considerando 30).
+A Lei Geral de Proteção de Dados Pessoais (LGPD) define dado pessoal como ``informação relacionada a pessoa natural identificada ou identificável'' (Brasil, 2018, art. 5º, I). O enquadramento não se limita a nome e CPF: identificadores digitais, dados de localização e combinações de atributos também podem ser pessoais quando permitem relacionar a informação a alguém, avaliação que depende do contexto e dos meios disponíveis (União Europeia, 2016, art. 4º, 1, e considerandos 26 e 30).
 
 Aplicações de autenticação, comércio eletrônico, comunicação e recomendação podem tratar dados pessoais e, conforme o conteúdo e a finalidade, também dados pessoais sensíveis nas categorias delimitadas pelo artigo 5º, inciso II, da LGPD. A coleta, a correlação e o uso dessas informações podem produzir diferentes formas de dano ou interferência na vida do titular, motivo pelo qual o risco deve ser avaliado segundo o fluxo concreto de tratamento, e não apenas pelo tipo de aplicação (Brasil, 2018; Solove, 2006).
 
@@ -421,7 +421,7 @@ A LGPD, no artigo 46, exige que os agentes de tratamento adotem medidas técnica
 
 \subsection{Coleta e Retenção Excessiva de Dados}
 
-O princípio da necessidade, previsto no artigo 6º, inciso III, da LGPD, estabelece a limitação do tratamento ao mínimo necessário para a realização de suas finalidades, com dados pertinentes, proporcionais e não excessivos (Brasil, 2018). A privacidade como padrão também orienta a redução da exposição desde o projeto (Cavoukian, 2011).
+O princípio da necessidade exige avaliar se a quantidade e as características dos dados tratados são justificadas pela finalidade, evitando incluir informações dispensáveis à sua realização (Brasil, 2018, art. 6º, III). A privacidade como padrão também orienta a redução da exposição desde o projeto (Cavoukian, 2011).
 
 No código-fonte, formulários extensos, consultas amplas e logs com identificadores podem motivar revisão de necessidade. No esquema de dados, colunas potencialmente pessoais e ausência de rotinas visíveis de retenção ou exclusão também podem motivá-la. Esses sinais não provam excesso sem conhecimento da finalidade, dos prazos e dos controles mantidos fora do código.
 
@@ -447,7 +447,7 @@ O scanner não inspeciona permissões efetivas, políticas de autorização nem 
 
 \subsection{Transferência de Dados a Terceiros sem Base Legal}
 
-A integração com serviços externos pode envolver tratamento ou compartilhamento de dados pessoais e, por isso, exige análise da finalidade, da hipótese legal, da transparência e das salvaguardas aplicáveis.
+A integração com serviços externos pode envolver tratamento ou compartilhamento de dados pessoais e, por isso, exige análise da finalidade, da hipótese legal, da transparência e das salvaguardas aplicáveis (Brasil, 2018, arts. 6º, 7º, 11 e 46).
 
 A mera chamada a uma API não demonstra irregularidade, assim como a ausência de marcador literal no código não prova inexistência de hipótese legal. No artefato, fluxos externos com dados potencialmente pessoais são apresentados como indícios que demandam verificação contextual. Quando o destinatário estiver em outro país ou organismo internacional, também devem ser consideradas as regras específicas de transferência internacional dos artigos 33 a 36 da LGPD (Brasil, 2018).
 
@@ -455,7 +455,7 @@ A mera chamada a uma API não demonstra irregularidade, assim como a ausência d
 
 Incidentes de segurança envolvendo dados pessoais tornam concretos os riscos discutidos nesta seção, embora um relatório regulatório agregado não permita atribuir cada ocorrência a uma falha específica de implementação.
 
-No segundo Relatório de Ciclo de Monitoramento, a ANPD registrou 163 comunicações de incidentes de segurança recebidas entre janeiro e junho de 2023 e informou que ransomware foi a causa mais frequente no período (ANPD, 2023b). O documento contextualiza a existência de ocorrências submetidas à autoridade, mas não individualiza causas técnicas em nível suficiente para afirmar que os padrões examinados pelo scanner originaram esses incidentes.
+No segundo Relatório de Ciclo de Monitoramento, a ANPD registrou 163 comunicações de incidentes de segurança recebidas entre janeiro e junho de 2023. No levantamento amostral descrito no documento, incidentes de ransomware predominaram entre as causas das comunicações (ANPD, 2023b, p. 31--32). O documento contextualiza a existência de ocorrências submetidas à autoridade, mas não individualiza causas técnicas em nível suficiente para afirmar que os padrões examinados pelo scanner originaram esses incidentes.
 
 O relatório divulgado pela IBM agrega custos de detecção e escalonamento, notificação, resposta posterior e perda de negócios em incidentes estudados (IBM, 2023). Essas estimativas não permitem afirmar que um achado do Privacy Scanner LGPD causaria ou evitaria determinado prejuízo.
 
@@ -568,7 +568,7 @@ A pesquisa é conduzida em quatro fases principais, descritas a seguir. A constr
 
 \section{Fase 1: Revisão da Literatura}
 
-A revisão teve caráter narrativo e foi orientada à fundamentação e à construção do artefato. Foram consultadas IEEE Xplore, ACM Digital Library, Scopus e Google Scholar com combinações dos descritores ``Privacy by Design'', ``privacy vulnerabilities'', ``static code analysis'', ``LGPD'', ``privacy engineering'', ``software development lifecycle'', ``waterfall'', ``spiral model'', ``agile'', ``Scrum'', ``DevSecOps'' e ``secure software development framework''. Priorizaram-se publicações de 2009 a 2026, sem excluir obras anteriores reconhecidas como fundacionais para privacidade, Design Science e engenharia de software. Foram considerados artigos revisados por pares, livros de referência e documentos normativos ou técnicos oficiais relacionados ao problema. Como não foi conduzida revisão sistemática com protocolo de seleção e síntese, o levantamento não pretende esgotar a literatura nem demonstrar a inexistência de outras abordagens.
+A revisão teve caráter narrativo e foi orientada à fundamentação e à construção do artefato. O referencial reúne artigos, livros, legislação e documentos técnicos sobre privacidade, Design Science, desenvolvimento de software e análise estática. A conferência bibliográfica utilizou os endereços e identificadores das referências, páginas oficiais e repositórios acadêmicos públicos. Não há registros suficientes para reconstruir buscas por base, combinações de descritores ou critérios cronológicos de seleção; por isso, esses procedimentos não são apresentados como protocolo executado. O levantamento não constitui revisão sistemática, não pretende esgotar a literatura e não demonstra a inexistência de outras abordagens. As fontes sem texto integral acessível são discriminadas no parecer de auditoria que acompanha o trabalho.
 
 Nessa fase, foram realizados dois mapeamentos documentais. O primeiro comparou cascata, espiral, desenvolvimento ágil com Scrum e práticas DevSecOps/SSDF, selecionados por representarem, respectivamente, fluxo preditivo, ciclos orientados a risco, incrementos frequentes e automação contínua. O critério de comparação foi o ponto em que passam a existir código ou esquemas analisáveis, a frequência de repetição e a decisão humana esperada; não foram comparadas produtividade, velocidade ou qualidade geral das abordagens. O segundo mapeamento analisou ferramentas disponíveis no mercado com finalidade correlata, como Veracode, SonarQube, Checkmarx, Snyk Code, Semgrep e GitHub Code Scanning, para identificar a lacuna relativa à verificação específica de padrões técnicos de privacidade. Os dois mapeamentos subsidiaram os requisitos funcionais e o posicionamento do artefato.
 

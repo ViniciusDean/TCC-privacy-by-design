@@ -1,7 +1,8 @@
 # Parecer de referências e originalidade do TCC
 
 Data: 12/09/2026. Texto canônico: [main.tex](../latex_tcc/main.tex).
-Base anterior à auditoria: commit `5faec9e`; primeiro checkpoint: `76b3781`.
+Base anterior à auditoria: commit `5faec9e`; Parte 1: `76b3781`;
+checkpoint da Parte 2 e correções: `46374e3`.
 A revisão abrangeu o texto inteiro, não apenas os parágrafos alterados.
 
 ## Resultado e alcance
@@ -34,8 +35,8 @@ de plágio, similaridade global ou autoria por inteligência artificial.
 2. **Parte 2 concluída com pendências explicitadas:** comparação com legislação,
    documentos oficiais, documentação técnica, artigos e excertos acessíveis;
    oito consultas de frases distintivas; registro das limitações de acesso.
-3. **Parte 3:** correções aplicadas; validação da nova prova registrada na seção
-   de entrega ao final deste parecer.
+3. **Parte 3 concluída:** correções aplicadas, testes aprovados e nova prova
+   compilada e inspecionada. Pendências bibliográficas continuam discriminadas.
 
 ## Cobertura da leitura
 
@@ -45,7 +46,7 @@ de plágio, similaridade global ou autoria por inteligência artificial.
 | Capítulo 1 — Introdução | Conferidas contextualização, justificativa, hipótese, objetivos e estrutura. Corrigida contextualização sem fonte. Argumento sobre custo de correção tardia permanece com pendência de consulta aos livros. |
 | Capítulo 2 — Fundamentação | Examinadas definições de privacidade, normas, sete princípios, riscos, custos e SDLC. Corrigidas citação legal, sustentação de autorização, abrangência de IBM, recorte da ANPD e definição de Scrum. |
 | Capítulo 3 — Metodologia | Separadas DSR e organização própria em quatro fases; removida descrição de buscas acadêmicas não comprovadas. Incluída fonte das métricas e delimitada a interpretação da avaliação. |
-| Capítulo 4 — Resultados obtidos e discussão | Descrição e demonstração confrontadas com o projeto; figura, mapeamento das seis ferramentas, seis quadros, tabela e avaliações controlada/externa examinados. Removidas inferências negativas não demonstradas sobre ferramentas concorrentes. A demonstração não representa estudo com usuários. |
+| Capítulo 4 — Resultados obtidos e discussão | Descrição e demonstração confrontadas com o projeto; figura, mapeamento das seis ferramentas, quadros, tabela e avaliações controlada/externa examinados. Removidas inferências negativas não demonstradas sobre ferramentas concorrentes. A demonstração não representa estudo com usuários. |
 | Capítulo 5 — Limitações e trabalhos futuros | Conferidos limites de cobertura, ausência de estudo com usuários e necessidade de validação externa independente. Propostas futuras preservadas como propostas, sem apresentação como resultados alcançados. |
 | Capítulo 6 — Conclusão | Mantida como síntese dos resultados e limites do estudo; não foi transformada em conclusão jurídica nem em alegação de eficácia geral. |
 | Seis quadros | Todos têm fonte. Os mapeamentos são elaboração própria apoiada nas referências indicadas; a aplicação do scanner a cada modelo não é atribuída como prescrição dos autores. |
@@ -215,5 +216,32 @@ documentos intermediários.
 
 ## Entrega e validação
 
-VALIDACAO_PDF_PENDENTE
+- [Nova prova em PDF](../output/pdf/TCC_Privacy_by_Design_2026_AUDITORIA_REFERENCIAS_PROVA.pdf).
+- [Matriz das 37 referências e linhas das chamadas](AUDITORIA_REFERENCIAS_MATRIZ.csv).
+- [Recibo de verificação e hashes](../output/pdf/TCC_Privacy_by_Design_2026_AUDITORIA_REFERENCIAS_VERIFICACAO.json).
+- [Prova anterior preservada](../output/pdf/TCC_Privacy_by_Design_2026_REVISAO_BANCA_PROVA.pdf).
 
+Validação executada em 12/9/2026:
+
+- `pytest tests/test_tcc_source.py -q`: **7 testes aprovados**.
+- Compilação com `scripts/build_tcc.ps1` e XeLaTeX em três passagens;
+  **51 páginas**, numeração textual de 11 a 50.
+- Conclusão na página impressa 46, em uma página; referências iniciadas na 47.
+- **61 entradas** de sumário/listas conferidas contra os destinos internos do PDF.
+- **37 referências** com chamadas localizadas; seis quadros, uma tabela e uma
+  figura com identificação de fonte; nenhuma referência cruzada indefinida.
+- Renderização de todas as 51 páginas e inspeção em seis folhas de contato.
+  Conferência ampliada das páginas PDF 17, 33 e 49, contendo definição legal,
+  quadro/fórmulas e novas referências.
+- Corrigida a extrapolação de margem no URL da IBM habilitando quebra em hífens.
+  Compilação final sem caixas excedendo margens; avisos de espaçamento
+  remanescentes não apresentaram corte ou sobreposição na inspeção.
+- Conteúdo, numeração, fórmulas, tabelas, figura e links visíveis conferidos.
+  Hash da prova anterior confirmado como inalterado.
+- Nenhuma alteração no código do aplicativo ou nos resultados experimentais
+  foi necessária nesta etapa.
+
+A conclusão operacional desta auditoria é a entrega do texto corrigido e do
+registro explícito do que ainda não pôde ser validado, conforme o critério
+aprovado. A conclusão não equivale a liberação acadêmica sem ressalvas nem a
+um laudo de inexistência de plágio.

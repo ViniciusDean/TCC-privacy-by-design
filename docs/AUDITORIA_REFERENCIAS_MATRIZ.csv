@@ -1,0 +1,38 @@
+﻿id;chamada;titulo;linha_referencia;linhas_chamadas
+1;ANPD, 2023a;Tratamento de dados pessoais para fins acadêmicos e para a realização de estudos e pesquisas: guia orientativo;860;"472;492"
+2;ANPD, 2023b;Relatório de Ciclo de Monitoramento: 1º semestre de 2023;862;458
+3;Beck et al., 2001;Manifesto for Agile Software Development: principles behind the Agile Manifesto;864;"511;560"
+4;Boehm, 1981;Software Engineering Economics;866;"335;462"
+5;Boehm, 1988;Computer;868;"507;560"
+6;Brasil, 1988;Constituição da República Federativa do Brasil de 1988;870;337
+7;Brasil, 2022;Altera a Constituição Federal para incluir a proteção de dados pessoais entre os direitos e garantias fundamentais e para fixar a competência privativa da União para legislar sobre proteção e tratamento de dados pessoais;872;337
+8;Brasil, 2018;Lei Geral de Proteção de Dados Pessoais (LGPD);874;"317;333;377;379;405;420;424;430;438;450;452;468;470;472;492"
+9;Cavoukian, 2011;Privacy by Design in law, policy and practice: a white paper for regulators, decision-makers and policy-makers;876;"319;375;383;405;424;539"
+10;Checkmarx, [s. d.];SAST tool for enterprise code security;878;"327;736;743"
+11;"Chess; West, 2007";Secure Programming with Static Analysis;880;594
+12;Django Oscar, 2026;django-oscar;882;645
+13;GitHub, [s. d.];Code scanning;884;"327;736;743"
+14;Grinberg, 2025;Flasky;886;641
+15;Hevner et al., 2004;Design science in information systems research;888;565
+16;IBM, 2023;IBM report: half of breached organizations unwilling to increase security spend despite soaring breach costs;890;460
+17;"Manning; Raghavan; Schütze, 2008";Introduction to Information Retrieval;892;"630;633"
+18;OWASP Foundation, [s. d.]a;Authorization Cheat Sheet;894;"442;444"
+19;OWASP Foundation, [s. d.]b;Cryptographic Storage Cheat Sheet;896;"418;432"
+20;OWASP Foundation, [s. d.]c;Logging Cheat Sheet;898;"436;438"
+21;OWASP Foundation, [s. d.]d;OWASP Software Assurance Maturity Model (SAMM): version 2.0;900;"515;560"
+22;OWASP Foundation, [s. d.]e;Password Storage Cheat Sheet;902;"418;432"
+23;PEAK-TCC, 2026;back-end;904;641
+24;"Pressman; Maxim, 2016";Engenharia de Software: uma abordagem profissional;906;"335;462;503;539"
+25;Rocha, 2025;Chinook Database;908;641
+26;"Schwaber; Sutherland, 2020";The Scrum Guide;910;"511;560"
+27;Semgrep, [s. d.];Introduction to Semgrep;912;"327;736;743"
+28;Snyk, [s. d.];Snyk Code;914;"327;736;743"
+29;Solove, 2006;A taxonomy of privacy;916;379
+30;SonarSource, [s. d.];Homepage: SonarQube Server;918;"327;736;743"
+31;"Souppaya; Scarfone; Dodson, 2022";Secure Software Development Framework (SSDF) Version 1.1: recommendations for mitigating the risk of software vulnerabilities;920;"499;515;539;560"
+32;"Spiekermann; Cranor, 2009";Engineering Privacy;922;"315;410;412"
+33;Spring Projects, 2026;Spring PetClinic;924;645
+34;União Europeia, 2016;Regulamento Geral sobre a Proteção de Dados;926;"317;319;377;383;405;430"
+35;Veracode, 2026;Scan code;928;"327;736;743"
+36;Westin, 1967;Privacy and Freedom;930;373
+37;White, 2025;Northwind-SQLite3;932;645

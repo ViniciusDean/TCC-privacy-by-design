@@ -26,7 +26,7 @@
 \usepackage{array}
 \usepackage{enumitem}
 \usepackage{etoolbox}
-\usepackage{url}
+\usepackage[hyphens]{url}
 \usepackage[hidelinks]{hyperref}
 
 \makeatletter
@@ -415,7 +415,7 @@ As subseções seguintes apresentam riscos que fundamentam o recorte do artefato
 
 \subsection{Proteção Criptográfica não Evidenciada no Armazenamento}
 
-A exposição de um armazenamento pode revelar diretamente informações mantidas em formato legível ou senhas protegidas por mecanismo inadequado. O controle apropriado depende do tipo de dado, do risco e da arquitetura: senhas demandam funções de derivação resistentes, enquanto outros dados podem exigir criptografia, tokenização, segregação e controle de acesso (Chess; West, 2007; OWASP Foundation, [s. d.]a; OWASP Foundation, [s. d.]c). Por isso, o artefato identifica ausência de evidência local de proteção, e não conclui que toda informação pessoal deva receber o mesmo mecanismo criptográfico.
+A exposição de um armazenamento pode revelar diretamente informações mantidas em formato legível ou senhas protegidas por mecanismo inadequado. O controle apropriado depende do tipo de dado, do risco e da arquitetura: senhas demandam funções de derivação resistentes, enquanto outros dados podem exigir criptografia, tokenização, segregação e controle de acesso (OWASP Foundation, [s. d.]b; OWASP Foundation, [s. d.]e). Por isso, o artefato identifica ausência de evidência local de proteção, e não conclui que toda informação pessoal deva receber o mesmo mecanismo criptográfico.
 
 A LGPD, no artigo 46, exige que os agentes de tratamento adotem medidas técnicas e administrativas aptas a proteger dados pessoais contra acessos não autorizados e situações acidentais ou ilícitas (Brasil, 2018). A ausência de evidência de proteção no trecho analisado é, portanto, um ponto de revisão; não demonstra, isoladamente, ausência do controle em outras camadas.
 
@@ -429,19 +429,19 @@ No código-fonte, formulários extensos, consultas amplas e logs com identificad
 
 O artigo 4º, item 5, do GDPR denomina pseudonimização o tratamento que impede atribuir os dados a uma pessoa sem informação adicional, desde que essa informação seja mantida separadamente e protegida (União Europeia, 2016). A LGPD define anonimização em função dos meios técnicos razoáveis e disponíveis no momento do tratamento e reconhece hipóteses em que a reversão por meios próprios ou mediante esforços razoáveis faz com que os dados continuem sujeitos à lei (Brasil, 2018, arts. 5º, XI, e 12). Assim, a anonimização não é tratada neste trabalho como garantia abstrata de irreversibilidade, mas como resultado dependente da técnica e do contexto.
 
-Quando identificadores diretos não são necessários à finalidade, pseudonimização, anonimização, segregação e controle de acesso podem reduzir a exposição. Funções de derivação de senha são apropriadas para verificação sem recuperação do segredo, enquanto dados que precisam ser recuperados demandam controles compatíveis, como criptografia e gestão de chaves (OWASP Foundation, [s. d.]a; OWASP Foundation, [s. d.]c). A ausência de uma técnica isolada não demonstra irregularidade; constitui aspecto a ser revisto à luz da finalidade e dos demais controles.
+Quando identificadores diretos não são necessários à finalidade, pseudonimização, anonimização, segregação e controle de acesso podem reduzir a exposição. Funções de derivação de senha são apropriadas para verificação sem recuperação do segredo, enquanto dados que precisam ser recuperados demandam controles compatíveis, como criptografia e gestão de chaves (OWASP Foundation, [s. d.]b; OWASP Foundation, [s. d.]e). A ausência de uma técnica isolada não demonstra irregularidade; constitui aspecto a ser revisto à luz da finalidade e dos demais controles.
 
 \subsection{Registro Excessivo de Informações em Logs}
 
-Os registros de log apoiam operação, investigação e auditoria, mas também podem reproduzir identificadores, tokens, parâmetros de requisição e conteúdo de erros. A orientação da OWASP recomenda excluir ou mascarar segredos, dados de autenticação e informações pessoais cuja gravação não seja necessária (OWASP Foundation, [s. d.]b).
+Os registros de log apoiam operação, investigação e auditoria, mas também podem reproduzir identificadores, tokens, parâmetros de requisição e conteúdo de erros. A orientação da OWASP recomenda excluir ou mascarar segredos, dados de autenticação e informações pessoais cuja gravação não seja necessária (OWASP Foundation, [s. d.]c).
 
-O risco depende do conteúdo registrado, dos perfis de acesso, do prazo de retenção e do eventual encaminhamento a serviços de monitoramento. Os dados pessoais presentes em logs permanecem submetidos às medidas de segurança previstas na LGPD; por isso, sua presença é tratada como ponto de revisão contextual, e não como prova automática de violação (Brasil, 2018, art. 46; OWASP Foundation, [s. d.]b).
+O risco depende do conteúdo registrado, dos perfis de acesso, do prazo de retenção e do eventual encaminhamento a serviços de monitoramento. Os dados pessoais presentes em logs permanecem submetidos às medidas de segurança previstas na LGPD; por isso, sua presença é tratada como ponto de revisão contextual, e não como prova automática de violação (Brasil, 2018, art. 46; OWASP Foundation, [s. d.]c).
 
 \subsection{Ausência de Controle de Acesso a Dados Pessoais}
 
-O controle de acesso busca restringir consulta, modificação e exclusão de dados às identidades e funções autorizadas. Contas com privilégios excessivos ou verificações ausentes nas camadas de aplicação podem ampliar o impacto de erro ou comprometimento de credenciais (Chess; West, 2007).
+O controle de acesso busca restringir consulta, modificação e exclusão de dados às identidades e funções autorizadas. Contas com privilégios excessivos ou verificações ausentes nas camadas de aplicação podem ampliar o impacto de erro ou comprometimento de credenciais (OWASP Foundation, [s. d.]a).
 
-No nível do banco de dados, essa vulnerabilidade se manifesta em contas com privilégios excessivos, na ausência de segregação entre perfis de acesso de leitura e escrita, e na inexistência de controles por linha ou coluna para dados especialmente sensíveis. No código-fonte, manifesta-se em rotas de API que não verificam a autorização do usuário antes de retornar dados pessoais, e em consultas que não filtram os resultados pelo identificador do usuário autenticado.
+A revisão deve verificar se cada identidade recebe somente as permissões necessárias e se a autorização é conferida para a operação e o recurso solicitados. Uma rota que permite consultar dados de outra pessoa sem a permissão correspondente é um exemplo de falha; a escolha entre controles na aplicação e no banco depende da arquitetura e dos requisitos de acesso (OWASP Foundation, [s. d.]a).
 
 O scanner não inspeciona permissões efetivas, políticas de autorização nem controles por linha ou coluna. Assim, a discussão desses riscos integra a fundamentação do trabalho e não deve ser interpretada como funcionalidade avaliada do artefato.
 
@@ -457,7 +457,7 @@ Incidentes de segurança envolvendo dados pessoais tornam concretos os riscos di
 
 No segundo Relatório de Ciclo de Monitoramento, a ANPD registrou 163 comunicações de incidentes de segurança recebidas entre janeiro e junho de 2023. No levantamento amostral descrito no documento, incidentes de ransomware predominaram entre as causas das comunicações (ANPD, 2023b, p. 31--32). O documento contextualiza a existência de ocorrências submetidas à autoridade, mas não individualiza causas técnicas em nível suficiente para afirmar que os padrões examinados pelo scanner originaram esses incidentes.
 
-O relatório divulgado pela IBM agrega custos de detecção e escalonamento, notificação, resposta posterior e perda de negócios em incidentes estudados (IBM, 2023). Essas estimativas não permitem afirmar que um achado do Privacy Scanner LGPD causaria ou evitaria determinado prejuízo.
+A divulgação do estudo pela IBM apresenta estimativas de custos de violações de dados e destaca despesas de detecção e escalonamento (IBM, 2023). Essas estimativas não permitem afirmar que um achado do Privacy Scanner LGPD causaria ou evitaria determinado prejuízo.
 
 Separadamente, a literatura de engenharia de software discute o aumento do esforço de correção quando defeitos permanecem até fases posteriores (Boehm, 1981; Pressman; Maxim, 2016). Os dois conjuntos de evidências possuem objetos, amostras e unidades diferentes; neste trabalho, sustentam apenas a justificativa qualitativa para antecipar revisões, não uma estimativa comum de custo ou benefício.
 
@@ -508,7 +508,7 @@ O modelo espiral organiza o desenvolvimento em ciclos orientados a objetivos, al
 
 \subsection{Desenvolvimento Ágil e Scrum}
 
-Os princípios do desenvolvimento ágil valorizam entregas frequentes de software funcionando e atenção contínua à excelência técnica e ao bom projeto (Beck et al., 2001). O Scrum, especificamente, é um framework iterativo e incremental no qual cada incremento precisa atender à \textit{Definition of Done}, descrição formal das medidas de qualidade exigidas para o produto (Schwaber; Sutherland, 2020). A equipe pode incorporar a revisão técnica de privacidade a esses critérios, executar o scanner durante a implementação de cada item e repetir a análise antes de considerar o incremento concluído. Essa integração é uma possibilidade de uso dentro do Scrum, e não uma prática prescrita originalmente pelo framework.
+Os princípios do desenvolvimento ágil valorizam entregas frequentes de software funcionando e atenção contínua à excelência técnica e ao bom projeto (Beck et al., 2001). No Scrum, o trabalho avança por iterações e incrementos; um incremento só é considerado concluído quando satisfaz os critérios de qualidade explicitados na \textit{Definition of Done} (Schwaber; Sutherland, 2020, seção Commitment: Definition of Done). A equipe pode incorporar a revisão técnica de privacidade a esses critérios, executar o scanner durante a implementação de cada item e repetir a análise antes de considerar o incremento concluído. Essa integração é uma possibilidade de uso dentro do Scrum, e não uma prática prescrita originalmente pelo framework.
 
 \subsection{DevOps, DevSecOps e SSDF}
 
@@ -591,14 +591,14 @@ As decisões desta fase são documentadas e justificadas nesta metodologia e ret
 
 \section{Fase 3: Construção do Artefato}
 
-A terceira fase compreende o desenvolvimento da ferramenta. O artefato é composto por dois módulos principais:
+A terceira fase compreende o desenvolvimento da ferramenta. A análise estática integra a revisão do software e produz resultados que precisam ser interpretados no contexto do código (Chess; West, 2007, cap. 3). O artefato é composto por dois módulos principais:
 
 \begin{itemize}
 \item Módulo de análise de código-fonte: realiza a varredura estática de arquivos de código em busca de padrões associados a riscos de privacidade, como dados pessoais codificados diretamente no código-fonte, criptografia fraca, registro de dados pessoais em logs, coleta excessiva, transferência externa sem marcador de base legal e ausência de mecanismos de exclusão ou anonimização;
 \item Módulo de análise de esquema de banco de dados: inspeciona tabelas, colunas e índices de bancos SQLite, identificando indícios como ausência de proteção aparente em campos sensíveis, uso de dados pessoais como chave primária ou índice único, ausência de evidência de retenção ou exclusão lógica e mistura excessiva entre dados identificáveis e dados operacionais.
 \end{itemize}
 
-Ao final da análise, a ferramenta gera um relatório técnico com a indicação dos achados, a classificação por nível de risco, um indicador operacional de severidade e recomendações de correção alinhadas à LGPD e aos sete princípios do PbD. A partir da versão 1.1, perfis conservador, equilibrado e completo passaram a controlar categorias, confiança mínima e severidade exibida sem apagar a severidade-base. Na versão 1.2.0, o contrato foi ampliado para distinguir achados brutos dos exibidos pelo perfil, manter os dois indicadores técnicos e registrar supressões por identificadores estáveis. Essa separação permite auditar o efeito da configuração sem apresentar um resultado filtrado como se fosse o universo integral da análise.
+Ao final da análise, a ferramenta gera um relatório técnico com a indicação dos achados, a classificação por nível de risco, um indicador operacional de severidade e recomendações de revisão segundo o recorte de LGPD e PbD delimitado na fundamentação. A partir da versão 1.1, perfis conservador, equilibrado e completo passaram a controlar categorias, confiança mínima e severidade exibida sem apagar a severidade-base. Na versão 1.2.0, o contrato foi ampliado para distinguir achados brutos dos exibidos pelo perfil, manter os dois indicadores técnicos e registrar supressões por identificadores estáveis. Essa separação permite auditar o efeito da configuração sem apresentar um resultado filtrado como se fosse o universo integral da análise.
 
 A extensão foi evoluída para que o fluxo principal seja executado por ações clicáveis na barra lateral, no título do editor, nos menus de contexto do editor e do Explorer e na barra de status. Um assistente permite configurar o perfil por pasta, inclusive em espaços de trabalho com múltiplas pastas, e somente grava alterações após confirmação. A análise automática usa um intervalo de estabilização (\textit{debounce}), respeita tempo limite configurável e não substitui o resumo canônico de uma varredura completa por resultados isolados de arquivos abertos ou salvos. Na análise de diretório, dependências, artefatos gerados, testes e exemplos intencionalmente vulneráveis podem ser excluídos por \texttt{.privacyignore}; esses arquivos permanecem analisáveis individualmente.
 
@@ -627,10 +627,10 @@ FN: falso negativo & Categoria esperada, mas não detectada. & Ocorrência esper
 TN: negativo correto & Categoria nem esperada nem detectada no caso. & Não contabilizado: não foi enumerado um universo de ocorrências negativas. \\
 \hline
 \end{tabular}
-\fonte{elaboração própria a partir dos protocolos de avaliação do artefato (2026)}
+\fonte{elaboração própria a partir dos protocolos do artefato (2026) e das classes de avaliação de Manning, Raghavan e Schütze (2008, seção 8.3)}
 \end{quadro}
 
-A precisão ($P$) mede a proporção de positivos corretos entre os alertas avaliados; o recall ($R$) mede a proporção detectada entre os positivos esperados. A medida F1 combina precisão e recall pela média harmônica:
+A precisão ($P$) mede a proporção de positivos corretos entre os alertas avaliados; o recall ($R$) mede a proporção detectada entre os positivos esperados. A medida F1 combina precisão e recall pela média harmônica (Manning; Raghavan; Schütze, 2008, seção 8.3):
 \[
 P=\frac{TP}{TP+FP},\qquad
 R=\frac{TP}{TP+FN},\qquad
@@ -709,11 +709,11 @@ Após salvar e analisar novamente o mesmo escopo, os totais bruto e exibido pass
 
 \section{Ferramentas Correlatas e Identificação da Lacuna}
 
-Foi realizada uma comparação documental de seis ferramentas selecionadas por sua presença em fluxos de SAST, revisão automatizada ou \textit{code scanning}. A análise considerou as funções declaradas em documentação pública consultada em julho de 2026; não foram executados ensaios comparativos de cobertura, precisão ou desempenho.
+Foi realizada uma comparação documental de seis ferramentas selecionadas por sua presença em fluxos de SAST, revisão automatizada ou \textit{code scanning}. A análise considerou as funções declaradas em documentação pública reconferida em setembro de 2026; não foram executados ensaios comparativos de cobertura, precisão ou desempenho.
 
 \subsection{Critérios de comparação}
 
-Para organizar o mapeamento, foram adotados cinco critérios de comparação: finalidade principal, tipo de análise, momento de aplicação no ciclo de desenvolvimento, relação explicitamente documentada com privacidade e diferença de escopo em relação ao artefato. A comparação foi baseada na documentação pública consultada em julho de 2026; ela não afirma que ferramentas extensíveis não possam ser configuradas com regras adicionais de privacidade. O Quadro~\ref{qua:ferramentas-correlatas} apresenta a síntese.
+Para organizar o mapeamento, foram adotados cinco critérios de comparação: finalidade principal, tipo de análise, momento de aplicação no ciclo de desenvolvimento, relação explicitamente documentada com privacidade e diferença de escopo em relação ao artefato. A comparação foi baseada na documentação pública reconferida em setembro de 2026; ela não afirma que ferramentas extensíveis não possam ser configuradas com regras adicionais de privacidade. O Quadro~\ref{qua:ferramentas-correlatas} apresenta a síntese.
 
 \begin{quadro}[htbp]
 \centering
@@ -751,9 +751,9 @@ A análise das ferramentas correlatas permite organizar a diferença do artefato
 \begin{itemize}
 \item Veracode, Checkmarx e Snyk Code priorizam segurança de aplicação, enquanto o Privacy Scanner LGPD prioriza privacidade técnica e tratamento de dados pessoais;
 \item SonarQube amplia o foco para qualidade e segurança do código, enquanto o Privacy Scanner LGPD delimita seu escopo a padrões de risco à privacidade;
-\item Semgrep oferece alta flexibilidade por meio de regras, mas não é, por padrão, uma ferramenta especializada em LGPD ou Privacy by Design;
+\item Semgrep admite regras próprias e execução em diferentes pontos do fluxo; o artefato deste estudo organiza um conjunto inicial de categorias e relatórios voltados à revisão técnica de privacidade;
 \item GitHub Code Scanning integra alertas de segurança ao repositório, enquanto o Privacy Scanner LGPD integra a revisão de privacidade ao Visual Studio Code e a relatórios HTML, PDF e JSON;
-\item as ferramentas consolidadas podem apoiar indiretamente programas de proteção de dados, mas não substituem uma análise específica de padrões como coleta excessiva, ausência de exclusão, ausência de retenção, dados pessoais em logs e esquema de banco sem evidência de controles de privacidade.
+\item neste estudo, o recorte escolhido reúne indícios de coleta excessiva, exclusão, retenção, dados pessoais em logs e controles no esquema; esse agrupamento delimita a contribuição do artefato e não demonstra incapacidade das demais ferramentas de implementar verificações semelhantes.
 \end{itemize}
 
 Desse modo, a lacuna identificada é um espaço para uma ferramenta simples, local e orientada ao desenvolvedor que traduza princípios de privacidade em verificações técnicas iniciais aplicáveis ao código-fonte e ao esquema. O Privacy Scanner LGPD busca contribuir nesse espaço como apoio preliminar à revisão técnica, sem pretensão de substituir plataformas consolidadas, auditorias jurídicas, programas de governança ou avaliações humanas contextualizadas.
@@ -861,7 +861,7 @@ AUTORIDADE NACIONAL DE PROTEÇÃO DE DADOS (ANPD). \tituloref{Tratamento de dado
 
 AUTORIDADE NACIONAL DE PROTEÇÃO DE DADOS (ANPD). \tituloref{Relatório de Ciclo de Monitoramento: 1º semestre de 2023}. Versão 1.0. Brasília, DF: ANPD, 2023b. Disponível em: \href{https://www.gov.br/anpd/pt-br/acesso-a-informacao/acoes-e-programas/governanca/governanca-estrategica/2023-11-07-relatorio-do-ciclo-de-monitoramento-2023-versao-final.pdf/%40%40display-file/file}{\nolinkurl{https://www.gov.br/anpd/pt-br/assuntos/noticias/anpd-publica-o-segundo-relatorio-de-ciclo-de-monitoramento}}. Acesso em: 23 jul. 2026.
 
-BECK, Kent et al. \tituloref{Manifesto for Agile Software Development}. 2001. Disponível em: \url{https://agilemanifesto.org/}. Acesso em: 26 jul. 2026.
+BECK, Kent et al. \tituloref{Manifesto for Agile Software Development: principles behind the Agile Manifesto}. 2001. Disponível em: \url{https://agilemanifesto.org/principles.html}. Acesso em: 12 set. 2026.
 
 BOEHM, Barry W. \tituloref{Software Engineering Economics}. Englewood Cliffs: Prentice-Hall, 1981.
 
@@ -873,29 +873,33 @@ BRASIL. Emenda Constitucional n. 115, de 10 de fevereiro de 2022. \tituloref{Alt
 
 BRASIL. Lei n. 13.709, de 14 de agosto de 2018. \tituloref{Lei Geral de Proteção de Dados Pessoais (LGPD)}. Diário Oficial da União: seção 1, Brasília, DF, n. 157, p. 59, 15 ago. 2018. Disponível em: \url{https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709compilado.htm}. Acesso em: 23 jul. 2026.
 
-CAVOUKIAN, Ann. \tituloref{Privacy by Design in law, policy and practice: a white paper for regulators, decision-makers and policy-makers}. Toronto: Information and Privacy Commissioner of Ontario, 2011. Disponível em: \url{https://www.ipc.on.ca/en/media/1779/download?attachment=}. Acesso em: 23 jul. 2026.
+CAVOUKIAN, Ann. \tituloref{Privacy by Design in law, policy and practice: a white paper for regulators, decision-makers and policy-makers}. Toronto: Information and Privacy Commissioner of Ontario, 2011. Disponível em: \url{https://www.ipc.on.ca/en/media/1779/download}. Acesso em: 12 set. 2026.
 
-CHECKMARX. \tituloref{SAST tool for enterprise code security}. [S. l.]: Checkmarx, [s. d.]. Disponível em: \url{https://checkmarx.com/cxsast-source-code-scanning/}. Acesso em: 23 jul. 2026.
+CHECKMARX. \tituloref{SAST tool for enterprise code security}. [S. l.]: Checkmarx, [s. d.]. Disponível em: \url{https://checkmarx.com/cxsast-source-code-scanning/}. Acesso em: 12 set. 2026.
 
 CHESS, Brian; WEST, Jacob. \tituloref{Secure Programming with Static Analysis}. Boston: Addison-Wesley, 2007.
 
 DJANGO OSCAR. \tituloref{django-oscar}. Versão do commit 8bbd588298ae, 8 jul. 2026. GitHub. Disponível em: \href{https://github.com/django-oscar/django-oscar/tree/8bbd588298ae139edc0e8114e9b567b3973fd397}{\nolinkurl{https://github.com/django-oscar/django-oscar/tree/8bbd588298ae}}. Acesso em: 23 jul. 2026.
 
-GITHUB. \tituloref{Code scanning}. GitHub Docs. [S. l.]: GitHub, [s. d.]. Disponível em: \url{https://docs.github.com/en/code-security/concepts/code-scanning/code-scanning}. Acesso em: 23 jul. 2026.
+GITHUB. \tituloref{Code scanning}. GitHub Docs. [S. l.]: GitHub, [s. d.]. Disponível em: \url{https://docs.github.com/en/code-security/concepts/code-scanning/code-scanning}. Acesso em: 12 set. 2026.
 
 GRINBERG, Miguel. \tituloref{Flasky}. Versão do commit 3beedd640b91, 6 abr. 2025. GitHub. Disponível em: \href{https://github.com/miguelgrinberg/flasky/tree/3beedd640b9146b0bd65c8c2ecf402b01798bc33}{\nolinkurl{https://github.com/miguelgrinberg/flasky/tree/3beedd640b91}}. Acesso em: 23 jul. 2026.
 
 HEVNER, Alan R.; MARCH, Salvatore T.; PARK, Jinsoo; RAM, Sudha. \tituloref{Design science in information systems research}. MIS Quarterly, [S. l.], v. 28, n. 1, p. 75--105, 2004. DOI: 10.2307/25148625.
 
-IBM. \tituloref{IBM report: half of breached organizations unwilling to increase security spend despite soaring breach costs}. Armonk, NY: IBM, 24 jul. 2023. Disponível em: \href{https://newsroom.ibm.com/2023-07-24-IBM-Report-Half-of-Breached-Organizations-Unwilling-to-Increase-Security-Spend-Despite-Soaring-Breach-Costs}{\nolinkurl{https://newsroom.ibm.com/}}. Acesso em: 23 jul. 2026.
+IBM. \tituloref{IBM report: half of breached organizations unwilling to increase security spend despite soaring breach costs}. Cambridge, MA: IBM, 24 jul. 2023. Disponível em: \url{https://newsroom.ibm.com/2023-07-24-IBM-Report-Half-of-Breached-Organizations-Unwilling-to-Increase-Security-Spend-Despite-Soaring-Breach-Costs}. Acesso em: 12 set. 2026.
 
-OWASP FOUNDATION. \tituloref{Cryptographic Storage Cheat Sheet}. OWASP Cheat Sheet Series. [S. l.]: OWASP Foundation, [s. d.]a. Disponível em:\linebreak \url{https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html}. Acesso em: 23 jul. 2026.
+MANNING, Christopher D.; RAGHAVAN, Prabhakar; SCHÜTZE, Hinrich. \tituloref{Introduction to Information Retrieval}. Cambridge: Cambridge University Press, 2008. Disponível em: \url{https://nlp.stanford.edu/IR-book/information-retrieval-book.html}. Acesso em: 12 set. 2026.
 
-OWASP FOUNDATION. \tituloref{Logging Cheat Sheet}. OWASP Cheat Sheet Series. [S. l.]: OWASP Foundation, [s. d.]b. Disponível em: \url{https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html}. Acesso em: 23 jul. 2026.
+OWASP FOUNDATION. \tituloref{Authorization Cheat Sheet}. OWASP Cheat Sheet Series. [S. l.]: OWASP Foundation, [s. d.]a. Disponível em: \url{https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html}. Acesso em: 12 set. 2026.
 
-OWASP FOUNDATION. \tituloref{Password Storage Cheat Sheet}. OWASP Cheat Sheet Series. [S. l.]: OWASP Foundation, [s. d.]c. Disponível em: \url{https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html}. Acesso em: 23 jul. 2026.
+OWASP FOUNDATION. \tituloref{Cryptographic Storage Cheat Sheet}. OWASP Cheat Sheet Series. [S. l.]: OWASP Foundation, [s. d.]b. Disponível em:\linebreak \url{https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html}. Acesso em: 12 set. 2026.
 
-OWASP FOUNDATION. \tituloref{OWASP Software Assurance Maturity Model (SAMM): version 2.0}. [S. l.]: OWASP Foundation, [s. d.]d. Disponível em: \url{https://owaspsamm.org/model/}. Acesso em: 26 jul. 2026.
+OWASP FOUNDATION. \tituloref{Logging Cheat Sheet}. OWASP Cheat Sheet Series. [S. l.]: OWASP Foundation, [s. d.]c. Disponível em: \url{https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html}. Acesso em: 12 set. 2026.
+
+OWASP FOUNDATION. \tituloref{OWASP Software Assurance Maturity Model (SAMM): version 2.0}. [S. l.]: OWASP Foundation, [s. d.]d. Disponível em: \url{https://owaspsamm.org/model/}. Acesso em: 12 set. 2026.
+
+OWASP FOUNDATION. \tituloref{Password Storage Cheat Sheet}. OWASP Cheat Sheet Series. [S. l.]: OWASP Foundation, [s. d.]e. Disponível em: \url{https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html}. Acesso em: 12 set. 2026.
 
 PEAK-TCC. \tituloref{back-end}. Versão do commit 7503f50c8d78, 3 jun. 2026. GitHub. Disponível em: \href{https://github.com/PEAK-TCC/back-end/tree/7503f50c8d785f1ef60a557a4cb780d004108f3a}{\nolinkurl{https://github.com/PEAK-TCC/back-end/tree/7503f50c8d78}}. Acesso em: 23 jul. 2026.
 
@@ -905,13 +909,13 @@ ROCHA, Luis. \tituloref{Chinook Database}. Versão do commit 7f67772503d7, 5 out
 
 SCHWABER, Ken; SUTHERLAND, Jeff. \tituloref{The Scrum Guide}. [S. l.]: autores, nov. 2020. Disponível em: \url{https://scrumguides.org/docs/scrumguide/v2020/2020-Scrum-Guide-US.pdf}. Acesso em: 26 jul. 2026.
 
-SEMGREP. \tituloref{Introduction to Semgrep}. [S. l.]: Semgrep, [s. d.]. Disponível em: \url{https://docs.semgrep.dev/introduction}. Acesso em: 23 jul. 2026.
+SEMGREP. \tituloref{Introduction to Semgrep}. [S. l.]: Semgrep, [s. d.]. Disponível em: \url{https://docs.semgrep.dev/introduction}. Acesso em: 12 set. 2026.
 
-SNYK. \tituloref{Snyk Code}. [S. l.]: Snyk, [s. d.]. Disponível em: \url{https://docs.snyk.io/scan-with-snyk/snyk-code}. Acesso em: 23 jul. 2026.
+SNYK. \tituloref{Snyk Code}. [S. l.]: Snyk, [s. d.]. Disponível em: \url{https://snyk.io/product/snyk-code/}. Acesso em: 12 set. 2026.
 
 SOLOVE, Daniel J. \tituloref{A taxonomy of privacy}. University of Pennsylvania Law Review, [S. l.], v. 154, n. 3, p. 477--564, jan. 2006. DOI: 10.2307/40041279.
 
-SONARSOURCE. \tituloref{Advanced Security: SonarQube Server}. [S. l.]: SonarSource, [s. d.]. Disponível em: \url{https://docs.sonarsource.com/sonarqube-server/advanced-security}. Acesso em: 23 jul. 2026.
+SONARSOURCE. \tituloref{Homepage: SonarQube Server}. [S. l.]: SonarSource, [s. d.]. Disponível em: \url{https://docs.sonarsource.com/sonarqube-server}. Acesso em: 12 set. 2026.
 
 SOUPPAYA, Murugiah; SCARFONE, Karen; DODSON, Donna. \tituloref{Secure Software Development Framework (SSDF) Version 1.1: recommendations for mitigating the risk of software vulnerabilities}. Gaithersburg, MD: National Institute of Standards and Technology, 2022. (NIST Special Publication 800-218). DOI: 10.6028/NIST.SP.800-218. Disponível em: \url{https://doi.org/10.6028/NIST.SP.800-218}. Acesso em: 26 jul. 2026.
 
@@ -921,7 +925,7 @@ SPRING PROJECTS. \tituloref{Spring PetClinic}. Versão do commit 51045d1648da, 6
 
 UNIÃO EUROPEIA. Regulamento (UE) 2016/679 do Parlamento Europeu e do Conselho, de 27 de abril de 2016. \tituloref{Regulamento Geral sobre a Proteção de Dados}. Jornal Oficial da União Europeia, Luxemburgo, L 119, p. 1--88, 4 maio 2016. Disponível em: \url{https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32016R0679}. Acesso em: 23 jul. 2026.
 
-VERACODE. \tituloref{Scan code}. Veracode Docs. [S. l.]: Veracode, 8 jun. 2026. Disponível em: \url{https://docs.veracode.com/r/c_static_overview}. Acesso em: 23 jul. 2026.
+VERACODE. \tituloref{Scan code}. Veracode Docs. [S. l.]: Veracode, 8 set. 2026. Disponível em: \url{https://docs.veracode.com/r/c_static_overview}. Acesso em: 12 set. 2026.
 
 WESTIN, Alan F. \tituloref{Privacy and Freedom}. New York: Atheneum, 1967.
 

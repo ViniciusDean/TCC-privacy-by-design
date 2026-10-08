@@ -12,7 +12,7 @@ def test_canonical_tcc_has_required_defense_sections():
     assert "\\section{Privacy by Design e Cobertura do Artefato}" in content
     assert "\\section{Posicionamento da Revisão de Privacidade no SDLC}" in content
     assert "\\subsection{Rastreabilidade e Ameaças à Validade}" in content
-    assert "\\chapter{CONCLUSÃO}" in content
+    assert "\\chapter{CONSIDERAÇÕES FINAIS}" in content
     assert "caso--categoria" in content
 
 
@@ -80,8 +80,8 @@ def test_canonical_tcc_keeps_abnt_structure_and_sources():
 
     assert document_body.index("\\paginaCapa") < document_body.index("\\pagenumbering{arabic}")
     assert document_body.index("\\pagenumbering{arabic}") < document_body.index("\\paginaFolhaRosto")
-    assert content.count("\\captionquadro{") == 6
-    assert content.count("\\fonte{") == 8
+    assert content.count("\\captionquadro{") == 11
+    assert content.count("\\fonte{") == 26
     assert "\\listadequadros" in content
     assert "\\listadetabelas" in content
     assert "\\captiontabela{Resultados da validação externa por projeto}" in content
@@ -108,3 +108,21 @@ def test_canonical_tcc_does_not_restore_unsupported_claims():
         "evaluation/real_projects/projects.json",
     ):
         assert required in content
+
+
+def test_canonical_tcc_follows_advisor_review_october_2026():
+    content = SOURCE.read_text(encoding="utf-8")
+
+    assert "\\chapter*{INTRODUÇÃO}" in content
+    assert "\\chapter{INTRODUÇÃO}" not in content
+    assert "\\chapter{METODOLOGIA}" not in content
+    assert "\\secaointro{Metodologia}" in content
+    assert "segurança de software." in content
+    assert "a pesquisa foi orientada pela seguinte pergunta-problema" in content
+    assert "\\item foram revisados os fundamentos teóricos" in content
+    assert "label=\\alph*)" in content
+    for chapter in ("\\chapter{TECNOLOGIAS}", "\\chapter{REQUISITOS}", "\\chapter{RESULTADOS}"):
+        assert chapter in content
+    assert content.index("\\chapter{TECNOLOGIAS}") < content.index("\\chapter{REQUISITOS}") < content.index("\\chapter{RESULTADOS}")
+    for label in ("qua:rf", "qua:rnf", "qua:regras-deteccao", "qua:atendimento"):
+        assert "\\label{%s}" % label in content

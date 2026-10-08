@@ -1,10 +1,8 @@
 # LaTeX do TCC
 
-Arquivos gerados a partir de `TCC.pdf` e do modelo Word `modelo-TCC-SEG-Prof. Adilson-20261S.docx`.
+Fonte LaTeX do TCC, baseada no modelo Word `assets/modelo-TCC-SEG-Prof. Adilson-20261S.docx`. A versão final compilada está em `../entrega/`.
 
 - `main.tex`: arquivo principal em LaTeX, baseado no modelo do professor.
-- `main_normas_utf_backup.tex`: backup da primeira versão gerada no template `normas-utf-tex`.
-- `texto_extraido_pdf.txt`: texto bruto extraído do PDF para conferência.
 - `assets/image1.png`: imagem institucional extraída do modelo Word.
 
 ## Observações

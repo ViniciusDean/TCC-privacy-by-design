@@ -59,7 +59,6 @@ TCC/
 |-- server.py                     # API Flask usada pela extensão VS Code
 |-- requirements.txt              # Dependências Python
 |-- pytest.ini                    # Configuração dos testes
-|-- push_github.bat               # Script local para commit/push
 |-- setup_windows.bat             # Setup inicial no Windows
 |-- validate_project.bat          # Validação local do projeto
 |
@@ -84,10 +83,15 @@ TCC/
 |-- scripts/
 |   |-- create_test_workspace.py  # Recria workspace externo de testes
 |
-|-- docs/
-|   |-- DEMO.md
-|   |-- FASE_1_ESTABILIZACAO.md
+|-- docs/                        # Demonstração, auditoria de referências e revisão da banca
+|-- latex_tcc/main.tex           # Fonte LaTeX do TCC
+|-- entrega/                     # Versão final do TCC (PDF e DOCX)
+|-- output/presentation/          # Apresentação e roteiro da banca
+|-- output/release/              # VSIX atual da extensão
 ```
+
+Arquivos antigos (versões anteriores do TCC, provas em PDF e VSIX antigos) foram
+movidos para o repositório privado `ViniciusDean/TCC-privacy-by-design-arquivo`.
 
 ## Desenvolvimento local
 
@@ -445,12 +449,6 @@ Validação geral:
 validate_project.bat
 ```
 
-Commit e push:
-
-```powershell
-push_github.bat
-```
-
 ## Status
 
 Implementado:
@@ -475,13 +473,13 @@ Implementado:
 - validação externa adjudicada em PEAK, Flasky e Chinook SQLite;
 - apresentação e roteiro de defesa em `output/presentation/`.
 
-### Release 1.2.1
+### Pacote 1.2.2
 
-- `output/release/privacy-scanner-lgpd-1.2.1.vsix`: pacote instalável atual,
+- `output/release/privacy-scanner-lgpd-1.2.2.vsix`: pacote instalável atual,
   com o backend incluído.
 - SHA-256:
-  `523BBFDF65DB6FB073358DA1EC7497F6C3851C31BCF8627C6382416ACBAF57A1`.
-- `output/release/SHA256SUMS.txt`: hashes dos artefatos da release.
+  `825FAC393979A36501FAF25D81677E66F4C7623A256992AE6F3908231C1D11E3`.
+- `output/release/SHA256SUMS.txt`: hash do pacote.
 
 ### Gerar extensão instalável
 
@@ -489,7 +487,7 @@ Implementado:
 cd vscode-extension
 npm install
 npm run package
-code --install-extension .\privacy-scanner-lgpd-1.2.1.vsix --force
+code --install-extension .\privacy-scanner-lgpd-1.2.2.vsix --force
 ```
 
 O VSIX inclui o backend Python e funciona sem manter o repositório do TCC

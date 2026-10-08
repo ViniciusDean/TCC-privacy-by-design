@@ -10,7 +10,6 @@ TCC/
 ├── server.py                 ← Servidor Flask (NEW)
 ├── exemplo_vulneravel.py
 ├── exemplo_correto.py
-├── teste_word_boundary.py
 └── vscode-extension/         ← Extensão VS Code (NEW)
     ├── src/
     │   └── extension.ts

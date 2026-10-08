@@ -10,7 +10,7 @@ from docx.shared import Cm, Pt
 
 
 ROOT = Path(__file__).resolve().parents[1]
-TEMPLATE = ROOT / "modelo-TCC-SEG-Prof. Adilson-20261S.docx"
+TEMPLATE = ROOT / "latex_tcc" / "assets" / "modelo-TCC-SEG-Prof. Adilson-20261S.docx"
 TEX = ROOT / "latex_tcc" / "main.tex"
 OUT = ROOT / "TCC_Vinicius_Dean_modelo_Adilson.docx"
 LOGO = ROOT / "latex_tcc" / "assets" / "image1.png"

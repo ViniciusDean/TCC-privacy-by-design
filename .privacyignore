@@ -3,7 +3,6 @@
 exemplo_vulneravel.py
 exemplo_vulneravel.java
 exemplo_parcial.py
-teste_word_boundary.py
 examples/vulnerable/
 
 # A suíte contém trechos vulneráveis usados como fixtures de teste.

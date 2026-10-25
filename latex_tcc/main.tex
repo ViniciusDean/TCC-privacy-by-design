@@ -507,7 +507,7 @@ A mera chamada a uma API não demonstra irregularidade, assim como a ausência d
 
 Incidentes de segurança envolvendo dados pessoais tornam concretos os riscos discutidos nesta seção, embora um relatório regulatório agregado não permita atribuir cada ocorrência a uma falha específica de implementação.
 
-No segundo Relatório de Ciclo de Monitoramento, a ANPD registrou 163 comunicações de incidentes de segurança recebidas entre janeiro e junho de 2023. No levantamento amostral descrito no documento, incidentes de ransomware predominaram entre as causas das comunicações (ANPD, 2023b, p. 31--32). O documento contextualiza a existência de ocorrências submetidas à autoridade, mas não individualiza causas técnicas em nível suficiente para afirmar que os padrões examinados pelo scanner originaram esses incidentes.
+No segundo Relatório de Ciclo de Monitoramento, a ANPD registrou 163 comunicações de incidentes de segurança recebidas entre janeiro e junho de 2023. No levantamento amostral descrito no documento, incidentes de ransomware predominaram entre as causas das comunicações (ANPD, 2023a, p. 31-32). O documento contextualiza a existência de ocorrências submetidas à autoridade, mas não individualiza causas técnicas em nível suficiente para afirmar que os padrões examinados pelo scanner originaram esses incidentes.
 
 A divulgação do estudo pela IBM apresenta estimativas de custos de violações de dados e destaca despesas de detecção e escalonamento (IBM, 2023). Essas estimativas não permitem afirmar que um achado do Privacy Scanner LGPD causaria ou evitaria determinado prejuízo.
 
@@ -521,7 +521,7 @@ O artigo 6º da LGPD elenca dez princípios, entre eles finalidade, adequação,
 
 O artigo 46 da LGPD é especialmente relevante para este trabalho, pois determina a adoção de medidas técnicas e administrativas aptas a proteger dados pessoais. O artefato observa somente evidências técnicas limitadas no código e no esquema; por isso, seus resultados devem ser lidos como pontos de revisão, e não como conclusão de atendimento ou descumprimento de obrigação legal (Brasil, 2018).
 
-O Quadro~\ref{qua:regras-lgpd} apresenta referências normativas potencialmente relacionadas às regras. Ele não estabelece equivalência entre um padrão encontrado e uma obrigação jurídica individual. O artigo 13 da LGPD é contextual a estudos em saúde pública, e o artigo 26 disciplina uso compartilhado de dados pelo Poder Público; por isso, não são empregados como fundamento genérico para pseudonimização ou transferência a terceiros (ANPD, 2023a; Brasil, 2018).
+O Quadro~\ref{qua:regras-lgpd} apresenta referências normativas potencialmente relacionadas às regras. Ele não estabelece equivalência entre um padrão encontrado e uma obrigação jurídica individual. O artigo 13 da LGPD é contextual a estudos em saúde pública, e o artigo 26 disciplina uso compartilhado de dados pelo Poder Público; por isso, não são empregados como fundamento genérico para pseudonimização ou transferência a terceiros (ANPD, 2023b; Brasil, 2018).
 
 \begin{quadro}[htbp]
 \centering
@@ -541,7 +541,7 @@ Base legal não evidenciada & Integração externa ou esquema sem marcador técn
 Identificador direto ou acesso a revisar & CPF/e-mail como chave ou rota/log com dado identificável. & Art. 6, VII e VIII; art. 46. & Revisar modelo de dados, perfis de acesso, pseudonimização e necessidade operacional. \\
 \hline
 \end{tabular}
-\fonte{elaboração própria com base em Brasil (2018) e ANPD (2023a)}
+\fonte{elaboração própria com base em Brasil (2018) e ANPD (2023b)}
 \end{quadro}
 
 Esse mapeamento orienta recomendações de revisão técnica e a redação dos relatórios. A decisão sobre adequação à LGPD depende de finalidade, contexto, salvaguardas organizacionais e avaliação humana.
@@ -698,25 +698,25 @@ Nesta seção, são apresentadas as tecnologias e ferramentas utilizadas no dese
 
 \section{Python}
 
-Python é uma linguagem de programação de alto nível, com estruturas de dados eficientes e uma abordagem simples e eficaz à programação orientada a objetos (Python Software Foundation, [s. d.]c). No artefato, Python foi adotado no módulo servidor e nos três analisadores. A escolha considerou a rapidez de prototipação, a ampla biblioteca padrão e, principalmente, a disponibilidade do módulo \texttt{ast}, que permite processar a árvore sintática abstrata de programas Python (Python Software Foundation, [s. d.]a). Com esse módulo, o analisador Python examina atribuições, chamadas de função, parâmetros e classes sem executar o código analisado, o que atende ao requisito de análise estática descrito na Seção 4.
+Python é uma linguagem de programação de propósito geral, de alto nível e sintaxe legível, que oferece recursos nativos para diferentes paradigmas, entre eles a orientação a objetos (Python Software Foundation, [s. d.]c). No artefato, Python foi adotado no módulo servidor e nos três analisadores. A escolha considerou a rapidez de prototipação, a ampla biblioteca padrão e, principalmente, a disponibilidade do módulo \texttt{ast}, que permite processar a árvore sintática abstrata de programas Python (Python Software Foundation, [s. d.]a). Com esse módulo, o analisador Python examina atribuições, chamadas de função, parâmetros e classes sem executar o código analisado, o que atende ao requisito de análise estática descrito na Seção 4.
 
 Para o código Java, que não pode ser interpretado pelo módulo \texttt{ast}, foi implementado em Python um analisador léxico conservador, baseado em expressões regulares aplicadas a instruções do código-fonte. Essa decisão evitou exigir compilador Java ou resolução de tipos na máquina do desenvolvedor, ao custo de uma análise menos precisa, como discutido nas limitações.
 
 \section{Flask}
 
-Flask é um framework leve para aplicações web, projetado para tornar o início do desenvolvimento rápido e simples, com possibilidade de crescer para aplicações mais complexas (Pallets, [s. d.]). No Privacy Scanner LGPD, o Flask foi utilizado para expor uma API local, executada em \texttt{localhost}, com rotas de verificação de estado, análise de arquivo, análise de diretório, análise de banco de dados e exportação de relatórios. Foi escolhido por exigir pouca configuração e por permitir que a extensão do editor e a linha de comando utilizem o mesmo núcleo de análise. A execução restrita à máquina local evita o envio do código analisado a serviços externos, decisão coerente com o tema de privacidade do trabalho.
+Flask é um framework web para Python de estrutura mínima: fornece o necessário para definir rotas e respostas HTTP e deixa a cargo de cada projeto a escolha de componentes adicionais, o que permite começar com pouco código e ampliar a aplicação conforme a necessidade (Pallets, [s. d.]). No Privacy Scanner LGPD, o Flask foi utilizado para expor uma API local, executada em \texttt{localhost}, com rotas de verificação de estado, análise de arquivo, análise de diretório, análise de banco de dados e exportação de relatórios. Foi escolhido por exigir pouca configuração e por permitir que a extensão do editor e a linha de comando utilizem o mesmo núcleo de análise. A execução restrita à máquina local evita o envio do código analisado a serviços externos, decisão coerente com o tema de privacidade do trabalho.
 
 \section{SQLite}
 
-SQLite é uma biblioteca que implementa um mecanismo de banco de dados SQL autocontido, sem servidor, sem configuração e transacional (SQLite, [s. d.]). O SQLite foi selecionado como primeiro banco de dados suportado pelo analisador de esquemas porque um banco inteiro fica contido em um único arquivo e pode ser inspecionado pelo módulo \texttt{sqlite3} da biblioteca padrão do Python, sem instalação de servidor (Python Software Foundation, [s. d.]b). Essa característica simplificou a leitura de tabelas, colunas, chaves primárias e índices únicos e permitiu montar casos de teste reproduzíveis. O suporte a PostgreSQL e MySQL foi registrado como trabalho futuro.
+SQLite é um mecanismo de banco de dados relacional distribuído na forma de biblioteca, que dispensa processo servidor e configuração prévia e oferece suporte a transações (SQLite, [s. d.]). O SQLite foi selecionado como primeiro banco de dados suportado pelo analisador de esquemas porque cada banco é mantido em um único arquivo, que pode ser inspecionado pelo módulo \texttt{sqlite3} da biblioteca padrão do Python, sem instalação de servidor (Python Software Foundation, [s. d.]b). Essa característica simplificou a leitura de tabelas, colunas, chaves primárias e índices únicos e permitiu montar casos de teste reproduzíveis. O suporte a PostgreSQL e MySQL foi registrado como trabalho futuro.
 
 \section{ReportLab}
 
-O ReportLab oferece um conjunto de ferramentas de código aberto para construir documentos PDF a partir de objetos Python (ReportLab, [s. d.]). No artefato, a biblioteca foi utilizada para gerar o relatório em PDF, ao lado dos relatórios em JSON e HTML produzidos pelo próprio gerador de relatórios. A escolha permitiu produzir um documento portátil, adequado para anexar a revisões de código ou a registros de acompanhamento, sem depender de ferramentas externas de conversão.
+O ReportLab é uma biblioteca de código aberto voltada à geração programática de documentos PDF, na qual textos, tabelas e elementos gráficos são compostos por meio de código Python (ReportLab, [s. d.]). No artefato, a biblioteca foi utilizada para gerar o relatório em PDF, ao lado dos relatórios em JSON e HTML produzidos pelo próprio gerador de relatórios. A escolha permitiu produzir um documento portátil, adequado para anexar a revisões de código ou a registros de acompanhamento, sem depender de ferramentas externas de conversão.
 
 \section{TypeScript e Node.js}
 
-TypeScript é uma linguagem que acrescenta tipagem estática ao JavaScript e é a linguagem utilizada nos exemplos e modelos oficiais de extensões para o Visual Studio Code (Microsoft, [s. d.]c; Microsoft, [s. d.]a). A extensão do Privacy Scanner LGPD foi escrita em TypeScript e executada no ambiente Node.js, um ambiente de execução de JavaScript assíncrono orientado a eventos (OpenJS Foundation, [s. d.]). A tipagem estática foi escolhida para reduzir erros na comunicação com a API local, pois as respostas do servidor seguem um contrato com campos de achados, resumos, perfis e indicadores que precisam ser interpretados de forma consistente pela interface.
+TypeScript é uma linguagem que acrescenta tipagem estática ao JavaScript e é a linguagem utilizada nos exemplos e modelos oficiais de extensões para o Visual Studio Code (Microsoft, [s. d.]c; Microsoft, [s. d.]a). A extensão do Privacy Scanner LGPD foi escrita em TypeScript e executada no Node.js, plataforma que permite rodar JavaScript fora do navegador e que trata operações de entrada e saída de forma assíncrona, por meio de eventos (OpenJS Foundation, [s. d.]). A tipagem estática foi escolhida para reduzir erros na comunicação com a API local, pois as respostas do servidor seguem um contrato com campos de achados, resumos, perfis e indicadores que precisam ser interpretados de forma consistente pela interface.
 
 \section{Visual Studio Code e Extension API}
 
@@ -724,15 +724,15 @@ O Visual Studio Code foi projetado para ser extensível, e sua Extension API per
 
 \section{esbuild e vsce}
 
-O esbuild é um empacotador de código para a web caracterizado pela alta velocidade (Esbuild, [s. d.]). Ele foi utilizado para reunir o código TypeScript compilado da extensão em um único arquivo JavaScript. Em seguida, a ferramenta \texttt{vsce}, indicada na documentação oficial do Visual Studio Code para empacotar e publicar extensões, gerou o pacote VSIX instalável (Microsoft, [s. d.]b). Essa combinação permitiu distribuir versões fechadas da ferramenta, cada uma identificada por número de versão e soma de verificação, e testar a instalação em um perfil isolado do editor.
+O esbuild é uma ferramenta de empacotamento de código JavaScript e TypeScript cujo principal diferencial declarado é a velocidade de geração dos pacotes (Esbuild, [s. d.]). Ele foi utilizado para reunir o código TypeScript compilado da extensão em um único arquivo JavaScript. Em seguida, a ferramenta \texttt{vsce}, indicada na documentação oficial do Visual Studio Code para empacotar e publicar extensões, gerou o pacote VSIX instalável (Microsoft, [s. d.]b). Essa combinação permitiu distribuir versões fechadas da ferramenta, cada uma identificada por número de versão e soma de verificação, e testar a instalação em um perfil isolado do editor.
 
 \section{pytest}
 
-O pytest é um framework que facilita a escrita de testes pequenos e legíveis e que também se estende a testes funcionais de aplicações e bibliotecas (Pytest-dev Team, [s. d.]). Ele foi adotado para a suíte automatizada do módulo servidor, que cobre os analisadores Python, Java e SQLite, os perfis, o gerador de relatórios, o contrato da API Flask, o benchmark e a sincronização de versão. A escolha permitiu repetir todas as verificações a cada alteração das regras e detectar regressões antes da geração de novas versões.
+O pytest é um framework de testes para Python que permite escrever casos de teste curtos, baseados em asserções simples, e que pode ser empregado tanto em testes unitários quanto em testes funcionais mais amplos (Pytest-dev Team, [s. d.]). Ele foi adotado para a suíte automatizada do módulo servidor, que cobre os analisadores Python, Java e SQLite, os perfis, o gerador de relatórios, o contrato da API Flask, o benchmark e a sincronização de versão. A escolha permitiu repetir todas as verificações a cada alteração das regras e detectar regressões antes da geração de novas versões.
 
 \section{Git e GitHub}
 
-O Git é um sistema de controle de versão distribuído, que registra as alterações de arquivos ao longo do tempo e permite recuperar versões anteriores (Chacon; Straub, 2014). Todo o desenvolvimento foi versionado com Git, o que possibilitou fixar as versões da ferramenta, as regras congeladas antes de cada avaliação e os commits dos projetos externos utilizados na validação. O código-fonte foi hospedado no GitHub, no repositório \url{https://github.com/ViniciusDean/TCC-privacy-by-design}, que também reúne o benchmark, o gabarito, os scripts de avaliação e as versões empacotadas da extensão.
+O Git é um sistema distribuído de controle de versão: cada cópia do repositório mantém o histórico completo do projeto, o que permite comparar, restaurar e ramificar versões dos arquivos (Chacon; Straub, 2014). Todo o desenvolvimento foi versionado com Git, o que possibilitou fixar as versões da ferramenta, as regras congeladas antes de cada avaliação e os commits dos projetos externos utilizados na validação. O código-fonte foi hospedado no GitHub, no repositório \url{https://github.com/ViniciusDean/TCC-privacy-by-design}, que também reúne o benchmark, o gabarito, os scripts de avaliação e as versões empacotadas da extensão.
 
 \section{Síntese das Escolhas Tecnológicas}
 
@@ -1275,23 +1275,23 @@ Os perfis configuráveis foram incorporados com opções predefinidas conservado
 \RaggedRight
 \urlstyle{same}
 
-AUTORIDADE NACIONAL DE PROTEÇÃO DE DADOS (ANPD). \tituloref{Tratamento de dados pessoais para fins acadêmicos e para a realização de estudos e pesquisas: guia orientativo}. Versão 1.0. Brasília, DF: ANPD, 2023a. Disponível em: \url{https://www.gov.br/anpd/pt-br/centrais-de-conteudo/materiais-educativos-e-publicacoes/web-guia-anpd-tratamento-de-dados-para-fins-academicos.pdf/@@display-file/file}. Acesso em: 23 jul. 2026.
+AUTORIDADE NACIONAL DE PROTEÇÃO DE DADOS (ANPD). \tituloref{Relatório de Ciclo de Monitoramento}: 1º semestre de 2023. Versão 1.0. Brasília, DF: ANPD, 2023a. Disponível em: \href{https://www.gov.br/anpd/pt-br/acesso-a-informacao/acoes-e-programas/governanca/governanca-estrategica/2023-11-07-relatorio-do-ciclo-de-monitoramento-2023-versao-final.pdf/%40%40display-file/file}{\nolinkurl{https://www.gov.br/anpd/pt-br/assuntos/noticias/anpd-publica-o-segundo-relatorio-de-ciclo-de-monitoramento}}. Acesso em: 23 jul. 2026.
 
-AUTORIDADE NACIONAL DE PROTEÇÃO DE DADOS (ANPD). \tituloref{Relatório de Ciclo de Monitoramento: 1º semestre de 2023}. Versão 1.0. Brasília, DF: ANPD, 2023b. Disponível em: \href{https://www.gov.br/anpd/pt-br/acesso-a-informacao/acoes-e-programas/governanca/governanca-estrategica/2023-11-07-relatorio-do-ciclo-de-monitoramento-2023-versao-final.pdf/%40%40display-file/file}{\nolinkurl{https://www.gov.br/anpd/pt-br/assuntos/noticias/anpd-publica-o-segundo-relatorio-de-ciclo-de-monitoramento}}. Acesso em: 23 jul. 2026.
+AUTORIDADE NACIONAL DE PROTEÇÃO DE DADOS (ANPD). \tituloref{Tratamento de dados pessoais para fins acadêmicos e para a realização de estudos e pesquisas}: guia orientativo. Versão 1.0. Brasília, DF: ANPD, 2023b. Disponível em: \url{https://www.gov.br/anpd/pt-br/centrais-de-conteudo/materiais-educativos-e-publicacoes/web-guia-anpd-tratamento-de-dados-para-fins-academicos.pdf/@@display-file/file}. Acesso em: 23 jul. 2026.
 
-BECK, Kent et al. \tituloref{Manifesto for Agile Software Development: principles behind the Agile Manifesto}. 2001. Disponível em: \url{https://agilemanifesto.org/principles.html}. Acesso em: 12 set. 2026.
+BECK, Kent et al. \tituloref{Manifesto for Agile Software Development}: principles behind the Agile Manifesto. 2001. Disponível em: \url{https://agilemanifesto.org/principles.html}. Acesso em: 12 set. 2026.
 
 BOEHM, Barry W. \tituloref{Software Engineering Economics}. Englewood Cliffs: Prentice-Hall, 1981.
 
-BOEHM, Barry W. A spiral model of software development and enhancement. \tituloref{Computer}, [S. l.], v. 21, n. 5, p. 61--72, maio 1988. DOI: 10.1109/2.59. Disponível em: \url{https://doi.org/10.1109/2.59}. Acesso em: 26 jul. 2026.
+BOEHM, Barry W. A spiral model of software development and enhancement. \tituloref{Computer}, [S. l.], v. 21, n. 5, p. 61-72, maio 1988. DOI: 10.1109/2.59. Disponível em: \url{https://doi.org/10.1109/2.59}. Acesso em: 26 jul. 2026.
 
 BRASIL. [Constituição (1988)]. \tituloref{Constituição da República Federativa do Brasil de 1988}. Brasília, DF: Presidência da República, 1988. Disponível em: \url{https://www.planalto.gov.br/ccivil_03/constituicao/constituicao.htm}. Acesso em: 23 jul. 2026.
 
-BRASIL. Emenda Constitucional n. 115, de 10 de fevereiro de 2022. \tituloref{Altera a Constituição Federal para incluir a proteção de dados pessoais entre os direitos e garantias fundamentais e para fixar a competência privativa da União para legislar sobre proteção e tratamento de dados pessoais}. Diário Oficial da União: seção 1, Brasília, DF, ed. 30, p. 2, 11 fev. 2022. Disponível em: \url{https://www.planalto.gov.br/ccivil_03/constituicao/emendas/emc/emc115.htm}. Acesso em: 23 jul. 2026.
+BRASIL. Lei n. 13.709, de 14 de agosto de 2018. Lei Geral de Proteção de Dados Pessoais (LGPD). \tituloref{Diário Oficial da União}: seção 1, Brasília, DF, ano 155, n. 157, p. 59-64, 15 ago. 2018. Disponível em: \url{https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709compilado.htm}. Acesso em: 23 jul. 2026.
 
-BRASIL. Lei n. 13.709, de 14 de agosto de 2018. \tituloref{Lei Geral de Proteção de Dados Pessoais (LGPD)}. Diário Oficial da União: seção 1, Brasília, DF, n. 157, p. 59, 15 ago. 2018. Disponível em: \url{https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709compilado.htm}. Acesso em: 23 jul. 2026.
+BRASIL. Emenda Constitucional n. 115, de 10 de fevereiro de 2022. Altera a Constituição Federal para incluir a proteção de dados pessoais entre os direitos e garantias fundamentais e para fixar a competência privativa da União para legislar sobre proteção e tratamento de dados pessoais. \tituloref{Diário Oficial da União}: seção 1, Brasília, DF, ed. 30, p. 2, 11 fev. 2022. Disponível em: \url{https://www.planalto.gov.br/ccivil_03/constituicao/emendas/emc/emc115.htm}. Acesso em: 23 jul. 2026.
 
-CAVOUKIAN, Ann. \tituloref{Privacy by Design in law, policy and practice: a white paper for regulators, decision-makers and policy-makers}. Toronto: Information and Privacy Commissioner of Ontario, 2011. Disponível em: \url{https://www.ipc.on.ca/en/media/1779/download}. Acesso em: 12 set. 2026.
+CAVOUKIAN, Ann. \tituloref{Privacy by Design in law, policy and practice}: a white paper for regulators, decision-makers and policy-makers. Toronto: Information and Privacy Commissioner of Ontario, 2011. Disponível em: \url{https://www.ipc.on.ca/en/media/1779/download}. Acesso em: 12 set. 2026.
 
 CHACON, Scott; STRAUB, Ben. \tituloref{Pro Git}. 2. ed. New York: Apress, 2014. Disponível em: \url{https://git-scm.com/book/en/v2}. Acesso em: 8 out. 2026.
 
@@ -1301,13 +1301,13 @@ CHESS, Brian; WEST, Jacob. \tituloref{Secure Programming with Static Analysis}. 
 
 DJANGO OSCAR. \tituloref{django-oscar}. Versão do commit 8bbd588298ae, 8 jul. 2026. GitHub. Disponível em: \href{https://github.com/django-oscar/django-oscar/tree/8bbd588298ae139edc0e8114e9b567b3973fd397}{\nolinkurl{https://github.com/django-oscar/django-oscar/tree/8bbd588298ae}}. Acesso em: 23 jul. 2026.
 
-ESBUILD. \tituloref{esbuild: an extremely fast bundler for the web}. [S. l.]: esbuild, [s. d.]. Disponível em: \url{https://esbuild.github.io/}. Acesso em: 8 out. 2026.
+ESBUILD. \tituloref{esbuild}: an extremely fast bundler for the web. [S. l.]: esbuild, [s. d.]. Disponível em: \url{https://esbuild.github.io/}. Acesso em: 8 out. 2026.
 
 GITHUB. \tituloref{Code scanning}. GitHub Docs. [S. l.]: GitHub, [s. d.]. Disponível em: \url{https://docs.github.com/en/code-security/concepts/code-scanning/code-scanning}. Acesso em: 12 set. 2026.
 
 GRINBERG, Miguel. \tituloref{Flasky}. Versão do commit 3beedd640b91, 6 abr. 2025. GitHub. Disponível em: \href{https://github.com/miguelgrinberg/flasky/tree/3beedd640b9146b0bd65c8c2ecf402b01798bc33}{\nolinkurl{https://github.com/miguelgrinberg/flasky/tree/3beedd640b91}}. Acesso em: 23 jul. 2026.
 
-HEVNER, Alan R.; MARCH, Salvatore T.; PARK, Jinsoo; RAM, Sudha. \tituloref{Design science in information systems research}. MIS Quarterly, [S. l.], v. 28, n. 1, p. 75--105, 2004. DOI: 10.2307/25148625.
+HEVNER, Alan R.; MARCH, Salvatore T.; PARK, Jinsoo; RAM, Sudha. Design science in information systems research. \tituloref{MIS Quarterly}, [S. l.], v. 28, n. 1, p. 75-105, 2004. DOI: 10.2307/25148625.
 
 IBM. \tituloref{IBM report: half of breached organizations unwilling to increase security spend despite soaring breach costs}. Cambridge, MA: IBM, 24 jul. 2023. Disponível em: \url{https://newsroom.ibm.com/2023-07-24-IBM-Report-Half-of-Breached-Organizations-Unwilling-to-Increase-Security-Spend-Despite-Soaring-Breach-Costs}. Acesso em: 12 set. 2026.
 
@@ -1327,7 +1327,7 @@ OWASP FOUNDATION. \tituloref{Cryptographic Storage Cheat Sheet}. OWASP Cheat She
 
 OWASP FOUNDATION. \tituloref{Logging Cheat Sheet}. OWASP Cheat Sheet Series. [S. l.]: OWASP Foundation, [s. d.]c. Disponível em: \url{https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html}. Acesso em: 12 set. 2026.
 
-OWASP FOUNDATION. \tituloref{OWASP Software Assurance Maturity Model (SAMM): version 2.0}. [S. l.]: OWASP Foundation, [s. d.]d. Disponível em: \url{https://owaspsamm.org/model/}. Acesso em: 12 set. 2026.
+OWASP FOUNDATION. \tituloref{OWASP Software Assurance Maturity Model (SAMM)}: version 2.0. [S. l.]: OWASP Foundation, [s. d.]d. Disponível em: \url{https://owaspsamm.org/model/}. Acesso em: 12 set. 2026.
 
 OWASP FOUNDATION. \tituloref{Password Storage Cheat Sheet}. OWASP Cheat Sheet Series. [S. l.]: OWASP Foundation, [s. d.]e. Disponível em: \url{https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html}. Acesso em: 12 set. 2026.
 
@@ -1335,13 +1335,13 @@ PALLETS. \tituloref{Welcome to Flask}. Flask Documentation (3.1.x). [S. l.]: Pal
 
 PEAK-TCC. \tituloref{back-end}. Versão do commit 7503f50c8d78, 3 jun. 2026. GitHub. Disponível em: \href{https://github.com/PEAK-TCC/back-end/tree/7503f50c8d785f1ef60a557a4cb780d004108f3a}{\nolinkurl{https://github.com/PEAK-TCC/back-end/tree/7503f50c8d78}}. Acesso em: 23 jul. 2026.
 
-PRESSMAN, Roger S.; MAXIM, Bruce R. \tituloref{Engenharia de Software: uma abordagem profissional}. 8. ed. Porto Alegre: AMGH, 2016.
+PRESSMAN, Roger S.; MAXIM, Bruce R. \tituloref{Engenharia de Software}: uma abordagem profissional. 8. ed. Porto Alegre: AMGH, 2016.
 
-PYTEST-DEV TEAM. \tituloref{pytest: helps you write better programs}. [S. l.]: pytest-dev, [s. d.]. Disponível em: \url{https://docs.pytest.org/en/stable/}. Acesso em: 8 out. 2026.
+PYTEST-DEV TEAM. \tituloref{pytest}: helps you write better programs. [S. l.]: pytest-dev, [s. d.]. Disponível em: \url{https://docs.pytest.org/en/stable/}. Acesso em: 8 out. 2026.
 
-PYTHON SOFTWARE FOUNDATION. \tituloref{ast: Abstract Syntax Trees}. Python Documentation. [S. l.]: Python Software Foundation, [s. d.]a. Disponível em: \url{https://docs.python.org/3/library/ast.html}. Acesso em: 8 out. 2026.
+PYTHON SOFTWARE FOUNDATION. \tituloref{ast}: Abstract Syntax Trees. Python Documentation. [S. l.]: Python Software Foundation, [s. d.]a. Disponível em: \url{https://docs.python.org/3/library/ast.html}. Acesso em: 8 out. 2026.
 
-PYTHON SOFTWARE FOUNDATION. \tituloref{sqlite3: DB-API 2.0 interface for SQLite databases}. Python Documentation. [S. l.]: Python Software Foundation, [s. d.]b. Disponível em: \url{https://docs.python.org/3/library/sqlite3.html}. Acesso em: 8 out. 2026.
+PYTHON SOFTWARE FOUNDATION. \tituloref{sqlite3}: DB-API 2.0 interface for SQLite databases. Python Documentation. [S. l.]: Python Software Foundation, [s. d.]b. Disponível em: \url{https://docs.python.org/3/library/sqlite3.html}. Acesso em: 8 out. 2026.
 
 PYTHON SOFTWARE FOUNDATION. \tituloref{The Python Tutorial}. Python Documentation. [S. l.]: Python Software Foundation, [s. d.]c. Disponível em: \url{https://docs.python.org/3/tutorial/index.html}. Acesso em: 8 out. 2026.
 
@@ -1355,19 +1355,19 @@ SEMGREP. \tituloref{Introduction to Semgrep}. [S. l.]: Semgrep, [s. d.]. Dispon�
 
 SNYK. \tituloref{Snyk Code}. [S. l.]: Snyk, [s. d.]. Disponível em: \url{https://snyk.io/product/snyk-code/}. Acesso em: 12 set. 2026.
 
-SOLOVE, Daniel J. \tituloref{A taxonomy of privacy}. University of Pennsylvania Law Review, [S. l.], v. 154, n. 3, p. 477--564, jan. 2006. DOI: 10.2307/40041279.
+SOLOVE, Daniel J. A taxonomy of privacy. \tituloref{University of Pennsylvania Law Review}, [S. l.], v. 154, n. 3, p. 477-564, jan. 2006. DOI: 10.2307/40041279.
 
 SONARSOURCE. \tituloref{Homepage: SonarQube Server}. [S. l.]: SonarSource, [s. d.]. Disponível em: \url{https://docs.sonarsource.com/sonarqube-server}. Acesso em: 12 set. 2026.
 
-SOUPPAYA, Murugiah; SCARFONE, Karen; DODSON, Donna. \tituloref{Secure Software Development Framework (SSDF) Version 1.1: recommendations for mitigating the risk of software vulnerabilities}. Gaithersburg, MD: National Institute of Standards and Technology, 2022. (NIST Special Publication 800-218). DOI: 10.6028/NIST.SP.800-218. Disponível em: \url{https://doi.org/10.6028/NIST.SP.800-218}. Acesso em: 26 jul. 2026.
+SOUPPAYA, Murugiah; SCARFONE, Karen; DODSON, Donna. \tituloref{Secure Software Development Framework (SSDF) Version 1.1}: recommendations for mitigating the risk of software vulnerabilities. Gaithersburg, MD: National Institute of Standards and Technology, 2022. (NIST Special Publication 800-218). DOI: 10.6028/NIST.SP.800-218. Disponível em: \url{https://doi.org/10.6028/NIST.SP.800-218}. Acesso em: 26 jul. 2026.
 
-SPIEKERMANN, Sarah; CRANOR, Lorrie Faith. \tituloref{Engineering Privacy}. IEEE Transactions on Software Engineering, [S. l.], v. 35, n. 1, p. 67--82, jan./fev. 2009. DOI: 10.1109/TSE.2008.88. Disponível em: \url{https://doi.org/10.1109/TSE.2008.88}. Acesso em: 23 jul. 2026.
+SPIEKERMANN, Sarah; CRANOR, Lorrie Faith. Engineering privacy. \tituloref{IEEE Transactions on Software Engineering}, [S. l.], v. 35, n. 1, p. 67-82, jan./fev. 2009. DOI: 10.1109/TSE.2008.88. Disponível em: \url{https://doi.org/10.1109/TSE.2008.88}. Acesso em: 23 jul. 2026.
 
 SPRING PROJECTS. \tituloref{Spring PetClinic}. Versão do commit 51045d1648da, 6 jul. 2026. GitHub. Disponível em: \href{https://github.com/spring-projects/spring-petclinic/tree/51045d1648dad955df586150c1a1a6e22ef400c2}{\nolinkurl{https://github.com/spring-projects/spring-petclinic/tree/51045d1648da}}. Acesso em: 23 jul. 2026.
 
 SQLITE. \tituloref{About SQLite}. [S. l.]: SQLite, [s. d.]. Disponível em: \url{https://www.sqlite.org/about.html}. Acesso em: 8 out. 2026.
 
-UNIÃO EUROPEIA. Regulamento (UE) 2016/679 do Parlamento Europeu e do Conselho, de 27 de abril de 2016. \tituloref{Regulamento Geral sobre a Proteção de Dados}. Jornal Oficial da União Europeia, Luxemburgo, L 119, p. 1--88, 4 maio 2016. Disponível em: \url{https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32016R0679}. Acesso em: 23 jul. 2026.
+UNIÃO EUROPEIA. Regulamento (UE) 2016/679 do Parlamento Europeu e do Conselho, de 27 de abril de 2016. Relativo à proteção das pessoas singulares no que diz respeito ao tratamento de dados pessoais e à livre circulação desses dados e que revoga a Diretiva 95/46/CE (Regulamento Geral sobre a Proteção de Dados). \tituloref{Jornal Oficial da União Europeia}, Luxemburgo, L 119, p. 1-88, 4 maio 2016. Disponível em: \url{https://eur-lex.europa.eu/legal-content/PT/TXT/?uri=CELEX:32016R0679}. Acesso em: 23 jul. 2026.
 
 VERACODE. \tituloref{Scan code}. Veracode Docs. [S. l.]: Veracode, 8 set. 2026. Disponível em: \url{https://docs.veracode.com/r/c_static_overview}. Acesso em: 12 set. 2026.
 

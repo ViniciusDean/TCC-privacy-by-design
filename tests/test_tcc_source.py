@@ -104,7 +104,7 @@ def test_canonical_tcc_does_not_restore_unsupported_claims():
     for required in (
         "Westin, 1967, p. 7",
         "Brasil, 2018, arts. 5º, XI, e 12",
-        "Relatório de Ciclo de Monitoramento: 1º semestre de 2023",
+        "Relatório de Ciclo de Monitoramento}: 1º semestre de 2023",
         "evaluation/real_projects/projects.json",
     ):
         assert required in content

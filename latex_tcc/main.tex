@@ -341,7 +341,7 @@ Cavoukian sistematizou o Privacy by Design (PbD) como abordagem de projeto basea
 
 A incorporação de privacidade às rotinas de desenvolvimento não decorre automaticamente da existência de normas ou princípios. Neste trabalho, essa dificuldade foi tratada como problema de operacionalização: critérios jurídicos e de projeto precisavam ser traduzidos em pontos de revisão compreensíveis no fluxo técnico. Para definir onde o artefato poderia ser empregado, realizou-se uma comparação documental entre modelos de ciclo de vida, o framework Scrum e práticas DevSecOps. A comparação não mediu o desempenho dessas abordagens nem pretendeu eleger uma metodologia universalmente superior; seu objetivo foi identificar pontos de inserção compatíveis com a análise estática.
 
-\secaointro{Problema e justificativa}
+\secaointro{Problema e Justificativa}
 
 Este trabalho delimitou como objeto decisões observáveis no código-fonte e no esquema de dados que podem justificar revisão de privacidade, como exposição de identificadores, retenção não evidenciada, coleta potencialmente excessiva e integrações externas. A análise automatizada não determina a licitude do tratamento nem substitui a revisão humana; ela organiza evidências locais para priorização.
 
@@ -351,7 +351,7 @@ O público-alvo deste trabalho foram equipes de desenvolvimento de software que 
 
 A justificativa deste trabalho se sustentou em três dimensões complementares: legal, técnica e social.
 
-Do ponto de vista legal, a LGPD estabelece, no artigo 46, que os agentes de tratamento devem adotar medidas técnicas e administrativas capazes de proteger dados pessoais desde a fase de concepção do produto ou serviço, o que se relaciona à proteção de dados desde o projeto (Brasil, 2018). Entre as sanções administrativas, o artigo 52, inciso II, prevê multa simples de até 2\% do faturamento da pessoa jurídica de direito privado, grupo ou conglomerado no Brasil no último exercício, excluídos os tributos e limitada a R\$ 50 milhões por infração, observadas as condições legais aplicáveis (Brasil, 2018).
+Do ponto de vista legal, a LGPD estabelece, no artigo 46, que os agentes de tratamento devem adotar medidas técnicas e administrativas capazes de proteger dados pessoais desde a fase de concepção do produto ou serviço, o que se relaciona à proteção de dados desde o projeto (Brasil, 2018, art. 46, § 2º). Entre as sanções administrativas, a lei admite multa de até 2\% do faturamento da empresa no Brasil, limitada a R\$ 50 milhões por infração (Brasil, 2018, art. 52, II).
 
 A literatura clássica de engenharia de software associa a descoberta tardia de defeitos a maior esforço de correção, embora a magnitude dessa diferença dependa do processo, da arquitetura e do tipo de sistema (Boehm, 1981; Pressman; Maxim, 2016). Neste trabalho, esse argumento fundamentou a antecipação da revisão de privacidade, sem quantificar benefício econômico produzido pelo artefato.
 
@@ -376,7 +376,7 @@ O objetivo geral deste trabalho foi desenvolver uma ferramenta de análise está
 Para alcançar o objetivo geral, foram cumpridos os seguintes objetivos específicos:
 
 \begin{enumerate}
-\item foram revisados os fundamentos teóricos do Privacy by Design, sua origem, seus sete princípios e seu reconhecimento no contexto regulatório da Lei Geral de Proteção de Dados Pessoais (LGPD) e do Regulamento Geral de Proteção de Dados (General Data Protection Regulation -- GDPR);
+\item foram revisados os fundamentos teóricos do Privacy by Design, sua origem, seus sete princípios e seu reconhecimento no contexto regulatório da Lei Geral de Proteção de Dados Pessoais (LGPD) e do Regulamento Geral sobre a Proteção de Dados (General Data Protection Regulation -- GDPR);
 \item foram comparados documentalmente modelos e práticas de desenvolvimento de software, identificando-se os pontos críticos para a proteção de dados e definindo-se em quais etapas a ferramenta deveria ser preparada, executada e repetida;
 \item foram levantadas e comparadas ferramentas existentes com finalidade similar, como Veracode, SonarQube, Checkmarx, Snyk Code, Semgrep e GitHub Code Scanning, identificando-se a lacuna em relação à verificação específica de padrões técnicos de privacidade;
 \item foram definidas e justificadas as tecnologias e os requisitos da ferramenta, incluindo o uso de Python no módulo servidor de análise, o suporte a código Python e Java, a inspeção de bancos SQLite e a distribuição por meio de extensão para o Visual Studio Code;
@@ -393,7 +393,7 @@ A pesquisa adotou como método científico a Design Science Research (DSR), abor
 
 A pesquisa foi conduzida em quatro fases. A construção e a avaliação foram registradas de modo que outra pessoa possa reproduzir o benchmark a partir do repositório, da versão do código, do gabarito e do ambiente de execução.
 
-Na primeira fase, de revisão da literatura, a revisão teve caráter narrativo e foi orientada à fundamentação e à construção do artefato. O referencial reuniu artigos, livros, legislação e documentos técnicos sobre privacidade, Design Science, desenvolvimento de software e análise estática. A conferência bibliográfica utilizou os endereços e identificadores das referências, páginas oficiais e repositórios acadêmicos públicos. Não há registros suficientes para reconstruir buscas por base, combinações de descritores ou critérios cronológicos de seleção; por isso, esses procedimentos não são apresentados como protocolo executado. O levantamento não constituiu revisão sistemática, não pretendeu esgotar a literatura e não demonstra a inexistência de outras abordagens. As fontes sem texto integral acessível foram discriminadas no parecer de auditoria que acompanha o trabalho.
+Na primeira fase, de revisão da literatura, a revisão teve caráter narrativo e foi orientada à fundamentação e à construção do artefato. O referencial reuniu artigos, livros, legislação e documentos técnicos sobre privacidade, Design Science, desenvolvimento de software e análise estática. A conferência bibliográfica utilizou os endereços e identificadores das referências, páginas oficiais e repositórios acadêmicos públicos. A busca foi exploratória, sem protocolo formal de bases, descritores ou recorte temporal; por isso, o levantamento não constituiu revisão sistemática, não pretendeu esgotar a literatura e não demonstra a inexistência de outras abordagens.
 
 Nessa fase, também foram realizados dois mapeamentos documentais. O primeiro comparou cascata, espiral, desenvolvimento ágil com Scrum e práticas DevSecOps/SSDF, selecionados por representarem, respectivamente, fluxo preditivo, ciclos orientados a risco, incrementos frequentes e automação contínua. O critério de comparação foi o ponto em que passam a existir código ou esquemas analisáveis, a frequência de repetição e a decisão humana esperada; não foram comparadas produtividade, velocidade ou qualidade geral das abordagens. O segundo mapeamento analisou ferramentas disponíveis no mercado com finalidade correlata, como Veracode, SonarQube, Checkmarx, Snyk Code, Semgrep e GitHub Code Scanning, para identificar a lacuna relativa à verificação específica de padrões técnicos de privacidade. Os dois mapeamentos subsidiaram os requisitos funcionais e o posicionamento do artefato.
 
@@ -434,7 +434,7 @@ Aplicações de autenticação, comércio eletrônico, comunicação e recomenda
 
 Privacy by Design propõe que a privacidade seja considerada desde a concepção e durante toda a operação do sistema. Seus sete princípios são: atuação proativa e preventiva; privacidade como padrão; privacidade incorporada ao projeto; funcionalidade integral; segurança de ponta a ponta; visibilidade e transparência; e respeito à privacidade do usuário (Cavoukian, 2011). No plano regulatório europeu, o artigo 25 do GDPR explicita a adoção de medidas técnicas e organizacionais apropriadas desde a definição dos meios de tratamento e por padrão (União Europeia, 2016).
 
-O artefato não verifica todos os princípios do PbD. Ele apoia diretamente a identificação preliminar de evidências relacionadas a segurança, minimização, retenção e registros de dados; apoia indiretamente a prevenção ao antecipar a revisão no desenvolvimento; e não é capaz de verificar, apenas pelo código, finalidade, transparência ao titular, base legal, governança ou respeito integral às preferências do usuário. Essa delimitação evita interpretar a ferramenta como mecanismo de certificação. O Quadro~\ref{qua:pbd-cobertura} sintetiza a cobertura e os limites.
+O artefato não verifica todos os princípios do PbD. Ele apoia diretamente a identificação preliminar de evidências relacionadas à segurança, à minimização, à retenção e aos registros de dados; apoia indiretamente a prevenção ao antecipar a revisão no desenvolvimento; e não é capaz de verificar, apenas pelo código, finalidade, transparência ao titular, base legal, governança ou respeito integral às preferências do usuário. Essa delimitação evita interpretar a ferramenta como mecanismo de certificação. O Quadro~\ref{qua:pbd-cobertura} sintetiza a cobertura e os limites.
 
 \begin{quadro}[htbp]
 \centering
@@ -469,7 +469,7 @@ As subseções seguintes apresentam riscos que fundamentam o recorte do artefato
 
 A exposição de um armazenamento pode revelar diretamente informações mantidas em formato legível ou senhas protegidas por mecanismo inadequado. O controle apropriado depende do tipo de dado, do risco e da arquitetura: senhas demandam funções de derivação resistentes, enquanto outros dados podem exigir criptografia, tokenização, segregação e controle de acesso (OWASP Foundation, [s. d.]b; OWASP Foundation, [s. d.]e). Por isso, o artefato identifica ausência de evidência local de proteção, e não conclui que toda informação pessoal deva receber o mesmo mecanismo criptográfico.
 
-A LGPD, no artigo 46, exige que os agentes de tratamento adotem medidas técnicas e administrativas aptas a proteger dados pessoais contra acessos não autorizados e situações acidentais ou ilícitas (Brasil, 2018). A ausência de evidência de proteção no trecho analisado é, portanto, um ponto de revisão; não demonstra, isoladamente, ausência do controle em outras camadas.
+A LGPD atribui aos agentes de tratamento o dever de manter medidas de segurança, técnicas e administrativas, que impeçam o acesso indevido aos dados pessoais e os protejam contra perda, destruição ou divulgação, sejam esses eventos acidentais ou intencionais (Brasil, 2018, art. 46). A ausência de evidência de proteção no trecho analisado é, portanto, um ponto de revisão; não demonstra, isoladamente, ausência do controle em outras camadas.
 
 \subsection{Coleta e Retenção Excessiva de Dados}
 
@@ -616,7 +616,7 @@ DevSecOps / SSDF & Localmente e na esteira automatizada de integração. & Em so
 
 Foi realizada uma comparação documental de seis ferramentas selecionadas por sua presença em fluxos de SAST, revisão automatizada ou \textit{code scanning}. A análise considerou as funções declaradas em documentação pública reconferida em setembro de 2026; não foram executados ensaios comparativos de cobertura, precisão ou desempenho.
 
-\subsection{Critérios de comparação}
+\subsection{Critérios de Comparação}
 
 Para organizar o mapeamento, foram adotados cinco critérios de comparação: finalidade principal, tipo de análise, momento de aplicação no ciclo de desenvolvimento, relação explicitamente documentada com privacidade e diferença de escopo em relação ao artefato. A comparação foi baseada na documentação pública reconferida em setembro de 2026; ela não afirma que ferramentas extensíveis não possam ser configuradas com regras adicionais de privacidade. O Quadro~\ref{qua:ferramentas-correlatas} apresenta a síntese.
 
@@ -643,13 +643,13 @@ GitHub Code Scanning & Alertas de código e integração com repositórios. & So
 
 Esses critérios delimitam uma contribuição complementar, e não superioridade geral do artefato proposto.
 
-\subsection{Ferramentas analisadas}
+\subsection{Ferramentas Analisadas}
 
 Na documentação consultada, Veracode, Checkmarx e Snyk Code são apresentados como soluções de análise de segurança integradas ao desenvolvimento (Veracode, 2026; Checkmarx, [s. d.]; Snyk, [s. d.]); SonarQube reúne qualidade e recursos de segurança (SonarSource, [s. d.]); Semgrep enfatiza regras extensíveis e execução em diferentes pontos do fluxo (Semgrep, [s. d.]); e GitHub Code Scanning integra resultados de analisadores aos repositórios (GitHub, [s. d.]).
 
 Frente a esse conjunto documental, o Privacy Scanner LGPD diferencia-se pelo recorte declarado: categorias e relatórios previamente organizados para revisão técnica de dados pessoais, execução local no Visual Studio Code e inspeção inicial de esquemas SQLite. Essa diferença de recorte não estabelece exclusividade nem superioridade geral.
 
-\subsection{Síntese comparativa}
+\subsection{Síntese Comparativa}
 
 A análise das ferramentas correlatas permite organizar a diferença do artefato desenvolvido nos seguintes pontos:
 
@@ -893,7 +893,7 @@ As regras de detecção traduzem as categorias de risco discutidas na Seção 2 
 \texttt{MISTURA\_\allowbreak{}DADOS} & SQLite & Baixa & Art. 46. \\
 \hline
 \end{tabular}
-\fonte{elaboração própria a partir do código-fonte do Privacy Scanner LGPD 1.2.2 (2026) e de Brasil (2018)}
+\fonte{elaboração própria (2026), a partir do código-fonte do Privacy Scanner LGPD 1.2.2 e de Brasil (2018)}
 \end{quadro}
 
 As regras de código identificam, por exemplo, atribuição de valor literal a campo pessoal, uso de MD5 ou SHA-1, chamadas de log com campos pessoais, envio de dados pessoais a serviços externos sem marcador técnico de base legal, funções que recebem quatro ou mais campos pessoais e classes de modelo com campos sensíveis sem método de exclusão ou anonimização. As regras de esquema examinam nomes e tipos de colunas, chaves primárias, índices únicos e a presença de colunas que evidenciem exclusão lógica, retenção ou base legal. Como discutido na Seção 2, a ausência de evidência no trecho analisado é tratada como ponto de revisão, e não como prova de que o controle inexiste em outra camada.
@@ -915,7 +915,7 @@ A análise retornou sete achados: cinco de severidade alta, sendo dois \texttt{D
 \captionfigura{Achados do módulo de análise Python no relatório HTML}
 \label{fig:res-python}
 \includegraphics[width=\textwidth]{assets/resultados/fig_python.png}
-\fonte{captura do relatório HTML, Privacy Scanner LGPD 1.2.2 (2026)}
+\fonte{elaboração própria (2026), captura do relatório HTML do Privacy Scanner LGPD 1.2.2}
 \end{figure}
 
 Cada linha da tabela identifica severidade, categoria, local, referência potencial à LGPD, descrição, recomendação e evidência, atendendo ao RNF04. A coluna \texttt{Evidência segura} descreve o motivo do alerta sem reproduzir o CPF, a senha ou o e-mail presentes no código, como exige o RNF02. As recomendações apontam caminhos de correção, como mover segredos para variáveis de ambiente, substituir SHA-1 por algoritmos adequados ou mascarar dados em logs, mas a decisão final continua dependendo da revisão humana do contexto.
@@ -931,7 +931,7 @@ A análise retornou nove achados: cinco de severidade alta, sendo dois \texttt{D
 \captionfigura{Achados do módulo de análise Java no relatório HTML}
 \label{fig:res-java}
 \includegraphics[width=\textwidth]{assets/resultados/fig_java.png}
-\fonte{captura do relatório HTML, Privacy Scanner LGPD 1.2.2 (2026)}
+\fonte{elaboração própria (2026), captura do relatório HTML do Privacy Scanner LGPD 1.2.2}
 \end{figure}
 
 As mesmas categorias de código são aplicadas às duas linguagens, o que permite comparar relatórios de projetos Python e Java com uma única nomenclatura. A natureza léxica do analisador Java, porém, limita o acompanhamento de dados entre instruções e métodos, aspecto que se refletiu na validação externa e é retomado nas limitações.
@@ -943,7 +943,7 @@ A Figura~\ref{fig:ext-java} mostra a análise do mesmo arquivo na extensão para
 \captionfigura{Análise do arquivo Java na extensão, com o perfil conservador}
 \label{fig:ext-java}
 \includegraphics[width=\textwidth]{assets/resultados/fig_ext_java.png}
-\fonte{captura do Visual Studio Code 1.140 com o Privacy Scanner LGPD 1.2.2 (2026)}
+\fonte{elaboração própria (2026), captura do Visual Studio Code 1.140 com o Privacy Scanner LGPD 1.2.2}
 \end{figure}
 
 
@@ -969,7 +969,7 @@ A análise retornou doze achados. Sete pertencem à categoria \texttt{CAMPO\_\al
 \captionfigura{Achados do módulo de análise de esquemas SQLite no relatório HTML}
 \label{fig:res-sqlite}
 \includegraphics[width=\textwidth]{assets/resultados/fig_sqlite.png}
-\fonte{captura do relatório HTML, Privacy Scanner LGPD 1.2.2 (2026)}
+\fonte{elaboração própria (2026), captura do relatório HTML do Privacy Scanner LGPD 1.2.2}
 \end{figure}
 
 O uso do CPF como chave primária e do e-mail em índice único foi sinalizado porque identificadores pessoais nessas posições facilitam a correlação entre tabelas e sistemas. A tabela também mistura dados pessoais e dados operacionais do pedido, mas a regra \texttt{MISTURA\_\allowbreak{}DADOS} não foi acionada: ela exige ao menos três colunas reconhecidas como operacionais pelo nome, e apenas \texttt{status\_\allowbreak{}pedido} atendeu a esse critério. O caso ilustra a dependência das regras em relação à nomenclatura das colunas. As recomendações indicam a verificação de controles que podem existir fora do esquema, como rotinas de expurgo ou registro de base legal em outra camada.
@@ -981,7 +981,7 @@ Na extensão, o mesmo esquema foi analisado pela ação \texttt{Selecionar e ana
 \captionfigura{Achados do esquema SQLite na barra lateral da extensão}
 \label{fig:ext-sqlite}
 \includegraphics[width=0.5\textwidth]{assets/resultados/fig_ext_sqlite.png}
-\fonte{captura do Visual Studio Code 1.140 com o Privacy Scanner LGPD 1.2.2 (2026)}
+\fonte{elaboração própria (2026), captura do Visual Studio Code 1.140 com o Privacy Scanner LGPD 1.2.2}
 \end{figure}
 
 
@@ -998,7 +998,7 @@ A Figura~\ref{fig:res-painel} apresenta o painel inicial do relatório HTML da a
 \captionfigura{Painel de resumo do relatório HTML}
 \label{fig:res-painel}
 \includegraphics[width=0.92\textwidth]{assets/resultados/fig_painel.png}
-\fonte{captura do relatório HTML, Privacy Scanner LGPD 1.2.2 (2026)}
+\fonte{elaboração própria (2026), captura do relatório HTML do Privacy Scanner LGPD 1.2.2}
 \end{figure}
 
 Na execução por linha de comando, o resumo é impresso no terminal antes da lista de achados, com o alvo, os totais por severidade, o indicador e o aviso de limite da análise, o que completa o RF06. A Figura~\ref{fig:res-terminal} mostra esse resumo para o mesmo arquivo Python, executado no terminal integrado do Visual Studio Code.
@@ -1008,7 +1008,7 @@ Na execução por linha de comando, o resumo é impresso no terminal antes da li
 \captionfigura{Resumo da análise impresso no terminal}
 \label{fig:res-terminal}
 \includegraphics[width=\textwidth]{assets/resultados/fig_terminal.png}
-\fonte{captura do terminal integrado do Visual Studio Code 1.140 com o Privacy Scanner LGPD 1.2.2 (2026)}
+\fonte{elaboração própria (2026), captura do terminal integrado do Visual Studio Code 1.140 com o Privacy Scanner LGPD 1.2.2}
 \end{figure}
 
 O relatório em PDF, gerado com a biblioteca ReportLab, reúne as mesmas informações em formato paginado, adequado para anexar a revisões de código ou a registros de acompanhamento. A Figura~\ref{fig:res-pdf} apresenta o início da primeira página do relatório da análise Python, com o aviso de limite, o quadro de totais, o escopo e a tabela de achados de severidade alta.
@@ -1018,7 +1018,7 @@ O relatório em PDF, gerado com a biblioteca ReportLab, reúne as mesmas informa
 \captionfigura{Primeira página do relatório em PDF}
 \label{fig:res-pdf}
 \includegraphics[width=0.85\textwidth]{assets/resultados/fig_pdf.png}
-\fonte{captura do relatório PDF, Privacy Scanner LGPD 1.2.2 (2026)}
+\fonte{elaboração própria (2026), captura do relatório PDF do Privacy Scanner LGPD 1.2.2}
 \end{figure}
 
 \subsection{Indicador Técnico de Severidade}
@@ -1045,7 +1045,7 @@ A Figura~\ref{fig:ext-geral} mostra a extensão instalada a partir do pacote VSI
 \captionfigura{Extensão no Visual Studio Code: barra lateral, editor e painel de problemas}
 \label{fig:ext-geral}
 \includegraphics[width=\textwidth]{assets/resultados/fig_ext_geral.png}
-\fonte{captura do Visual Studio Code 1.140 com o Privacy Scanner LGPD 1.2.2 (2026)}
+\fonte{elaboração própria (2026), captura do Visual Studio Code 1.140 com o Privacy Scanner LGPD 1.2.2}
 \end{figure}
 
 Ao posicionar o cursor sobre um trecho sublinhado, o editor exibe o detalhe do achado, como mostra a Figura~\ref{fig:ext-hover}. A mensagem identifica a regra e a confiança, descreve a evidência sem reproduzir o dado pessoal e apresenta a recomendação de correção, o que permite revisar o achado sem sair do arquivo.
@@ -1055,7 +1055,7 @@ Ao posicionar o cursor sobre um trecho sublinhado, o editor exibe o detalhe do a
 \captionfigura{Detalhe de um achado exibido no editor}
 \label{fig:ext-hover}
 \includegraphics[width=0.85\textwidth]{assets/resultados/fig_ext_hover.png}
-\fonte{captura do Visual Studio Code 1.140 com o Privacy Scanner LGPD 1.2.2 (2026)}
+\fonte{elaboração própria (2026), captura do Visual Studio Code 1.140 com o Privacy Scanner LGPD 1.2.2}
 \end{figure}
 
 A ação \texttt{Configurar perfil} abre o assistente apresentado na Figura~\ref{fig:ext-perfil}, que atende ao RF08. Nele, é possível escolher o perfil predefinido, ativar ou desativar regras, ajustar a confiança mínima ou a severidade de uma regra e restaurar o padrão; as alterações só são gravadas quando a opção \texttt{Salvar perfil} é confirmada.
@@ -1065,7 +1065,7 @@ A ação \texttt{Configurar perfil} abre o assistente apresentado na Figura~\ref
 \captionfigura{Assistente de configuração do perfil de análise}
 \label{fig:ext-perfil}
 \includegraphics[width=0.75\textwidth]{assets/resultados/fig_ext_perfil.png}
-\fonte{captura do Visual Studio Code 1.140 com o Privacy Scanner LGPD 1.2.2 (2026)}
+\fonte{elaboração própria (2026), captura do Visual Studio Code 1.140 com o Privacy Scanner LGPD 1.2.2}
 \end{figure}
 
 Na versão 1.2.2, o resumo também identifica alvo, horário de conclusão e estado de desatualização. A análise automática aguarda o salvamento, enquanto análise de projeto e exportação oferecem salvar os arquivos Python e Java modificados no escopo selecionado. A exportação informa que realiza nova análise. Esses ajustes tornam explícita a relação entre conteúdo salvo, escopo e resultado apresentado.
@@ -1086,7 +1086,7 @@ A análise retorna dois achados altos: \texttt{DADO\_HARDCODED}, na linha 1, e \
 \includegraphics[width=0.95\textwidth,trim=120bp 815bp 605bp 257bp,clip]{../output/playwright/relatorio-banca-antes.png}
 \par\medskip
 \includegraphics[width=0.54\textwidth,trim=120bp 109bp 962bp 987bp,clip]{../output/playwright/relatorio-banca-antes.png}
-\fonte{captura do relatório HTML da demonstração, Privacy Scanner LGPD 1.2.2 (2026)}
+\fonte{elaboração própria (2026), captura do relatório HTML da demonstração do Privacy Scanner LGPD 1.2.2}
 \end{figure}
 
 Neste exemplo mínimo, o identificador não é necessário à mensagem. A correção remove o literal e o registro do dado, preservando apenas a mensagem operacional:
@@ -1102,7 +1102,7 @@ A Figura~\ref{fig:demo-depois} apresenta o painel do relatório HTML gerado apó
 \captionfigura{Painel do relatório após a correção}
 \label{fig:demo-depois}
 \includegraphics[width=\textwidth]{assets/resultados/fig_depois.png}
-\fonte{captura do relatório HTML da demonstração, Privacy Scanner LGPD 1.2.2 (2026)}
+\fonte{elaboração própria (2026), captura do relatório HTML da demonstração do Privacy Scanner LGPD 1.2.2}
 \end{figure}
 
 \section{Protocolo de Avaliação}
@@ -1128,7 +1128,7 @@ FN: falso negativo & Categoria esperada, mas não detectada. & Ocorrência esper
 TN: negativo correto & Categoria nem esperada nem detectada no caso. & Não contabilizado: não foi enumerado um universo de ocorrências negativas. \\
 \hline
 \end{tabular}
-\fonte{elaboração própria a partir dos protocolos do artefato (2026) e das classes de avaliação de Manning, Raghavan e Schütze (2008, seção 8.3)}
+\fonte{elaboração própria (2026), a partir dos protocolos do artefato e das classes de avaliação de Manning, Raghavan e Schütze (2008, seção 8.3)}
 \end{quadro}
 
 A precisão ($P$) mede a proporção de positivos corretos entre os alertas avaliados; o recall ($R$) mede a proporção detectada entre os positivos esperados. A medida F1 combina precisão e recall pela média harmônica (Manning; Raghavan; Schütze, 2008, seção 8.3):
@@ -1273,9 +1273,11 @@ Os perfis configuráveis foram incorporados com opções predefinidas conservado
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{\baselineskip}
 \RaggedRight
+\hyphenpenalty=10000
+\emergencystretch=3em
 \urlstyle{same}
 
-AUTORIDADE NACIONAL DE PROTEÇÃO DE DADOS (ANPD). \tituloref{Relatório de Ciclo de Monitoramento}: 1º semestre de 2023. Versão 1.0. Brasília, DF: ANPD, 2023a. Disponível em: \href{https://www.gov.br/anpd/pt-br/acesso-a-informacao/acoes-e-programas/governanca/governanca-estrategica/2023-11-07-relatorio-do-ciclo-de-monitoramento-2023-versao-final.pdf/%40%40display-file/file}{\nolinkurl{https://www.gov.br/anpd/pt-br/assuntos/noticias/anpd-publica-o-segundo-relatorio-de-ciclo-de-monitoramento}}. Acesso em: 23 jul. 2026.
+AUTORIDADE NACIONAL DE PROTEÇÃO DE DADOS (ANPD). \tituloref{Relatório de Ciclo de Monitoramento}: 1º semestre de 2023. Versão 1.0. Brasília, DF: ANPD, 2023a. Disponível em: \url{https://www.gov.br/anpd/pt-br/acesso-a-informacao/acoes-e-programas/governanca/governanca-estrategica/2023-11-07-relatorio-do-ciclo-de-monitoramento-2023-versao-final.pdf/@@display-file/file}. Acesso em: 23 jul. 2026.
 
 AUTORIDADE NACIONAL DE PROTEÇÃO DE DADOS (ANPD). \tituloref{Tratamento de dados pessoais para fins acadêmicos e para a realização de estudos e pesquisas}: guia orientativo. Versão 1.0. Brasília, DF: ANPD, 2023b. Disponível em: \url{https://www.gov.br/anpd/pt-br/centrais-de-conteudo/materiais-educativos-e-publicacoes/web-guia-anpd-tratamento-de-dados-para-fins-academicos.pdf/@@display-file/file}. Acesso em: 23 jul. 2026.
 
@@ -1349,7 +1351,7 @@ REPORTLAB. \tituloref{ReportLab Documentation}. [S. l.]: ReportLab, [s. d.]. Dis
 
 ROCHA, Luis. \tituloref{Chinook Database}. Versão do commit 7f67772503d7, 5 out. 2025. GitHub. Disponível em: \href{https://github.com/lerocha/chinook-database/tree/7f67772503d71ba90f19283c38e93923addb43fa}{\nolinkurl{https://github.com/lerocha/chinook-database/tree/7f67772503d7}}. Acesso em: 23 jul. 2026.
 
-SCHWABER, Ken; SUTHERLAND, Jeff. \tituloref{The Scrum Guide}. [S. l.]: autores, nov. 2020. Disponível em: \url{https://scrumguides.org/docs/scrumguide/v2020/2020-Scrum-Guide-US.pdf}. Acesso em: 26 jul. 2026.
+SCHWABER, Ken; SUTHERLAND, Jeff. \tituloref{The Scrum Guide}. [S. l.: s. n.], nov. 2020. Disponível em: \url{https://scrumguides.org/docs/scrumguide/v2020/2020-Scrum-Guide-US.pdf}. Acesso em: 26 jul. 2026.
 
 SEMGREP. \tituloref{Introduction to Semgrep}. [S. l.]: Semgrep, [s. d.]. Disponível em: \url{https://docs.semgrep.dev/introduction}. Acesso em: 12 set. 2026.
 

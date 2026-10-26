@@ -34,8 +34,17 @@ foreach ($term in $blockedTerms) {
 }
 if (-not $AllowBancaPlaceholders) {
     $finalBlockers = @()
+    if ($sourceText.Contains("Prof. Xxxxxxxxxxxxxxxxxxxxxxx")) {
+        $finalBlockers += "nomes dos dois membros convidados da banca"
+    }
     if ($sourceText.Contains("\newcommand{\dataAprovacaoTCC}{}")) {
         $finalBlockers += "data de aprovação"
+    }
+    if (
+        $sourceText.Contains("\newcommand{\instituicaoMembroUm}{}") -or
+        $sourceText.Contains("\newcommand{\instituicaoMembroDois}{}")
+    ) {
+        $finalBlockers += "instituições dos membros convidados"
     }
     if (-not (Test-Path (Join-Path (Split-Path $source) "assets\ficha_catalografica.pdf"))) {
         $finalBlockers += "ficha catalográfica oficial"

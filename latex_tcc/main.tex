@@ -147,6 +147,10 @@
 \newcommand{\localTCC}{São Caetano do Sul}
 \newcommand{\anoTCC}{2026}
 \newcommand{\dataAprovacaoTCC}{}
+\newcommand{\membroUmBanca}{Prof. Xxxxxxxxxxxxxxxxxxxxxxx}
+\newcommand{\membroDoisBanca}{Prof. Xxxxxxxxxxxxxxxxxxxxxxx}
+\newcommand{\instituicaoMembroUm}{}
+\newcommand{\instituicaoMembroDois}{}
 
 \newcommand{\paginaCapa}{%
 \thispagestyle{pretextual}
@@ -231,6 +235,18 @@ Trabalho de Graduação apresentado à \instituicaoTCC, como requisito parcial p
 \noindent\rule{8cm}{0.4pt}\\
 \orientadorTCC\\
 Presidente da Banca
+
+\vspace{0.7cm}
+\noindent\rule{8cm}{0.4pt}\\
+\membroUmBanca\\
+Professor convidado%
+\ifdefempty{\instituicaoMembroUm}{}{\\\instituicaoMembroUm}
+
+\vspace{0.7cm}
+\noindent\rule{8cm}{0.4pt}\\
+\membroDoisBanca\\
+Professor convidado%
+\ifdefempty{\instituicaoMembroDois}{}{\\\instituicaoMembroDois}
 
 \vfill
 \begin{center}

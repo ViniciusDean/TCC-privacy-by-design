@@ -287,8 +287,6 @@ def add_exam_sheet(doc):
     doc.add_paragraph("Banca examinadora:")
     for name, role in (
         (ORIENTADOR, "Presidente da Banca"),
-        ("Prof. Xxxxxxxxxxxxxxxxxxxxxxx", "Professor convidado"),
-        ("Prof. Xxxxxxxxxxxxxxxxxxxxxxx", "Professor convidado"),
     ):
         doc.add_paragraph()
         doc.add_paragraph("________________________________________")

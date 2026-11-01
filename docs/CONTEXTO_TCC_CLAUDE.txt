@@ -1,0 +1,57 @@
+CONTEXTO DO TCC (migrado do Codex para o Claude)
+Atualizado em 26/09/2026
+
+TRABALHO
+- Titulo: Privacy by Design no Ciclo de Desenvolvimento de Software
+  (EN: Privacy by Design in the Software Development Life Cycle)
+- Autor: Vinicius Dean | Orientador: Prof. Dr. Adilson Ferreira da Silva (FATEC)
+- Pasta: C:\Users\deanv\OneDrive\Documents\TCC (repositorio git)
+- Branch de trabalho: codex/tcc-banca-refinamentos
+- Artefato: Privacy Scanner LGPD (backend Python + extensao VS Code), versao local 1.2.2
+  (release publica historica: v1.2.1, commit 2b0a1a1)
+
+ARQUIVOS PRINCIPAIS
+- Fonte canonica do texto: latex_tcc/main.tex (XeLaTeX, 3 passagens, Arial 12, modelo do Prof. Adilson)
+- Build do PDF: scripts/build_tcc.ps1 (bloqueia sem dados da banca, a menos que use -AllowBancaPlaceholders)
+- Revisao para a banca: docs/REVISAO_BANCA.md
+- Auditoria de referencias: docs/AUDITORIA_REFERENCIAS.md e docs/AUDITORIA_REFERENCIAS_MATRIZ.csv
+- Roteiro da demo: docs/DEMO.md e scripts/demo_banca.py
+- PDF de prova mais recente: output/pdf/TCC_Privacy_by_Design_2026_REVISAO_BANCA_PROVA.pdf
+- VSIX da banca: output/release/banca/privacy-scanner-lgpd-1.2.2.vsix
+- Os .docx soltos na raiz (TCC_Vinicius_Dean_modelo_Adilson_*.docx) sao versoes antigas; o texto atual esta no main.tex
+
+ESTRUTURA DO TEXTO
+1 Introducao | 2 Vulnerabilidades de privacidade no desenvolvimento de software |
+3 Metodologia (DSR em 4 fases) | 4 Resultados e discussao | 5 Limitacoes e trabalhos futuros |
+6 Conclusao | Referencias (37)
+
+ONDE PAROU (ultima sessao no Codex: 08 a 13/09/2026)
+- Revisao para a banca concluida nas 3 partes (app/exportacao/perfis, interface/demo, texto/PDF).
+- PDF de prova com 51 paginas, numeracao impressa 11 a 50, conclusao na pag. 46, referencias a partir da 47.
+- Testes: suite Python com 208 aprovados; tests/test_tcc_source.py com 7 aprovados.
+- Demo via API real: 2 achados antes, 0 depois.
+- Commits de referencia: 185c1bc (texto antes da compilacao), 00776e1 (prova auditada), 8e76a09 (versao 1.2.2 citada no texto).
+
+PENDENCIAS PARA A VERSAO DEFINITIVA
+- Nomes e instituicoes dos membros da banca e data de aprovacao.
+- Ficha catalografica oficial.
+- Revisao independente (segundo revisor) segue pendente e declarada como limitacao:
+  7 itens da amostra sem classificacao B. Decisao do Vinicius: usar as evidencias existentes, nao criar corpus novo.
+- A auditoria de referencias nao e laudo de "zero plagio"; algumas fontes originais ainda precisam ser consultadas.
+
+NUMEROS E DEFINICOES QUE O TEXTO USA
+- Benchmark controlado: 18 fixtures, 120 decisoes caso-categoria (6x7 + 6x7 + 6x6).
+  Os 100% sao aderencia interna ao gabarito, nao desempenho generalizavel.
+- Indicador: max(0, 100 - 10A - 5M - 2B); nao normalizado por tamanho do projeto;
+  so comparavel com mesmo escopo, versao e perfil.
+- Execucao historica de referencia: 20260710T024446Z-d034f8fc.
+- A ferramenta e apresentada como indicador tecnico mais revisao humana, nao certificacao LGPD.
+
+COMO O VINICIUS QUER QUE TRABALHE NO TCC
+- "Sem reinventar a roda, so reforcando o ja existente": ajustes incrementais, clareza da defesa,
+  corrigir inconsistencias; nada de funcionalidade nova sem necessidade.
+- Prioridade atual: apresentacao a banca.
+- Texto sem travessao e sem pronome possessivo; com citacoes academicas (ABNT).
+- Nao chamar a prova de versao final; nao atualizar numeros so de memoria, conferir no checkout.
+- Checar git status antes de commit (ha PDFs gerados nao rastreados).
+- Arquivos de saida preferencialmente em .txt.

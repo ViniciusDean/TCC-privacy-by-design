@@ -52,7 +52,7 @@ dos pedidos dos titulares.
 
 ## Objetivo da Demo
 
-A fala e a ordem da demonstração ao vivo da banca (slide 12) estão em
+A fala e a ordem da demonstração ao vivo da banca (slide 13) estão em
 `output/presentation/ROTEIRO_BANCA.md`. Este guia detalha cada funcionalidade
 para ensaio e conferência.
 

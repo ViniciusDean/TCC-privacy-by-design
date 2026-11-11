@@ -12,6 +12,9 @@ fictícios e os exemplos não devem ser reutilizados em produção.
   financeiros de funcionários.
 - `ProntuarioVulneravel.java`: persistência e compartilhamento de dados de
   pacientes em Java.
+- `clientes_demo.db`: banco SQLite sem registros, com a tabela `clientes`
+  (CPF como chave primária, e-mail em índice único e dados pessoais misturados
+  a dados do pedido), usado na Seção 5.3 do TCC.
 
 Os dois cenários Python exercitam seis categorias:
 
@@ -31,6 +34,7 @@ O cenário Java exercita as mesmas seis categorias e também
 python code_analyzer.py examples\vulnerable\cadastro_clientes_vulneravel.py
 python code_analyzer.py examples\vulnerable\folha_pagamento_vulneravel.py
 python code_analyzer.py examples\vulnerable\ProntuarioVulneravel.java
+python db_analyzer.py examples\vulnerable\clientes_demo.db
 ```
 
 A detecção representa pontos para revisão humana e não certificação jurídica ou

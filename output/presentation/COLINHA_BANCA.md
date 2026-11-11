@@ -73,12 +73,14 @@ Total: cerca de 21 min. Demo: 10 min no slide 12. Reserva: slides 18 a 26 oculto
    - "Analisar agora": ícone no topo de **Achados**
    - "Limpar resultados": em **Configuração e suporte**
    - Tudo local; o código nunca é executado
-2. **Python (1:30)**: `examples/vulnerable/cadastro_clientes_vulneravel.py`
+2. **Python (1:45)**: `examples/vulnerable/cadastro_clientes_vulneravel.py`
    - **7 achados (5A 2M), indicador 40**
+   - Resumo: alvo da análise e horário
    - Sublinhado + mouse (regra, confiança, artigo, recomendação) + Problems
    - Clicar no achado → pula para a linha
-   - Quick Fix → Copiar recomendação
+   - Quick Fix → Ver recomendação LGPD e Copiar recomendação
    - Evidência não mostra CPF nem senha
+   - Contraste: `exemplo_correto.py` → **0 achados**
 3. **Java e perfis (1:45)**: `ProntuarioVulneravel.java`
    - Conservador: **5 de 9**, indicador **55 exibido vs 30 bruto**
    - Configurar perfil → **Completo** → 9
@@ -93,10 +95,12 @@ Total: cerca de 21 min. Demo: 10 min no slide 12. Reserva: slides 18 a 26 oculto
    - Respeita o `.privacyignore`
    - Mostrar o contador de arquivos ignorados no Resumo
 6. **Ao salvar (1:30)**: `demo.py`
-   - `cpf = "123.456.789-00"` + `print(cpf)` → salvar → **2 altos, 80**
-   - Trocar por `print("Operação concluída")` → **0 achados, 100**
+   - `cpf = "123.456.789-00"` + `print(cpf)` **sem salvar** → Resumo: **Resultado desatualizado**
+   - Salvar → **2 altos, 80**
+   - Trocar por `print("Operação concluída")` → salvar → **0 achados, 100**
+   - Projeto e exportação com arquivo não salvo perguntam: **Salvar e analisar / Salvar e exportar**
    - É caso conhecido: mostra o fluxo, não prova eficácia
-7. **Relatórios (1:45)**
+7. **Relatórios (1:30)**
    - Exportar HTML: aviso de limite, totais exibido/bruto/oculto, indicador
    - Mostrar rapidamente JSON e PDF
    - **I = 100 − 10A − 5M − 2B**: não é % de conformidade nem probabilidade

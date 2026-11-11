@@ -29,10 +29,10 @@ workspace termina com a versão corrigida. Para demonstrar no VS Code:
    identificador e seu registro em log são desnecessários neste exemplo mínimo.
 3. Troque pelo conteúdo de `depois.py`, sem salvar. Mostre o aviso de resumo
    desatualizado. A análise automática aguarda o salvamento.
-4. Solicite a análise do projeto e escolha salvar e continuar. Confirme que
+4. Solicite a análise do projeto e escolha `Salvar e analisar`. Confirme que
    os diagnósticos desaparecem e o resumo corresponde à nova análise.
 5. Exporte o relatório e mostre seu escopo e a ausência de achados. Se mudar
-   o arquivo novamente antes de exportar, a ferramenta oferece salvar ou cancelar.
+   o arquivo novamente antes de exportar, a ferramenta oferece `Salvar e exportar`.
 
 Relatórios verificados: [antes](../output/demo-banca/antes.html) e
 [depois](../output/demo-banca/depois.html), também disponíveis em JSON e PDF.

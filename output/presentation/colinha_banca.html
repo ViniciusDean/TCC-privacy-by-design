@@ -88,8 +88,8 @@
 <div class="step"><div class="label">1 · Sidebar<small>0:45</small></div>
   <ul><li>Ações rápidas · Achados · Resumo · barra de status</li><li><b>Analisar agora</b> = ícone no topo de Achados · <b>Limpar resultados</b> = em Configuração e suporte</li><li>Tudo local; código <b>nunca executado</b></li></ul></div>
 
-<div class="step"><div class="label">2 · Python<small>1:30</small></div>
-  <ul><li><code>cadastro_clientes_vulneravel.py</code> → <span class="key">7 achados (5A 2M) · indicador 40</span></li><li>Sublinhado + <b>mouse</b> (regra, confiança, artigo) + <b>Problems</b></li><li>Clicar no achado → <b>pula para a linha</b> · Quick Fix → <b>Copiar recomendação</b></li><li>Evidência <b>não mostra CPF/senha</b></li></ul></div>
+<div class="step"><div class="label">2 · Python<small>1:45</small></div>
+  <ul><li><code>cadastro_clientes_vulneravel.py</code> → <span class="key">7 achados (5A 2M) · indicador 40</span> · Resumo: alvo e horário</li><li>Sublinhado + <b>mouse</b> (regra, confiança, artigo) + <b>Problems</b></li><li>Clicar no achado → <b>pula para a linha</b> · Quick Fix → <b>Ver</b> e <b>Copiar recomendação</b></li><li>Evidência <b>não mostra CPF/senha</b> · contraste: <code>exemplo_correto.py</code> → <span class="key">0 achados</span></li></ul></div>
 
 <div class="step"><div class="label">3 · Java + perfil<small>1:45</small></div>
   <ul><li><code>ProntuarioVulneravel.java</code> → conservador <span class="key">5 de 9 · 55 exibido vs 30 bruto</span></li><li>Configurar perfil → <b>Completo</b> → 9</li><li>Ajustar uma regra · Limpar personalizações · Restaurar padrão · citar Selecionar/Validar · <b>voltar ao conservador</b></li><li>Botão direito → <b>Ocultar achado</b> → bruto mantido → <b>Restaurar achados ocultados</b></li></ul></div>
@@ -101,9 +101,9 @@
   <ul><li>Analisar projeto inteiro → respeita <b>.privacyignore</b></li><li>Mostrar <b>arquivos ignorados</b> no Resumo</li></ul></div>
 
 <div class="step"><div class="label">6 · Ao salvar<small>1:30</small></div>
-  <ul><li><code>cpf = "123.456.789-00"</code> + <code>print(cpf)</code> → salvar → <span class="key">2 altos · 80</span></li><li><code>print("Operação concluída")</code> → salvar → <span class="key">0 · 100</span></li><li>Caso conhecido: mostra o fluxo, <b>não prova eficácia</b></li></ul></div>
+  <ul><li><code>cpf = "123.456.789-00"</code> + <code>print(cpf)</code> <b>sem salvar</b> → <b>Resultado desatualizado</b> → salvar → <span class="key">2 altos · 80</span></li><li><code>print("Operação concluída")</code> → salvar → <span class="key">0 · 100</span></li><li>Projeto/exportação com arquivo não salvo: <b>Salvar e analisar / Salvar e exportar</b></li><li>Caso conhecido: mostra o fluxo, <b>não prova eficácia</b></li></ul></div>
 
-<div class="step"><div class="label">7 · Relatórios<small>1:45</small></div>
+<div class="step"><div class="label">7 · Relatórios<small>1:30</small></div>
   <ul><li>Exportar <b>HTML</b>: aviso de limite, exibido/bruto/oculto · mostrar <b>JSON</b> e <b>PDF</b></li><li><span class="key">I = 100 − 10A − 5M − 2B</span>: <b>não é %</b> de conformidade nem probabilidade</li></ul></div>
 
 <div class="step"><div class="label">8 · Backend<small>0:30</small></div>

@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Colinha da defesa</title>
+<style>
+  @page { size: A4; margin: 10mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: #111; margin: 0; font-size: 12.5pt; line-height: 1.3; }
+  h1 { font-size: 15pt; margin: 0 0 2mm; }
+  .sub { font-size: 10pt; color: #444; margin-bottom: 4mm; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; }
+  .card { border: 1.5px solid #222; border-radius: 3mm; padding: 2.5mm 3mm; break-inside: avoid; }
+  .card.wide { grid-column: span 2; }
+  .head { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #bbb; margin-bottom: 1.5mm; padding-bottom: 1mm; }
+  .n { font-size: 16pt; font-weight: 800; margin-right: 2mm; }
+  .t { font-weight: 700; font-size: 12pt; text-transform: uppercase; flex: 1; }
+  .time { font-size: 10pt; font-weight: 700; background: #111; color: #fff; padding: 0.5mm 2mm; border-radius: 2mm; white-space: nowrap; }
+  .acc { font-size: 9pt; color: #555; margin-left: 1.5mm; white-space: nowrap; }
+  ul { margin: 0; padding-left: 4.5mm; }
+  li { margin: 0.6mm 0; }
+  b { font-weight: 800; }
+  .key { background: #ffe680; padding: 0 1mm; border-radius: 1mm; font-weight: 800; }
+  .warn { color: #b00020; font-weight: 700; }
+  .trans { color: #666; font-style: italic; }
+  .page { break-after: page; }
+  .demo .step { display: grid; grid-template-columns: 30mm 1fr; gap: 2mm; border-top: 1px dashed #bbb; padding: 1.6mm 0; break-inside: avoid; }
+  .demo .step:first-of-type { border-top: none; }
+  .demo .label { font-weight: 800; }
+  .demo .label small { display: block; font-weight: 700; color: #555; font-size: 9.5pt; }
+  .pre { background: #f1f1f1; border: 1px solid #ccc; border-radius: 2mm; padding: 2mm 3mm; margin-bottom: 2mm; font-size: 11pt; }
+  code { font-family: Consolas, monospace; font-size: 10.5pt; }
+  .small { font-size: 10.5pt; }
+  @media print {
+    body { font-size: 11.5pt; line-height: 1.25; }
+    .grid { gap: 2.5mm; }
+    .card { padding: 2mm 2.5mm; }
+    .demo .step { padding: 1.2mm 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+<h1>Colinha da defesa: Privacy Scanner LGPD 1.2.2</h1>
+<div class="sub">Total ≈ <b>21 min</b> · Demo no slide 12 (<b>10 min</b>) · Se travar: slides ocultos <b>18–26</b> (digitar o número + Enter) · Frase-chave: <span class="key">indício, não conclusão jurídica</span></div>
+
+<div class="grid">
+  <div class="card"><div class="head"><span class="n">1</span><span class="t">Capa</span><span class="time">0:30</span><span class="acc">→0:30</span></div>
+    <ul><li>Boa noite · agradecer <b>banca</b> e <b>Prof. Adilson</b></li><li>Scanner de <b>Python, Java e SQLite</b></li><li>Extensão do <b>VS Code</b></li></ul></div>
+
+  <div class="card"><div class="head"><span class="n">2</span><span class="t">Roteiro</span><span class="time">0:15</span><span class="acc">→0:45</span></div>
+    <ul><li>Intro → teoria → requisitos</li><li><b>Maior parte: demo ao vivo</b></li><li>Avaliação → final</li></ul></div>
+
+  <div class="card"><div class="head"><span class="n">3</span><span class="t">Contexto e problema</span><span class="time">1:00</span><span class="acc">→1:45</span></div>
+    <ul><li><b>Art. 46</b>: proteção desde a concepção</li><li><b>Art. 52</b>: até <b>2%</b> do faturamento, teto <b>R$ 50 mi</b></li><li><b>163 incidentes</b> na ANPD (1º sem. 2023)</li><li>SAST foca segurança, <b>não privacidade</b></li></ul></div>
+
+  <div class="card"><div class="head"><span class="n">4</span><span class="t">Pergunta · objetivo · hipótese</span><span class="time">1:00</span><span class="acc">→2:45</span></div>
+    <ul><li>Como análise estática + PbD acha <b>indícios</b> e apoia a LGPD?</li><li>Objetivo: <b>extensão + servidor local</b></li><li>Hipótese: antecipa riscos na <b>implementação</b></li><li><span class="key">indício, não conclusão jurídica</span></li></ul></div>
+
+  <div class="card"><div class="head"><span class="n">5</span><span class="t">Metodologia DSR</span><span class="time">0:45</span><span class="acc">→3:30</span></div>
+    <ul><li><b>Construir e avaliar</b> um artefato</li><li>1 revisão · 2 escopo · 3 construção · 4 avaliação</li><li>Projetos fixados por commit = <b>reproduzível</b></li></ul></div>
+
+  <div class="card"><div class="head"><span class="n">6</span><span class="t">Fundamentação</span><span class="time">0:05</span><span class="acc">→3:35</span></div>
+    <ul><li class="trans">“Passo agora para a fundamentação teórica.”</li></ul></div>
+
+  <div class="card"><div class="head"><span class="n">7</span><span class="t">Privacy by Design</span><span class="time">0:50</span><span class="acc">→4:25</span></div>
+    <ul><li><b>7 princípios</b> (Cavoukian)</li><li><b>Parcial</b>: padrão, ponta a ponta</li><li><b>Indireto</b>: proativo</li><li><b>Fora</b>: transparência, usuário</li><li class="warn">Não certifica conformidade</li></ul></div>
+
+  <div class="card"><div class="head"><span class="n">8</span><span class="t">Ferramentas correlatas</span><span class="time">0:45</span><span class="acc">→5:10</span></div>
+    <ul><li>Veracode, Checkmarx, Snyk, Sonar, Semgrep, GitHub</li><li>Comparação <b>documental</b></li><li>Lacuna: local + privacidade + LGPD + SQLite</li><li><b>Complementar, não melhor</b></li></ul></div>
+
+  <div class="card"><div class="head"><span class="n">9</span><span class="t">Requisitos e tecnologias</span><span class="time">0:05</span><span class="acc">→5:15</span></div>
+    <ul><li class="trans">“Com essa base, defini requisitos e tecnologias.”</li></ul></div>
+
+  <div class="card"><div class="head"><span class="n">10</span><span class="t">Requisitos não funcionais</span><span class="time">0:45</span><span class="acc">→6:00</span></div>
+    <ul><li><b>11 RF · 11 RNF · 14 regras</b></li><li>Local · evidência segura · estática</li><li><b>Bruto ≠ exibido</b> → auditável</li><li>Relatório avisa: indício</li></ul></div>
+
+  <div class="card wide"><div class="head"><span class="n">11</span><span class="t">Tecnologias e arquitetura</span><span class="time">0:50</span><span class="acc">→6:50</span></div>
+    <ul><li>Extensão <b>TypeScript</b> → HTTP → <b>Flask em localhost</b>: <b>o código não sai da máquina</b></li><li>Python: <b>ast</b> · Java: <b>léxico</b>, sem compilar · SQLite: <b>sqlite3</b> · relatórios JSON, HTML e PDF</li><li>pytest com <b>208 testes</b> · Git/GitHub</li></ul></div>
+</div>
+</div>
+
+<div class="page demo">
+<h1>12 · DEMO AO VIVO <span class="time">10:00</span> <span class="acc">→16:50</span></h1>
+<div class="pre"><b>Antes:</b> VS Code no repo · VSIX <b>1.2.2</b> · backend <b>pronto</b> · perfil <b>conservador</b> · <code>demo.py</code> vazio · arquivos de <code>examples/vulnerable</code> à mão</div>
+
+<div class="step"><div class="label">1 · Sidebar<small>0:45</small></div>
+  <ul><li>Ações rápidas · Achados · Resumo · barra de status</li><li><b>Analisar agora</b> = ícone no topo de Achados · <b>Limpar resultados</b> = em Configuração e suporte</li><li>Tudo local; código <b>nunca executado</b></li></ul></div>
+
+<div class="step"><div class="label">2 · Python<small>1:30</small></div>
+  <ul><li><code>cadastro_clientes_vulneravel.py</code> → <span class="key">7 achados (5A 2M) · indicador 40</span></li><li>Sublinhado + <b>mouse</b> (regra, confiança, artigo) + <b>Problems</b></li><li>Clicar no achado → <b>pula para a linha</b> · Quick Fix → <b>Copiar recomendação</b></li><li>Evidência <b>não mostra CPF/senha</b></li></ul></div>
+
+<div class="step"><div class="label">3 · Java + perfil<small>1:45</small></div>
+  <ul><li><code>ProntuarioVulneravel.java</code> → conservador <span class="key">5 de 9 · 55 exibido vs 30 bruto</span></li><li>Configurar perfil → <b>Completo</b> → 9</li><li>Ajustar uma regra · Limpar personalizações · Restaurar padrão · citar Selecionar/Validar · <b>voltar ao conservador</b></li><li>Botão direito → <b>Ocultar achado</b> → bruto mantido → <b>Restaurar achados ocultados</b></li></ul></div>
+
+<div class="step"><div class="label">4 · SQLite<small>1:15</small></div>
+  <ul><li><code>clientes_demo.db</code> → <span class="key">12 brutos · 3 exibidos · 33 → 75</span></li><li><b>CPF como PK</b> · <b>e-mail em índice único</b> · campos sem hash</li><li class="warn">Mistura de dados NÃO dispara: depende do nome das colunas</li></ul></div>
+
+<div class="step"><div class="label">5 · Projeto<small>0:45</small></div>
+  <ul><li>Analisar projeto inteiro → respeita <b>.privacyignore</b></li><li>Mostrar <b>arquivos ignorados</b> no Resumo</li></ul></div>
+
+<div class="step"><div class="label">6 · Ao salvar<small>1:30</small></div>
+  <ul><li><code>cpf = "123.456.789-00"</code> + <code>print(cpf)</code> → salvar → <span class="key">2 altos · 80</span></li><li><code>print("Operação concluída")</code> → salvar → <span class="key">0 · 100</span></li><li>Caso conhecido: mostra o fluxo, <b>não prova eficácia</b></li></ul></div>
+
+<div class="step"><div class="label">7 · Relatórios<small>1:45</small></div>
+  <ul><li>Exportar <b>HTML</b>: aviso de limite, exibido/bruto/oculto · mostrar <b>JSON</b> e <b>PDF</b></li><li><span class="key">I = 100 − 10A − 5M − 2B</span>: <b>não é %</b> de conformidade nem probabilidade</li></ul></div>
+
+<div class="step"><div class="label">8 · Backend<small>0:30</small></div>
+  <ul><li>Configuração e suporte: <b>Configurar dependências · Reiniciar backend · Abrir logs · Abrir configurações</b></li><li>Também roda por <b>CLI</b> → voltar aos slides</li></ul></div>
+
+<div class="pre warn" style="margin-top:2mm">Travou? Slides ocultos: 21 Python · 22 Java · 23 SQLite · 24 Indicador · 25 Extensão · 26 Antes/depois</div>
+</div>
+
+<div>
+<div class="grid">
+  <div class="card"><div class="head"><span class="n">13</span><span class="t">Validação controlada</span><span class="time">0:50</span><span class="acc">→17:40</span></div>
+    <ul><li><b>135 → 208 testes</b> (1.0.4 → 1.2.2)</li><li>Benchmark: <b>18 casos · 120 decisões · 0 divergência</b></li><li>Extensão: TS, integração, VSIX isolado</li><li class="warn">100% = consistência, não desempenho real</li></ul></div>
+
+  <div class="card"><div class="head"><span class="n">14</span><span class="t">Validação externa</span><span class="time">1:15</span><span class="acc">→18:55</span></div>
+    <ul><li>PEAK = <b>só ajuste</b> · Flasky e Chinook <b>congelados</b></li><li><span class="key">P 39,6% · R 48,7% · F1 43,7%</span></li><li>Erros por nome: formulário, “Name”, CEP</li><li>→ <b>triagem + revisão humana</b></li></ul></div>
+
+  <div class="card"><div class="head"><span class="n">15</span><span class="t">Uso no ciclo</span><span class="time">0:45</span><span class="acc">→19:40</span></div>
+    <ul><li>Precisa existir <b>código ou esquema</b></li><li>Principal: <b>implementação</b>; repetir em revisão e CI</li><li>Cascata · espiral · Scrum (DoD) · DevSecOps</li><li><b>Não bloqueia entrega sozinho</b></li></ul></div>
+
+  <div class="card"><div class="head"><span class="n">16</span><span class="t">Considerações finais</span><span class="time">1:10</span><span class="acc">→20:50</span></div>
+    <ul><li>Hipótese com <b>apoio parcial</b></li><li>Reproduzível; eficácia real limitada</li><li>Limites: Java léxico · nomes · indicador · 1 revisor</li><li>Futuro: 2 revisores · Java semântico · JS/TS · PostgreSQL/MySQL</li></ul></div>
+
+  <div class="card wide"><div class="head"><span class="n">17</span><span class="t">Obrigado</span><span class="time">0:30</span><span class="acc">→21:20</span></div>
+    <ul><li>Código, benchmark e gabarito no <b>GitHub</b> · “Fico à disposição para perguntas.”</li></ul></div>
+
+  <div class="card wide small"><div class="head"><span class="t">Perguntas prováveis</span></div>
+    <ul>
+      <li><b>Muito falso positivo?</b> Regras sintáticas e locais; mantive sem ajuste para expor o limite.</li>
+      <li><b>Pesos do indicador?</b> Heurísticos, só para prioridade; não é risco jurídico.</li>
+      <li><b>Java limitado?</b> Léxico, sem fluxo entre controller, service e repositório.</li>
+      <li><b>Prova conformidade?</b> Não: base legal e finalidade não saem do código.</li>
+      <li><b>E Semgrep ou Veracode?</b> Focam segurança ampla; aqui é privacidade, LGPD e SQLite. Complementar.</li>
+      <li><b>Por que PEAK como ajuste?</b> Separar ajuste e validação evita mexer nas regras depois de ver o resultado.</li>
+      <li><b>Maior ameaça à validade?</b> Corpus pequeno e um revisor.</li>
+    </ul></div>
+</div>
+</div>
+
+</body>
+</html>

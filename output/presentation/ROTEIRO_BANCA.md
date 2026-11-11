@@ -66,14 +66,14 @@ Apresentação: `output/presentation/TCC_Privacy_by_Design_Banca.pptx` (17 slide
 
 **12. Demo ao vivo (10:00)**
 - Pronto antes: VS Code no repo, vsix 1.2.2, servidor ligado, perfil conservador, demo.py vazio
-- Barra lateral: Ações rápidas, Achados, Resumo, status; Analisar agora e Limpar resultados
+- Barra lateral: Ações rápidas, Achados, Resumo, status; Analisar agora (topo de Achados), Limpar resultados (Configuração e suporte)
 - Python: 7 achados (5A 2M), indicador 40; hover, Problems, clicar e ir à linha, Quick Fix copia recomendação
 - Java: 5 de 9, 55 vs 30; perfil completo mostra 9; ajustar regra, Limpar personalizações, Restaurar padrão; Ocultar e Restaurar achado
 - SQLite clientes_demo.db: 12 brutos, 3 exibidos, 33 → 75; mistura de dados não dispara (limitação)
 - Projeto inteiro: .privacyignore e contador de arquivos ignorados
 - Ao salvar: CPF + print → 2 altos, 80; corrigir → 0, 100
 - Relatórios HTML, JSON, PDF; indicador 100 − 10A − 5M − 2B
-- Backend: configurar, reiniciar, logs, settings; também roda por CLI
+- Configuração e suporte: Configurar dependências, Reiniciar backend, Abrir logs, configurações; também roda por CLI
 - Falhou? Slides 18 a 26 ocultos (digitar número + Enter)
 
 **13. Validação controlada (0:50)**
@@ -207,14 +207,14 @@ Embaixo estão as ferramentas de qualidade: pytest para os 208 testes, Git e Git
 
 DEMONSTRAÇÃO AO VIVO (cerca de 10 minutos). Antes da banca, deixe pronto: o VS Code aberto na pasta do repositório, a extensão 1.2.2 instalada pelo VSIX, o servidor local já iniciado, o perfil conservador e um arquivo demo.py vazio.
 
-1. Barra lateral (0:45): mostrar Ações rápidas, Achados e Resumo, e o perfil e o estado do servidor na barra de status; os botões Analisar agora e Limpar resultados ficam em Ações rápidas. Falar: tudo roda na máquina, em localhost; o código analisado não é enviado a ninguém e nunca é executado.
+1. Barra lateral (0:45): mostrar Ações rápidas, Achados e Resumo, e o perfil e o estado do servidor na barra de status; Analisar agora é o ícone no topo da lista Achados e Limpar resultados fica em Configuração e suporte. Falar: tudo roda na máquina, em localhost; o código analisado não é enviado a ninguém e nunca é executado.
 2. Python (1:30): abrir examples/vulnerable/cadastro_clientes_vulneravel.py e analisar o arquivo. São 7 achados, 5 altos e 2 médios, indicador 40. Mostrar as linhas sublinhadas, passar o mouse num achado (regra, confiança, artigo da LGPD e recomendação) e o painel Problems. Clicar num achado na barra lateral e mostrar que o editor pula para a linha. Na lâmpada (Quick Fix), mostrar Copiar recomendação. Mostrar que a evidência não reproduz o CPF nem a senha.
 3. Java, perfis e ocultar (1:45): abrir examples/vulnerable/ProntuarioVulneravel.java e analisar. No perfil conservador aparecem 5 dos 9 achados, indicador exibido 55 contra 30 bruto. Abrir Configurar perfil, trocar para completo e mostrar os 9. Ainda no assistente, ajustar uma regra (confiança mínima ou severidade), mostrar Limpar personalizações e Restaurar padrão conservador; citar Selecionar perfil e Validar perfil para quem prefere editar o JSON. Voltar para o conservador. Depois, clicar com o botão direito num achado, Ocultar achado na interface, e mostrar que o resumo continua contando o total bruto; em seguida, Restaurar achados ocultados.
 4. SQLite (1:15): Analisar banco SQLite e escolher examples/vulnerable/clientes_demo.db. São 12 achados brutos e 3 exibidos (indicador 33 para 75): CPF como chave primária, e-mail em índice único e campos pessoais sem hash. Falar a limitação: a regra de mistura de dados não disparou porque depende dos nomes das colunas.
 5. Projeto inteiro (0:45): Analisar projeto inteiro. Mostrar que ele percorre a pasta e respeita o arquivo .privacyignore, que exclui dependências, testes e exemplos; no Resumo, apontar o contador de arquivos ignorados.
 6. Corrigir e reanalisar ao salvar (1:30): com a análise automática ao salvar ligada, digitar no demo.py cpf = "123.456.789-00" e print(cpf) e salvar: 2 achados altos, indicador 80, sem clicar em nada. Apagar o literal, deixar print("Operação concluída") e salvar: 0 achados, indicador 100. Lembrar que é um caso conhecido: mostra o fluxo, não prova eficácia em projetos reais.
 7. Relatórios e indicador (1:45): Exportar relatório em HTML e abrir o painel (aviso de limite, totais exibido, bruto e oculto, indicador); mostrar rapidamente que também exporta JSON e PDF. Explicar o indicador: parte de 100 e desconta 10 por alto, 5 por médio e 2 por baixo; não é porcentagem de conformidade nem probabilidade de incidente.
-8. Servidor local (0:30): mostrar no menu Configurar dependências do backend, Reiniciar backend e Mostrar logs, abrir rapidamente as configurações da extensão (porta, timeout, análise ao salvar, Python e diagnósticos), e dizer que a ferramenta também roda pela linha de comando com resumo no terminal. Voltar para os slides.
+8. Servidor local (0:30): mostrar no menu Configurar dependências, Reiniciar backend e Abrir logs, abrir rapidamente as configurações da extensão (porta, timeout, análise ao salvar, Python e diagnósticos), e dizer que a ferramenta também roda pela linha de comando com resumo no terminal. Voltar para os slides.
 
 Se algo falhar ou a banca perguntar: os slides 18 a 26 estão ocultos no fim (riscos, requisitos funcionais, regras, cada módulo, relatórios, extensão e antes/depois). Para abrir um deles, digite o número do slide e aperte Enter.
 

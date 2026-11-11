@@ -94,7 +94,7 @@ suíte concluída sem falhas
 
 ## 2. Abrir a Extensão
 
-1. Abra `C:\Users\deanv\OneDrive\Documents\TCC` no VS Code.
+1. Abra a pasta do repositório no VS Code.
 2. Pressione `F5`.
 3. Aguarde abrir a janela `[Extension Development Host]`.
 4. Na nova janela, abra a pasta:
@@ -212,7 +212,7 @@ Falar durante a apresentação:
 A ideia não é corrigir automaticamente qualquer código, porque isso poderia alterar regra de negócio. A ferramenta mostra uma recomendação técnica para orientar o desenvolvedor.
 ```
 
-Também demonstre `Ignorar este risco na interface`. Confirme que a ocorrência desaparece da sidebar e do painel `Problems`, mas continua no relatório exportado e não altera o indicador técnico bruto.
+Também demonstre `Ocultar achado na interface`. Confirme que a ocorrência desaparece da sidebar e do painel `Problems`, mas continua no relatório exportado e não altera o indicador técnico bruto.
 
 ## 9. Exportar Relatório HTML
 
@@ -274,7 +274,7 @@ Durante a demo, vale tirar prints de:
 - `exemplo_correto.py` não gera os mesmos alertas.
 - `banco_vulneravel.db` gera alertas de schema.
 - HTML, PDF e JSON são exportados.
-- `pytest` passa com 164 testes.
+- `pytest` passa com 208 testes.
 
 ## Limitações a Declarar
 

@@ -40,10 +40,10 @@ Versão para o celular: https://claude.ai/artifact/7xf6xoTTuU8suRgR5Nnmth
 - Transição
 
 **8. Privacy by Design (0:50)**
-- **7 princípios** da Cavoukian, em 3 grupos
-- **Apoio indireto**: proativo (analisa antes da entrega)
-- **Apoio parcial**: padrão, incorporada, funcionalidade, ponta a ponta (minimização, proteção, retenção, logs)
-- **Fora do escopo**: transparência e respeito ao usuário (não dá pra ver só no código)
+- 7 princípios → **3 caixas** no slide
+- **Apoio indireto**: Proativo
+- **Apoio parcial**: Padrão · Incorporada · Funcionalidade · Ponta a ponta
+- **Fora do escopo**: Transparência · Respeito ao usuário
 - **Não certifica conformidade**
 
 **9. Ferramentas correlatas (0:45)**

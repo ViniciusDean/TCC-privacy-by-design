@@ -2,7 +2,6 @@
 
 Versão para o celular: https://claude.ai/artifact/7xf6xoTTuU8suRgR5Nnmth
 
-
 **1. Capa (0:30)**
 - Boa noite, agradecer banca e Prof. Adilson
 - Privacy Scanner LGPD: análise estática de Python, Java e SQLite
@@ -21,15 +20,16 @@ Versão para o celular: https://claude.ai/artifact/7xf6xoTTuU8suRgR5Nnmth
 - SAST de mercado foca segurança e qualidade, não privacidade
 
 **4. Pergunta-problema (0:30)**
-- Ler a pergunta do slide com calma
-- Análise estática + Privacy by Design → indícios de risco
-- No ciclo de desenvolvimento, apoiando a LGPD
+- "A pergunta que guiou a pesquisa foi…" (ler do slide)
+- Análise estática de **código e esquema de banco**
+- Orientada pelo **Privacy by Design**
+- Achar **indícios técnicos de risco** e apoiar a **LGPD**
 
 **5. Objetivo e hipótese (0:30)**
-- Objetivo: extensão VS Code + servidor local Python
-- Específicos: PbD/LGPD, modelos de SDLC, ferramentas, requisitos, construir e avaliar
-- Hipótese: antecipa riscos na implementação
-- Achado é indício para revisão humana, não conclusão jurídica
+- **Objetivo**: a ferramenta como extensão do VS Code + servidor local Python
+- **Específicos**: revisar PbD/LGPD · comparar modelos de desenvolvimento · comparar ferramentas · definir requisitos · construir e avaliar
+- **Hipótese**: antecipa os riscos, principalmente na **implementação**
+- Achados = **indícios a revisar**, não conclusão jurídica
 
 **6. Metodologia DSR (0:45)**
 - Design Science Research: construir e avaliar um artefato
@@ -40,11 +40,11 @@ Versão para o celular: https://claude.ai/artifact/7xf6xoTTuU8suRgR5Nnmth
 - Transição
 
 **8. Privacy by Design (0:50)**
-- 7 princípios da Cavoukian
-- Parcial: privacidade como padrão, segurança de ponta a ponta
-- Indireto: proativo (revisão antes da entrega)
-- Fora: transparência e respeito ao usuário
-- Não certifica conformidade
+- **7 princípios** da Cavoukian, em 3 grupos
+- **Apoio indireto**: proativo (analisa antes da entrega)
+- **Apoio parcial**: padrão, incorporada, funcionalidade, ponta a ponta (minimização, proteção, retenção, logs)
+- **Fora do escopo**: transparência e respeito ao usuário (não dá pra ver só no código)
+- **Não certifica conformidade**
 
 **9. Ferramentas correlatas (0:45)**
 - Veracode, Checkmarx, Snyk, SonarQube, Semgrep, GitHub Code Scanning

@@ -54,8 +54,8 @@ function assertMenuContribution(menu: string, expected: MenuContribution): void 
     );
 }
 
-run('declara a versao 1.2.2 e ativa a view de acoes rapidas', () => {
-    assert.strictEqual(manifest.version, '1.2.2');
+run('declara a versao 1.2.3 e ativa a view de acoes rapidas', () => {
+    assert.strictEqual(manifest.version, '1.2.3');
     assert.ok(
         manifest.activationEvents?.includes('onView:privacy-scanner-actions'),
         'A extensao deve ativar quando a view de acoes rapidas for aberta.'

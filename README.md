@@ -14,8 +14,8 @@ Os achados são evidências técnicas para revisão preliminar. Eles não compro
 
 ## Instalar a release
 
-1. Baixe `privacy-scanner-lgpd-1.2.2.vsix` na página da
-   [release v1.2.2](https://github.com/ViniciusDean/TCC-privacy-by-design/releases/tag/v1.2.2).
+1. Baixe `privacy-scanner-lgpd-1.2.3.vsix` na página da
+   [release v1.2.3](https://github.com/ViniciusDean/TCC-privacy-by-design/releases/tag/v1.2.3).
 2. No VS Code, abra `Extensões`, clique no menu `...` e escolha
    `Instalar do VSIX...`.
 3. Selecione o arquivo baixado e, ao final, execute
@@ -26,7 +26,7 @@ Os achados são evidências técnicas para revisão preliminar. Eles não compro
 Também é possível instalar pelo terminal, na pasta onde o arquivo foi baixado:
 
 ```powershell
-code --install-extension .\privacy-scanner-lgpd-1.2.2.vsix --force
+code --install-extension .\privacy-scanner-lgpd-1.2.3.vsix --force
 ```
 
 Pré-requisitos: VS Code 1.85 ou superior e Python 3.8 ou superior. A release já

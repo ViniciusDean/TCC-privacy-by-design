@@ -1,5 +1,12 @@
 # Privacy Scanner LGPD - Extensão VS Code
 
+## Ajustes da versão 1.2.3
+
+- Cada preset de perfil passou a ter as próprias regras ativas: conservador
+  ativa 7 regras, equilibrado 12 e completo as 14. Trocar o preset no
+  assistente aplica as regras dele. Os achados exibidos pelos presets padrão
+  continuam os mesmos da 1.2.2.
+
 ## Ajustes da versão 1.2.2
 
 - O resumo identifica o alvo e o horário da análise e avisa quando ficou
@@ -377,12 +384,12 @@ O comando:
 
 1. copia o backend Python necessário para dentro do pacote;
 2. compila o TypeScript;
-3. gera `privacy-scanner-lgpd-1.2.2.vsix`.
+3. gera `privacy-scanner-lgpd-1.2.3.vsix`.
 
 Para instalar pelo terminal:
 
 ```powershell
-code --install-extension .\privacy-scanner-lgpd-1.2.2.vsix --force
+code --install-extension .\privacy-scanner-lgpd-1.2.3.vsix --force
 ```
 
 Também é possível abrir a área de extensões do VS Code, clicar em `...`,

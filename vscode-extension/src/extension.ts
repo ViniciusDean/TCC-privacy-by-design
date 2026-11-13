@@ -751,7 +751,7 @@ export function activate(context: vscode.ExtensionContext) {
     extensionContext = context;
     outputChannel = vscode.window.createOutputChannel('Privacy Scanner');
     context.subscriptions.push(outputChannel);
-    log('Extensao v1.2.2 ativada. Logs nao incluem codigo-fonte.');
+    log('Extensao v1.2.3 ativada. Logs nao incluem codigo-fonte.');
     // A chave anterior podia conter o trecho usado como identificador. Ela é
     // removida na migração para não manter código-fonte bruto no estado local.
     // A limpeza não pode bloquear o registro da interface: alguns workspaces

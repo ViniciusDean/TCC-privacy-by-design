@@ -38,6 +38,8 @@ export interface ProfilePresetDescriptor {
     readonly id: Preset;
     readonly label: string;
     readonly minimumConfidence: Confidence;
+    /** Regras que o preset ativa por padrão; as demais ficam desativadas. */
+    readonly enabledCategories: readonly ProfileCategoryId[];
     readonly description: string;
 }
 
@@ -141,24 +143,55 @@ export const PROFILE_CATEGORIES: readonly ProfileCategoryDescriptor[] = [
     }
 ];
 
+/**
+ * Cada preset ativa somente as regras capazes de produzir achados no seu
+ * limiar de confiança. Regras que emitem apenas confiança média ou baixa não
+ * aparecem no conservador; regras que emitem apenas confiança baixa não
+ * aparecem no equilibrado. Assim, as regras ativas refletem o que o preset
+ * realmente pode exibir, sem alterar os resultados do limiar.
+ */
+const CONSERVADOR_CATEGORIES: readonly ProfileCategoryId[] = [
+    'DADO_HARDCODED',
+    'CRIPTOGRAFIA_FRACA',
+    'DADO_EM_LOG',
+    'TRANSFERENCIA_SEM_BASE_LEGAL',
+    'AUSENCIA_EXCLUSAO',
+    'CAMPO_SEM_HASH',
+    'DADO_SENSIVEL_COMO_PK'
+];
+
+const EQUILIBRADO_CATEGORIES: readonly ProfileCategoryId[] = [
+    ...CONSERVADOR_CATEGORIES,
+    'DADO_SEM_CRIPTOGRAFIA',
+    'COLETA_EXCESSIVA',
+    'AUSENCIA_SOFT_DELETE',
+    'MISTURA_DADOS',
+    'DADO_SENSIVEL_COMO_INDICE_UNICO'
+];
+
 export const PROFILE_PRESETS: readonly ProfilePresetDescriptor[] = [
     {
         id: 'conservador',
         label: 'Conservador',
         minimumConfidence: 'ALTA',
-        description: 'Mostra somente indícios de confiança alta e reduz o ruído.'
+        enabledCategories: CONSERVADOR_CATEGORIES,
+        description: 'Somente confiança alta e as 7 regras de evidência direta (literais, '
+            + 'criptografia, log, transferência, exclusão, hash e chave primária).'
     },
     {
         id: 'equilibrado',
         label: 'Equilibrado',
         minimumConfidence: 'MEDIA',
-        description: 'Mostra indícios de confiança alta e média.'
+        enabledCategories: EQUILIBRADO_CATEGORIES,
+        description: 'Confiança alta e média em 12 regras; deixa de fora retenção e '
+            + 'consentimento, que só geram indícios de confiança baixa.'
     },
     {
         id: 'completo',
         label: 'Completo',
         minimumConfidence: 'BAIXA',
-        description: 'Mostra indícios de todas as faixas de confiança para maior cobertura.'
+        enabledCategories: PROFILE_CATEGORY_IDS,
+        description: 'Todas as 14 regras e todas as faixas de confiança, para maior cobertura.'
     }
 ];
 
@@ -186,4 +219,8 @@ export function getProfilePreset(preset: Preset): ProfilePresetDescriptor {
 
 export function presetMinimumConfidence(preset: Preset): Confidence {
     return getProfilePreset(preset).minimumConfidence;
+}
+
+export function presetEnablesCategory(preset: Preset, categoryId: ProfileCategoryId): boolean {
+    return getProfilePreset(preset).enabledCategories.includes(categoryId);
 }

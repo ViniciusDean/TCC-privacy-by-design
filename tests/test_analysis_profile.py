@@ -98,3 +98,31 @@ def test_invalid_profile_types_return_structured_400(tmp_path, profile):
     data = response.get_json()
     assert data["success"] is False
     assert data["error"]["codigo"] == "PERFIL_INVALIDO"
+
+
+def test_each_preset_activates_its_own_rules():
+    from analysis_profile import PRESET_CATEGORIES
+
+    assert {k: len(v) for k, v in PRESET_CATEGORIES.items()} == {
+        "conservador": 7,
+        "equilibrado": 12,
+        "completo": 14,
+    }
+    assert PRESET_CATEGORIES["conservador"] < PRESET_CATEGORIES["equilibrado"]
+    coleta = finding(category="COLETA_EXCESSIVA", confidence="MEDIA")
+    assert not apply_profile([coleta], parse_profile({"preset": "conservador"}))
+    assert apply_profile([coleta], parse_profile({"preset": "equilibrado"}))
+    retencao = finding(category="AUSENCIA_RETENCAO", confidence="BAIXA")
+    assert not apply_profile([retencao], parse_profile({"preset": "equilibrado"}))
+    assert apply_profile([retencao], parse_profile({"preset": "completo"}))
+
+
+def test_rule_disabled_by_preset_can_be_enabled_explicitly():
+    profile = parse_profile({
+        "preset": "conservador",
+        "categories": {
+            "COLETA_EXCESSIVA": {"enabled": True, "minimumConfidence": "MEDIA"},
+        },
+    })
+    raw = finding(category="COLETA_EXCESSIVA", confidence="MEDIA")
+    assert apply_profile([raw], profile)

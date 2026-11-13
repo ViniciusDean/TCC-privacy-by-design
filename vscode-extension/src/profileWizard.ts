@@ -141,12 +141,12 @@ async function pickMainAction(
         {
             label: '$(clear-all) Limpar personalizações',
             description: `Manter ${preset.label.toLocaleLowerCase('pt-BR')}`,
-            detail: 'Remove ajustes de regras e preserva o preset base.',
+            detail: 'Remove ajustes de regras e volta às regras e limiares do preset base.',
             action: 'clear'
         },
         {
             label: '$(discard) Restaurar padrão conservador',
-            detail: 'Volta ao preset conservador com todas as regras nos valores padrão.',
+            detail: 'Volta ao preset conservador, com as regras e valores padrão dele.',
             action: 'reset'
         },
         {
@@ -180,7 +180,8 @@ async function pickPreset(
     const items: PresetItem[] = PROFILE_PRESETS.map(preset => ({
         label: preset.label,
         description: preset.id === draft.preset ? 'Atual' : undefined,
-        detail: `${preset.description} Confiança mínima padrão: ${preset.minimumConfidence}.`,
+        detail: `${preset.description} Confiança mínima padrão: ${preset.minimumConfidence}; `
+            + `${preset.enabledCategories.length} de ${PROFILE_CATEGORY_IDS.length} regras ativas.`,
         preset: preset.id,
         picked: preset.id === draft.preset
     }));
@@ -192,8 +193,8 @@ async function pickPreset(
     const selected = await api.window.showQuickPick(items, {
         title: wizardTitle(scopeLabel, 'Preset base'),
         placeHolder: customizations > 0
-            ? `${customizationText(customizations)} serão preservadas ao trocar o preset.`
-            : 'Escolha o limiar padrão de confiança.',
+            ? 'Trocar o preset aplica as regras ativas dele; ajustes de confiança e severidade são mantidos.'
+            : 'Escolha o preset: cada um define as regras ativas e o limiar de confiança.',
         ignoreFocusOut: true,
         matchOnDescription: true,
         matchOnDetail: true

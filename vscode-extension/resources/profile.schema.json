@@ -16,7 +16,7 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "enabled": { "type": "boolean", "default": true },
+          "enabled": { "type": "boolean", "description": "Liga ou desliga a regra. Sem este campo, vale o padrão do preset (conservador: 7 regras, equilibrado: 12, completo: 14)." },
           "minimumConfidence": { "enum": ["ALTA", "MEDIA", "BAIXA"] },
           "severity": { "enum": ["ALTO", "MEDIO", "BAIXO"] }
         }

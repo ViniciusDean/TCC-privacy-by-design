@@ -233,6 +233,10 @@ Também existem comandos diretos na Paleta:
 
 Cada pasta pode conter `.privacy-scanner.json`. O preset `conservador` é o
 padrão; `equilibrado` inclui confiança média e `completo` inclui também baixa.
+Cada preset também define as regras ativas: o `conservador` ativa 7 regras de
+evidência direta, o `equilibrado` ativa 12 (deixa de fora retenção e
+consentimento, que só geram indícios de confiança baixa) e o `completo` ativa
+as 14. Uma regra desativada pelo preset pode ser ligada com `"enabled": true`.
 Categorias podem ser desativadas ou receber limiar de confiança e severidade
 próprios. O arquivo possui validação e autocomplete no VS Code.
 
@@ -242,9 +246,10 @@ Clique em `Configurar perfil` nas `Ações rápidas`. Em workspaces com mais de
 uma raiz, a extensão usa a pasta do arquivo ativo ou solicita a raiz quando ela
 não puder ser determinada. O menu `Configurar perfil — <pasta>` oferece:
 
-- `Preset base`: Conservador (confiança alta), Equilibrado (alta e média) ou
-  Completo (todas as faixas); trocar o preset preserva as personalizações;
-- `Regras ativas`: seleção das 13 regras, separadas entre Código e SQLite;
+- `Preset base`: Conservador (confiança alta, 7 regras), Equilibrado (alta e
+  média, 12 regras) ou Completo (todas as faixas, 14 regras); trocar o preset
+  aplica as regras ativas dele e preserva ajustes de confiança e severidade;
+- `Regras ativas`: seleção das 14 regras, separadas entre Código e SQLite;
 - `Ajustar uma regra`: confiança mínima, severidade técnica ou limpeza dos
   ajustes daquela regra;
 - `Limpar personalizações` e `Restaurar padrão conservador`;

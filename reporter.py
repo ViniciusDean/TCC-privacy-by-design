@@ -93,7 +93,7 @@ RECOMENDACOES = {
 }
 
 ORDEM_RISCO = {"ALTO": 0, "MEDIO": 1, "BAIXO": 2}
-VERSAO_FERRAMENTA = "1.2.2"
+VERSAO_FERRAMENTA = "1.2.3"
 
 AVISO_ESCOPO_ANALISE = (
     "Os resultados representam indícios técnicos identificados por análise "

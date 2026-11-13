@@ -91,7 +91,8 @@ async function main(): Promise<void> {
         }, api);
 
         assert.ok(result);
-        assert.strictEqual(Object.keys(result.categories).length, 13);
+        // O conservador ativa 7 regras; desmarcar as 6 restantes gera 6 overrides.
+        assert.strictEqual(Object.keys(result.categories).length, 6);
         assert.strictEqual(result.categories.DADO_EM_LOG, undefined);
         assert.ok(Object.values(result.categories).every(options => options.enabled === false));
     });

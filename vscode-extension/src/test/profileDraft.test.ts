@@ -59,6 +59,55 @@ run('mantem os tres presets sincronizados com seus limiares', () => {
     assert.strictEqual(presetMinimumConfidence('equilibrado'), 'MEDIA');
 });
 
+run('cada preset ativa um conjunto proprio de regras', () => {
+    const counts = PROFILE_PRESETS.map(preset => [
+        preset.id,
+        getEnabledCategoryIds({ preset: preset.id, categories: {} }).length
+    ]);
+    assert.deepStrictEqual(counts, [
+        ['conservador', 7],
+        ['equilibrado', 12],
+        ['completo', 14]
+    ]);
+    const conservador = getEnabledCategoryIds({ preset: 'conservador', categories: {} });
+    const equilibrado = getEnabledCategoryIds({ preset: 'equilibrado', categories: {} });
+    assert.ok(conservador.every(id => equilibrado.includes(id)));
+    assert.strictEqual(conservador.includes('COLETA_EXCESSIVA'), false);
+    assert.strictEqual(equilibrado.includes('COLETA_EXCESSIVA'), true);
+    assert.strictEqual(equilibrado.includes('AUSENCIA_RETENCAO'), false);
+});
+
+run('trocar o preset aplica as regras do novo preset e mantem ajustes finos', () => {
+    let draft = createProfileDraft({
+        schemaVersion: 1,
+        preset: 'completo',
+        categories: {
+            MISTURA_DADOS: { enabled: false },
+            DADO_EM_LOG: { enabled: false, severity: 'MEDIO' }
+        }
+    });
+    assert.strictEqual(getEnabledCategoryIds(draft).length, 12);
+
+    draft = changeDraftPreset(draft, 'conservador');
+    assert.strictEqual(getEnabledCategoryIds(draft).length, 7);
+    assert.deepStrictEqual(normalizeProfileDraft(draft).categories, {
+        DADO_EM_LOG: { severity: 'MEDIO' }
+    });
+
+    draft = changeDraftPreset(draft, 'completo');
+    assert.strictEqual(getEnabledCategoryIds(draft).length, 14);
+
+    draft = setDraftCategoryEnabled(
+        changeDraftPreset(draft, 'conservador'),
+        'COLETA_EXCESSIVA',
+        true
+    );
+    assert.deepStrictEqual(normalizeProfileDraft(draft).categories.COLETA_EXCESSIVA, {
+        enabled: true
+    });
+    assert.strictEqual(getEnabledCategoryIds(draft).length, 8);
+});
+
 run('normaliza somente overrides reais sem alterar o perfil recebido', () => {
     const profile: AnalysisProfile = {
         schemaVersion: 1,
@@ -83,7 +132,7 @@ run('normaliza somente overrides reais sem alterar o perfil recebido', () => {
         preset: 'conservador',
         categories: {
             DADO_EM_LOG: { severity: 'MEDIO' },
-            AUSENCIA_RETENCAO: { enabled: false, minimumConfidence: 'MEDIA' }
+            AUSENCIA_RETENCAO: { minimumConfidence: 'MEDIA' }
         }
     });
     assert.deepStrictEqual(profile, snapshot);
@@ -148,6 +197,7 @@ run('ajusta e remove confianca e severidade por regra', () => {
 
     draft = setDraftCategoryEnabled(draft, 'COLETA_EXCESSIVA', true);
     assert.deepStrictEqual(normalizeProfileDraft(draft).categories.COLETA_EXCESSIVA, {
+        enabled: true,
         minimumConfidence: 'MEDIA',
         severity: 'BAIXO'
     });

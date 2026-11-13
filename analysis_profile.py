@@ -15,6 +15,20 @@ PRESETS = {
     "equilibrado": "MEDIA",
     "completo": "BAIXA",
 }
+# Regras ativas por padrao em cada preset. Cada preset ativa somente as regras
+# capazes de produzir achados no seu limiar de confianca; o conjunto deve ficar
+# sincronizado com PROFILE_PRESETS em vscode-extension/src/profileCatalog.ts.
+PRESET_CATEGORIES = {
+    "conservador": frozenset({
+        "DADO_HARDCODED", "CRIPTOGRAFIA_FRACA", "DADO_EM_LOG",
+        "TRANSFERENCIA_SEM_BASE_LEGAL", "AUSENCIA_EXCLUSAO", "CAMPO_SEM_HASH",
+        "DADO_SENSIVEL_COMO_PK",
+    }),
+}
+PRESET_CATEGORIES["equilibrado"] = PRESET_CATEGORIES["conservador"] | {
+    "DADO_SEM_CRIPTOGRAFIA", "COLETA_EXCESSIVA", "AUSENCIA_SOFT_DELETE",
+    "MISTURA_DADOS", "DADO_SENSIVEL_COMO_INDICE_UNICO",
+}
 CONFIANCA_ORDEM = {"BAIXA": 0, "MEDIA": 1, "ALTA": 2}
 RISCOS = {"ALTO", "MEDIO", "BAIXO"}
 CATEGORIES = {
@@ -24,6 +38,12 @@ CATEGORIES = {
     "AUSENCIA_RETENCAO", "MISTURA_DADOS", "AUSENCIA_CONSENTIMENTO",
     "DADO_SENSIVEL_COMO_PK", "DADO_SENSIVEL_COMO_INDICE_UNICO",
 }
+PRESET_CATEGORIES["completo"] = frozenset(CATEGORIES)
+
+
+def preset_enables(preset: str, category: str) -> bool:
+    """Indica se a regra esta ativa por padrao no preset informado."""
+    return category in PRESET_CATEGORIES[preset]
 
 
 class ProfileValidationError(ValueError):
@@ -87,7 +107,7 @@ def parse_profile(value: Any = None, *, source: str = "requisicao") -> AnalysisP
             raise ProfileValidationError(
                 f"Opcoes desconhecidas em {raw_name}: {', '.join(sorted(unknown))}."
             )
-        enabled = raw_options.get("enabled", True)
+        enabled = raw_options.get("enabled", preset_enables(preset, raw_name))
         confidence = raw_options.get("minimumConfidence", PRESETS[preset])
         severity = raw_options.get("severity")
         if not isinstance(enabled, bool):
@@ -117,7 +137,11 @@ def apply_profile(findings: list, profile: AnalysisProfile) -> list:
     for finding in findings:
         category = str(finding.categoria)
         options = profile.categories.get(category, {})
-        if options.get("enabled", True) is False:
+        enabled = options.get(
+            "enabled",
+            preset_enables(profile.preset, category) if category in CATEGORIES else True,
+        )
+        if enabled is False:
             continue
         confidence = str(getattr(finding, "confianca", "ALTA"))
         if confidence not in CONFIANCA_ORDEM:

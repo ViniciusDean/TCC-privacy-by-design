@@ -73,7 +73,7 @@ def test_health_exposes_backend_identity():
     assert response.get_json() == {
         "status": "ok",
         "service": "privacy-scanner",
-        "version": "1.2.2",
+        "version": "1.2.3",
         "api_version": 1,
     }
 

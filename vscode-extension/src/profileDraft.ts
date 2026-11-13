@@ -9,6 +9,7 @@ import {
 } from './profile';
 import {
     isProfileCategoryId,
+    presetEnablesCategory,
     presetMinimumConfidence,
     PROFILE_CATEGORY_IDS,
     ProfileCategoryId
@@ -86,8 +87,8 @@ export function normalizeProfileDraft(draft: ProfileDraft): AnalysisProfile {
             continue;
         }
         const normalized: CategoryProfile = {};
-        if (raw.enabled === false) {
-            normalized.enabled = false;
+        if (raw.enabled !== undefined && raw.enabled !== presetEnablesCategory(draft.preset, id)) {
+            normalized.enabled = raw.enabled;
         }
         if (
             raw.minimumConfidence !== undefined
@@ -106,8 +107,25 @@ export function normalizeProfileDraft(draft: ProfileDraft): AnalysisProfile {
     return { schemaVersion: 1, preset: draft.preset, categories };
 }
 
+/**
+ * Troca o preset aplicando o conjunto de regras ativas do novo preset. Ajustes
+ * de confiança e severidade por regra são preservados; a seleção manual de
+ * regras ativas é descartada para que o preset escolhido tenha efeito.
+ */
 export function changeDraftPreset(draft: ProfileDraft, preset: Preset): ProfileDraft {
-    return { preset, categories: cloneCategories(draft.categories) };
+    const categories = cloneCategories(draft.categories);
+    for (const [id, options] of Object.entries(categories)) {
+        delete options.enabled;
+        if (Object.keys(options).length === 0) {
+            delete categories[id];
+        }
+    }
+    return { preset, categories };
+}
+
+function isCategoryEnabled(draft: ProfileDraft, categoryId: ProfileCategoryId): boolean {
+    const explicit = draft.categories[categoryId]?.enabled;
+    return explicit !== undefined ? explicit : presetEnablesCategory(draft.preset, categoryId);
 }
 
 export function setDraftEnabledCategories(
@@ -118,10 +136,11 @@ export function setDraftEnabledCategories(
     let next = { preset: draft.preset, categories: cloneCategories(draft.categories) } as ProfileDraft;
     for (const categoryId of PROFILE_CATEGORY_IDS) {
         next = setCategoryOptions(next, categoryId, options => {
-            if (enabled.has(categoryId)) {
+            const wanted = enabled.has(categoryId);
+            if (wanted === presetEnablesCategory(draft.preset, categoryId)) {
                 delete options.enabled;
             } else {
-                options.enabled = false;
+                options.enabled = wanted;
             }
             return options;
         });
@@ -135,10 +154,10 @@ export function setDraftCategoryEnabled(
     enabled: boolean
 ): ProfileDraft {
     return setCategoryOptions(draft, categoryId, options => {
-        if (enabled) {
+        if (enabled === presetEnablesCategory(draft.preset, categoryId)) {
             delete options.enabled;
         } else {
-            options.enabled = false;
+            options.enabled = enabled;
         }
         return options;
     });
@@ -192,7 +211,7 @@ export function resetProfileDraft(): ProfileDraft {
 }
 
 export function getEnabledCategoryIds(draft: ProfileDraft): readonly ProfileCategoryId[] {
-    return PROFILE_CATEGORY_IDS.filter(id => draft.categories[id]?.enabled !== false);
+    return PROFILE_CATEGORY_IDS.filter(id => isCategoryEnabled(draft, id));
 }
 
 export function getEffectiveCategorySettings(
@@ -202,7 +221,9 @@ export function getEffectiveCategorySettings(
     const normalized = normalizeProfileDraft(draft);
     const options = normalized.categories[categoryId] || {};
     return {
-        enabled: options.enabled !== false,
+        enabled: options.enabled !== undefined
+            ? options.enabled
+            : presetEnablesCategory(draft.preset, categoryId),
         minimumConfidence: options.minimumConfidence || presetMinimumConfidence(draft.preset),
         severity: options.severity,
         customized: Object.keys(options).length > 0
